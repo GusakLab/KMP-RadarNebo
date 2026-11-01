@@ -37,6 +37,7 @@ include(":core")
 include(":shared")
 include(":mission-control:server")
 include(":mission-control:ui")
+include(":mission-control:android")
 include(":app:android")
 include(":app:desktop")
 // Android Studio's hot-reload run configurations ask for the bare task "hotRun" (or "hotDev") plus --mainClass.

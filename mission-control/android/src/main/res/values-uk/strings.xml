@@ -1,0 +1,55 @@
+<resources>
+    <string name="action_refresh">Оновити</string>
+    <string name="action_server">Адреса сервера</string>
+    <string name="action_open_status_page">Відкрити сторінку стану</string>
+    <string name="action_retry">Спробувати ще раз</string>
+    <string name="common_save">Зберегти</string>
+    <string name="common_cancel">Скасувати</string>
+    <string name="common_use_default">За замовчуванням</string>
+
+    <string name="status_ok">Працює · отримує дані</string>
+    <string name="status_warming_up">Працює · чекає на перші дані</string>
+    <string name="status_stale">Працює · дані застаріли</string>
+    <string name="status_degraded">Працює · джерело даних дає збої</string>
+    <string name="status_unreachable">Сервер недоступний</string>
+    <string name="status_connecting">Підключення…</string>
+    <string name="updated_at">Оновлено о %1$s · оновлюється кожні %2$d с</string>
+    <string name="showing_last_known">Показано останній звіт, о %1$s</string>
+
+    <string name="card_source">Джерело даних</string>
+    <string name="source_label">Джерело</string>
+    <string name="source_simulation">Симуляція</string>
+    <string name="source_simulated_warning">Симульовані дані, а не реальна ситуація</string>
+    <string name="data_version">Версія даних</string>
+
+    <string name="card_upstream">Зовнішнє джерело</string>
+    <string name="upstream_last_minute">Остання хвилина</string>
+    <string name="upstream_last_minute_value">%1$d з %2$d запитів</string>
+    <string name="upstream_total">Усього запитів</string>
+    <string name="upstream_rate_limited">Обмежено за частотою</string>
+    <string name="upstream_rejected">Відхилено</string>
+    <string name="upstream_other_failures">Інші збої</string>
+    <string name="upstream_last_success">Останній успішний</string>
+
+    <string name="card_polling">Опитування</string>
+    <string name="poll_interval">Інтервал</string>
+    <string name="poll_interval_value">кожні %1$d с</string>
+    <string name="poll_last">Останнє</string>
+    <string name="poll_next">Наступне</string>
+
+    <string name="card_situation">Ситуація</string>
+    <string name="situation_alerts">Тривоги</string>
+    <string name="situation_active_tracks">Активні треки</string>
+    <string name="situation_tracks">Треки</string>
+    <string name="situation_tracks_value">%1$d активних з %2$d</string>
+    <string name="situation_data_from">Дані на</string>
+    <string name="situation_data_age">Вік даних</string>
+    <string name="seconds_ago">%1$d с тому</string>
+
+    <string name="card_error">Остання помилка</string>
+    <string name="unknown_error">Невідома помилка</string>
+
+    <string name="server_dialog_title">Адреса сервера</string>
+    <string name="server_dialog_text">Сервер RadarNebo, за яким стежити. Його звіт /health публічний, тож ключ не потрібен.</string>
+    <string name="server_dialog_invalid">Введіть адресу, що починається з http:// або https://</string>
+</resources>

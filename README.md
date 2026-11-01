@@ -49,6 +49,8 @@ From a terminal:
 - Android app: `./gradlew :app:android:assembleDebug`
 - Android release build: `./gradlew :app:android:assembleRelease` (APK) or `bundleRelease` (AAB). Signing needs a
   keystore and `keystore.properties`; see [Android release build](./docs/android-release-build.md).
+- MissionControl-Nebo, the Android server monitor: `./gradlew :mission-control:android:bundleRelease`; signing and the
+  Google Play listing are in [MissionControl-Nebo release](./docs/mission-control-android-release.md).
 - Desktop app: `./gradlew :app:desktop:run`
 - iOS app: open the [/app/ios](./app/ios) directory in Xcode and run it from there.
 - Server: CI, the Oracle Cloud deploy and the server's environment variables are in [Server deployment](./docs/deployment.md).

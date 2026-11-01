@@ -1,0 +1,12 @@
+MissionControl-Nebo is de assistent voor beheerders van een RadarNebo-server. De app leest het openbare statusrapport van de server en laat in één oogopslag zien of de server draait en verse gegevens ontvangt.
+
+• Status: actief en ontvangt gegevens, wacht op de eerste gegevens, verouderde gegevens of een falende gegevensbron
+• Gegevensbron: alerts.in.ua of de simulatie, plus de huidige gegevensversie
+• Situatie: actieve alarmen, actieve en alle tracks, en de leeftijd van de gegevens
+• Upstream: verzoeken in de laatste minuut ten opzichte van het budget, totalen, gelimiteerde, geweigerde en mislukte verzoeken
+• Ophalen: interval, laatste en volgende keer, en de laatste fout
+• Vernieuwt elke 5 seconden zolang de app open is; vraag op elk moment een vers rapport op
+• Volg elke RadarNebo-server: de openbare of je eigen, op internet of in je lokale netwerk
+• Engels, Oekraïens en Nederlands
+
+De app leest alleen het /health-rapport van de server. Er is geen account nodig, er worden geen persoonsgegevens verzameld en er zijn geen advertenties.

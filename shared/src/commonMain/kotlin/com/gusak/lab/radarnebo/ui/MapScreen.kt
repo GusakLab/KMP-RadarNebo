@@ -28,6 +28,7 @@ import com.gusak.lab.radarnebo.tracking.TargetClassifier
 import com.gusak.lab.radarnebo.tracking.TrackInterpolator
 import com.gusak.lab.radarnebo.tracking.TrackPredictor
 import kotlin.time.Clock
+import kotlin.time.Instant
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
@@ -582,7 +583,7 @@ private fun StatusStrip(state: UiState, onClick: () -> Unit = {}, onReconnect: (
         Spacer(Modifier.width(8.dp))
         Column {
             Text(text, color = radarColors.onOverlay, fontSize = 12.sp)
-            Text("${serverHost(state.settings.serverUrl)} · ${server.label}", color = server.color(), fontSize = 11.sp)
+            Text(server.label, color = server.color(), fontSize = 11.sp)
             state.error?.let { Text(it, color = radarColors.dangerText, fontSize = 12.sp) }
             if (server == ServerState.Offline) ReconnectRow(state, onReconnect)
         }
@@ -632,8 +633,8 @@ private fun ReconnectRow(state: UiState, onReconnect: () -> Unit) {
 private enum class ServerState(val label: String) {
     Connecting("connecting…"),
     Live("server live"),
-    /** The server answers but its own data source (alerts.in.ua) fails; it keeps serving the last data. */
-    Degraded("server up, its data source is failing"),
+    /** The server answers but cannot refresh its own data; it keeps serving the last data. */
+    Degraded("server up, data may be stale"),
     Offline("no data from the server");
 
     @Composable
@@ -654,9 +655,7 @@ private enum class ServerState(val label: String) {
     }
 }
 
-private fun serverHost(url: String) = url.substringAfter("://").trimEnd('/').ifBlank { url }
-
-/** Details behind the status dot: where the app gets its data and how the server is doing. */
+/** Details behind the status dot: whether the data is live or simulated and how the server is doing. */
 @Composable
 private fun ServerStatusCard(state: UiState, onOpenRequests: (() -> Unit)?, modifier: Modifier = Modifier) {
     val server = ServerState.of(state)
@@ -668,25 +667,15 @@ private fun ServerStatusCard(state: UiState, onOpenRequests: (() -> Unit)?, modi
                 Spacer(Modifier.width(8.dp))
                 Text("Server", style = MaterialTheme.typography.titleMedium)
             }
-            StatusLine("Address", state.settings.serverUrl)
             StatusLine("Status", server.label.replaceFirstChar { it.uppercase() })
-            state.lastUpdated?.let { StatusLine("Last data", formatClock(it.toEpochMilliseconds())) }
             if (health != null) {
                 StatusLine(
                     "Source",
-                    when {
-                        health.simulated -> "Simulation (not the real situation)"
-                        health.source == "AlertsInUa" -> "alerts.in.ua"
-                        else -> health.source
-                    },
+                    if (health.simulated) "SIMULATED" else "LIVE",
+                    if (health.simulated) radarColors.warningText else radarColors.okText,
                 )
-                health.upstreamBudgetPerMinute?.let { budget ->
-                    StatusLine("Upstream", "${health.upstreamRequestsLastMinute} of $budget requests in the last minute")
-                }
-                if (health.pollIntervalSeconds > 0) StatusLine("Polled", "every ${health.pollIntervalSeconds} s")
-                health.lastAttemptAt?.let { StatusLine("Last poll", formatClock(it)) }
-                health.lastError?.let { StatusLine("Source error", it, radarColors.dangerText) }
             }
+            state.lastUpdated?.let { StatusLine("Last request", rememberAgo(it)) }
             state.error?.let { StatusLine("Error", it, radarColors.dangerText) }
             if (server == ServerState.Offline) {
                 Text(
@@ -697,6 +686,24 @@ private fun ServerStatusCard(state: UiState, onOpenRequests: (() -> Unit)?, modi
             }
             if (onOpenRequests != null) TextButton(onClick = onOpenRequests) { Text("Show requests") }
         }
+    }
+}
+
+/** How long ago [instant] was, to the second ("4 s ago", "2 min 5 s ago"), ticking while shown. */
+@Composable
+private fun rememberAgo(instant: Instant): String {
+    var now by remember { mutableStateOf(Clock.System.now()) }
+    LaunchedEffect(instant) {
+        while (true) {
+            now = Clock.System.now()
+            delay(1_000)
+        }
+    }
+    val seconds = (now - instant).inWholeSeconds.coerceAtLeast(0)
+    return when {
+        seconds < 60 -> "$seconds s ago"
+        seconds < 3_600 -> "${seconds / 60} min ${seconds % 60} s ago"
+        else -> "${seconds / 3_600} h ${seconds % 3_600 / 60} min ago"
     }
 }
 

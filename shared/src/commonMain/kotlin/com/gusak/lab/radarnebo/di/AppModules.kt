@@ -30,13 +30,16 @@ import org.koin.dsl.module
 
 /** The server client and repositories. They hold state (caches), so one each. */
 fun dataModule() = module {
-    // Every request to the server and its response, for the request inspector.
-    single { TrafficLog() }
     // A platform module may provide a Logger to log the server's requests and responses.
-    single { RadarNeboApi(RadarNeboApi.defaultClient(getOrNull<Logger>(), get<TrafficLog>())) }
+    single { RadarNeboApi(RadarNeboApi.defaultClient(getOrNull<Logger>(), getOrNull<TrafficLog>())) }
     singleOf(::SettingsRepository)
     singleOf(::FavoritesRepository)
     single { AlertsRepository(get()) }
+}
+
+/** Keeps every request to the server and its response for the request inspector. Debug builds only. */
+fun trafficLogModule() = module {
+    single { TrafficLog() }
 }
 
 /** Use cases are stateless; a new one per injection. */

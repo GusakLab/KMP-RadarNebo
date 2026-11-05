@@ -50,8 +50,8 @@ import kotlin.math.sin
 
 /**
  * Round map-mode toggle. Static mode: an outlined button with a camera icon. Cinematic mode: the
- * button fills with the primary colour, the camera turns into a sweeping radar and the whole button
- * fades to 50% so it stays out of the shot. Tapping again returns to the static map.
+ * button fills with the primary colour and the camera turns into a sweeping radar. It stays solid
+ * there, over the letterbox's top bar, as the way out. Tapping again returns to the static map.
  */
 @Composable
 fun CinematicToggle(cinematic: Boolean, onToggle: (Boolean) -> Unit, modifier: Modifier = Modifier) {
@@ -62,7 +62,6 @@ fun CinematicToggle(cinematic: Boolean, onToggle: (Boolean) -> Unit, modifier: M
     Box(
         modifier
             .size(48.dp)
-            .alpha(1f - 0.5f * progress)
             .clip(CircleShape)
             .background(lerp(radarColors.overlay, primary, progress), CircleShape)
             .border(1.5.dp, primary.copy(alpha = 1f - progress), CircleShape)

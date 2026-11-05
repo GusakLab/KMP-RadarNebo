@@ -6,7 +6,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -192,10 +194,13 @@ fun GlassNavigationBar(
     onSelect: (Int) -> Unit,
     backdrop: GlassBackdrop,
     modifier: Modifier = Modifier,
+    /** Dims the bar like everything else behind an open [GlassDialog]; it stays tappable, to switch between dialogs. */
+    dimmed: Boolean = false,
 ) {
     val colors = radarColors
     val shape = RoundedCornerShape(percent = 50)
     val itemWidth = GlassNavBarDefaults.ItemWidth
+    val dim by animateFloatAsState(if (dimmed) 1f else 0f, tween(GlassScrimFadeMillis))
     val lens = remember { Animatable(selectedIndex.toFloat()) }
     LaunchedEffect(selectedIndex) {
         lens.animateTo(selectedIndex.toFloat(), spring(dampingRatio = 0.68f, stiffness = Spring.StiffnessMediumLow))
@@ -206,6 +211,11 @@ fun GlassNavigationBar(
     Box(
         modifier
             .height(GlassNavBarDefaults.Height)
+            // The bar floats above the scrim to keep its touches, so it lays the same dim over itself.
+            .drawWithContent {
+                drawContent()
+                drawOutline(shape.createOutline(size, layoutDirection, this), glassScrim(colors.isDark), alpha = dim)
+            }
             .liquidGlass(backdrop, shape)
             .padding(6.dp),
     ) {

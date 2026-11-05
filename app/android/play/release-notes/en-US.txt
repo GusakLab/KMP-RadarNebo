@@ -1,0 +1,1 @@
+Cinematic mode's exit button now stays clearly visible above the letterbox, and opening Favorites or Settings dims the whole screen, including the status and navigation bars.

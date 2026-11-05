@@ -2,6 +2,12 @@
 
 How to set up signing for the Android app (`:app:android`) and build a release APK or App Bundle.
 
+> **Google Play:** the app ships on the listing created for MissionControl-Nebo, so its application id is
+> `com.gusak.lab.radarnebo.missioncontrol` and release builds are signed with that listing's upload key, read from
+> `~/Keys/MissionControl-Nebo/keystore.properties` or the folder in `-PmissionControl.keystoreDir` /
+> `MISSIONCONTROL_KEYSTORE_DIR`. The `keystore.properties` at the repo root described below is no longer used by the
+> build. Store texts and graphics are in `app/android/play/`.
+
 ## Where the files go
 
 | File | Location | In git |
@@ -66,7 +72,7 @@ Outputs:
 - `app/android/build/outputs/apk/release/android-release.apk`
 - `app/android/build/outputs/bundle/release/android-release.aab`
 
-Before a new release, bump `versionCode` and `versionName` in `defaultConfig` in `app/android/build.gradle.kts`.
+A local build is `3 (1.0.2)` unless you pass `-PradarNebo.versionCode=<n>` and `-PradarNebo.versionName=<x.y.z>`.
 
 ## Verifying the signature
 
@@ -81,17 +87,40 @@ To print the key fingerprints (SHA-1 / SHA-256), for example for Firebase or Goo
 keytool -list -v -keystore app/android/keystore/radarnebo-release.jks -alias radarnebo
 ```
 
-## CI
+## Deploying to Google Play
 
-On CI, store the keystore as a base64 secret and the passwords as separate secrets. Before the build, decode the
-keystore to a file and write `keystore.properties` from the secrets.
+`.github/workflows/deploy-android.yml` builds a signed bundle from `main` and uploads it to the **production** track
+through the Google Play Developer API, with the notes in `app/android/play/release-notes/`. Google then reviews it as
+usual. Update the release notes in a pull request before each release.
 
 ```bash
-echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > app/android/keystore/radarnebo-release.jks
-cat > keystore.properties <<EOF
-storeFile=app/android/keystore/radarnebo-release.jks
-storePassword=$ANDROID_KEYSTORE_PASSWORD
-keyAlias=radarnebo
-keyPassword=$ANDROID_KEYSTORE_PASSWORD
-EOF
+gh workflow run deploy-android.yml --ref main -f version_name=1.0.2
+gh workflow run deploy-android.yml --ref main -f version_name=1.0.2 -f user_fraction=0.2   # staged
 ```
+
+The versionCode is the workflow's run number + 2.
+
+**Check the Play Console's Publishing overview first.** If a release is still in review, a deploy cancels that review
+and resubmits everything together with the new release (the API's default, `CANCEL_IN_REVIEW_AND_SUBMIT`).
+
+### Credentials
+
+The secrets live in the repository's `google-play` environment, which only `main` can use:
+
+| Secret | Value |
+|---|---|
+| `MISSIONCONTROL_KEYSTORE_BASE64` | `base64 -i missioncontrol-nebo-release.jks` |
+| `MISSIONCONTROL_KEYSTORE_PASSWORD` | The keystore password (also the key password; the keystore is PKCS12) |
+| `RADARNEBO_ANDROID_CLIENT_KEY` | The server key built into the public app; one of the server's `CLIENT_KEYS` |
+| `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` | The service account's JSON key |
+
+The service account:
+
+1. Google Cloud Console, in the `elderpuzzlescroll` project: enable the **Google Play Android Developer API**, then
+   under **IAM & Admin → Service Accounts** create `radarnebo-play-deploy`, without project roles, and add a JSON key.
+2. Play Console → **Users and permissions → Invite new users**: enter the account's address. Under **App permissions**,
+   add this app only, with **Release to production, exclude devices, and use Play App Signing**,
+   **Release apps to testing tracks** and **Manage testing tracks and edit tester lists**. Leave account permissions empty.
+3. `gh secret set GOOGLE_PLAY_SERVICE_ACCOUNT_JSON --env google-play < key.json`, then delete `key.json`.
+
+A new service account can take up to a day to start working with the API.

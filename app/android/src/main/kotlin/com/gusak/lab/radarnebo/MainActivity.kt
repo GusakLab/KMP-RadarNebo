@@ -23,7 +23,11 @@ class MainActivity : ComponentActivity() {
                     }
                     enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
                 },
-                onOpenRequests = { startActivity(Intent(this, RequestInspectorActivity::class.java)) },
+                onOpenRequests = if (BuildConfig.DEBUG) {
+                    { startActivity(Intent(this, RequestInspectorActivity::class.java)) }
+                } else {
+                    null
+                },
             )
         }
     }

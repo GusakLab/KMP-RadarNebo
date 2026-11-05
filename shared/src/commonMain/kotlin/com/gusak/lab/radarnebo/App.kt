@@ -144,6 +144,7 @@ fun App(
                         selectedIndex = tab.ordinal,
                         onSelect = { tab = Tab.entries[it] },
                         backdrop = backdrop,
+                        dimmed = tab != Tab.Map,
                     )
                 }
             }

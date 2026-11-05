@@ -62,8 +62,9 @@ android {
         applicationId = "com.gusak.lab.radarnebo.missioncontrol"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 1
-        versionName = "1.0.0"
+        // The Google Play deploy workflow passes both, so a release needs no version commit.
+        versionCode = providers.gradleProperty("missionControl.versionCode").orNull?.toInt() ?: 1
+        versionName = providers.gradleProperty("missionControl.versionName").orNull ?: "1.0.0"
         buildConfigField("String", "DEFAULT_SERVER_URL", "\"$defaultServerUrl\"")
     }
     androidResources {

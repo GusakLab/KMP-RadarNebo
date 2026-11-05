@@ -36,6 +36,7 @@ import kotlin.math.ln
 import kotlin.math.roundToInt
 import kotlin.math.sinh
 import kotlin.math.tan
+import kotlin.concurrent.Volatile
 import kotlin.time.Clock
 
 /**
@@ -78,6 +79,13 @@ enum class TileSource(
 private const val BUNDLED_MAX_ZOOM = 9
 
 private data class TileKey(val source: TileSource, val z: Int, val x: Int, val y: Int)
+
+/**
+ * What one drawn frame of the map asked for, at the zoom that frame wanted. [missing] tiles are still to come, whether
+ * loading or waiting to retry, with a coarser stand-in or nothing in their place; [absent] ones never will, being
+ * outside what's bundled.
+ */
+data class TileFrame(val source: TileSource, val z: Int, val drawn: Int, val missing: Int, val absent: Int)
 
 /**
  * The tiles bundled for each street style, per zoom: the ranges in files/map/coverage.txt, which
@@ -130,6 +138,15 @@ class MapTiles(
     var loaded by mutableIntStateOf(0)
         private set
 
+    /**
+     * The latest frame's tiles. The app never reads this: store screenshot captures wait on it (PlayScreenshots in
+     * androidTest), as the UI gives no sign of when the map has finished loading. Written while drawing, so it must
+     * stay out of snapshot state, and read from the test's thread.
+     */
+    @Volatile
+    var lastFrame: TileFrame? = null
+        internal set
+
     /** A tile already in memory, or null; never starts a download. */
     fun cached(source: TileSource, z: Int, x: Int, y: Int): ImageBitmap? {
         val key = TileKey(source, z, x, y)
@@ -173,6 +190,12 @@ class MapTiles(
             }
         }
         return null
+    }
+
+    /** Whether a tile [get] returned null for can still arrive. */
+    internal fun canArrive(source: TileSource, z: Int, x: Int, y: Int): Boolean {
+        if (source.bundled == null) return client != null
+        return coverage?.contains(TileKey(source, z, x, y)) ?: true
     }
 
     private fun store(key: TileKey, image: ImageBitmap) {
@@ -241,11 +264,16 @@ internal fun DrawScope.drawMapTiles(tiles: MapTiles, source: TileSource, camera:
             z--
             continue
         }
+        var drawn = 0
+        var missing = 0
+        var absent = 0
         for (x in x0..x1) for (y in y0..y1) {
             val image = tiles.get(source, z, x, y)
             if (image != null) {
+                drawn++
                 drawTile(image, IntOffset.Zero, TILE_PX, z, x, y, camera)
             } else {
+                if (tiles.canArrive(source, z, x, y)) missing++ else absent++
                 // A cached ancestor, cropped to this tile's part of it.
                 for (up in 1..4) {
                     if (z - up < 0) break
@@ -257,6 +285,7 @@ internal fun DrawScope.drawMapTiles(tiles: MapTiles, source: TileSource, camera:
                 }
             }
         }
+        tiles.lastFrame = TileFrame(source, z, drawn, missing, absent)
         break
     }
 }

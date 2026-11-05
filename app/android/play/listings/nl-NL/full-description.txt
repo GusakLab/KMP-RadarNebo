@@ -1,0 +1,15 @@
+RadarNebo toont luchtdreigingen boven Oekraïne op een live kaart, samen met het luchtalarmniveau van elke oblast.
+
+• Live kaart: drones, kruis- en ballistische raketten en andere dreigingen, elk met een eigen pictogram
+• Sporen en voorspellingen: waar een doel is geweest en waar het mogelijk heen gaat
+• Alarmniveaus: oblasten gekleurd naar hun huidige alarm
+• Favorieten: bewaar plaatsen die voor jou belangrijk zijn, met een waarschuwingsstraal eromheen
+• Cinematische modus voor een schermvullend beeld van de situatie
+• Filters: kies welke dreigingen je ziet en hoe lang ze op de kaart blijven
+• Straten-, satelliet- of eenvoudige kaart, licht en donker thema
+
+RadarNebo combineert openbare alarmbronnen; posities en voorspellingen zijn schattingen en kunnen te laat of onjuist zijn. De app stuurt geen pushmeldingen. Het is geen officieel waarschuwingssysteem en is niet verbonden aan een overheid: volg altijd officiële alarmen en de instructies van de lokale autoriteiten.
+
+De app is voorlopig in het Engels.
+
+Geen account, advertenties, analytics of locatietoegang.

@@ -1,0 +1,93 @@
+name: Deploy RadarNebo Android to Google Play
+
+# Manual only: a production release goes through Google's review and reaches users. Start it from the Actions tab, with
+# `gh workflow run`, or through GitHub's workflow dispatch REST API (docs/android-release-build.md).
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: Version name shown to users, for example 1.0.1
+        type: string
+        required: true
+      user_fraction:
+        description: Staged rollout, between 0 and 1 exclusive (for example 0.2). Empty releases to everyone
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Holds the secrets; only main can use this environment.
+    environment: google-play
+    # Two runs at once would race for Play's single open edit.
+    concurrency:
+      group: deploy-google-play-android
+      cancel-in-progress: false
+    env:
+      VERSION_NAME: ${{ inputs.version_name }}
+      USER_FRACTION: ${{ inputs.user_fraction }}
+    steps:
+      - name: Check inputs
+        run: |
+          [[ "$VERSION_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::version_name must look like 1.0.1"; exit 1; }
+          [[ -z "$USER_FRACTION" || "$USER_FRACTION" =~ ^0\.[0-9]*[1-9][0-9]*$ ]] || { echo "::error::user_fraction must be between 0 and 1 exclusive, like 0.2"; exit 1; }
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+      # The app compiles against a minor API level the runner's preinstalled SDK doesn't carry.
+      - name: Install Android API 37.2
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.2" > /dev/null
+      # The build leaves the bundle unsigned when keystore.properties is missing, so a missing secret must stop here.
+      - name: Write the upload key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.MISSIONCONTROL_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.MISSIONCONTROL_KEYSTORE_PASSWORD }}
+        run: |
+          [[ -n "$KEYSTORE_BASE64" && -n "$KEYSTORE_PASSWORD" ]] || { echo "::error::keystore secrets are missing"; exit 1; }
+          KEYSTORE_DIR="$RUNNER_TEMP/missioncontrol-keystore"
+          (umask 077
+            mkdir -p "$KEYSTORE_DIR"
+            base64 --decode <<< "$KEYSTORE_BASE64" > "$KEYSTORE_DIR/upload.jks"
+            printf 'storeFile=upload.jks\nstorePassword=%s\nkeyAlias=missioncontrol-nebo\nkeyPassword=%s\n' \
+              "$KEYSTORE_PASSWORD" "$KEYSTORE_PASSWORD" > "$KEYSTORE_DIR/keystore.properties")
+          echo "MISSIONCONTROL_KEYSTORE_DIR=$KEYSTORE_DIR" >> "$GITHUB_ENV"
+      # client.properties is gitignored, and without it the app starts with no server key and can't reach the server.
+      - name: Write the client config
+        env:
+          CLIENT_KEY: ${{ secrets.RADARNEBO_ANDROID_CLIENT_KEY }}
+        run: |
+          [[ -n "$CLIENT_KEY" ]] || { echo "::error::RADARNEBO_ANDROID_CLIENT_KEY secret is missing"; exit 1; }
+          (umask 077; printf 'server.url=https://radar-nebo.worxbend.com\nserver.accessKey=%s\n' "$CLIENT_KEY" > client.properties)
+      # The run number only goes up, and a re-run of a failed upload keeps its number. +2 because the releases uploaded
+      # by hand took versionCodes 1 and 2. Renaming this file restarts the count: raise the offset past Play's latest.
+      - name: Build the bundle
+        run: |
+          VERSION_CODE=$((GITHUB_RUN_NUMBER + 2))
+          ./gradlew :app:android:bundleRelease \
+            "-PradarNebo.versionCode=$VERSION_CODE" "-PradarNebo.versionName=$VERSION_NAME"
+          echo "### RadarNebo $VERSION_NAME ($VERSION_CODE)" >> "$GITHUB_STEP_SUMMARY"
+      - name: Prepare the release notes
+        run: |
+          mkdir whatsnew
+          for notes in app/android/play/release-notes/*.txt; do
+            cp "$notes" "whatsnew/whatsnew-$(basename "$notes" .txt)"
+          done
+      # This action can't set changesInReviewBehavior, so Play's default applies: anything still in review is cancelled
+      # and resubmitted together with this release.
+      - name: Upload to the production track
+        uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.gusak.lab.radarnebo.missioncontrol
+          releaseFiles: app/android/build/outputs/bundle/release/android-release.aab
+          releaseName: ${{ inputs.version_name }}
+          tracks: production
+          status: ${{ inputs.user_fraction != '' && 'inProgress' || 'completed' }}
+          userFraction: ${{ inputs.user_fraction }}
+          whatsNewDirectory: whatsnew

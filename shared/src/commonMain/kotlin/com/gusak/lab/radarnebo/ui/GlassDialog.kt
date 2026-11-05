@@ -59,11 +59,12 @@ fun GlassDialog(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val colors = radarColors
-    AnimatedVisibility(visible, modifier.fillMaxSize(), enter = fadeIn(tween(200)), exit = fadeOut(tween(200))) {
+    // Not [modifier]: that insets the panel, while the scrim must reach under the system bars and cutouts.
+    AnimatedVisibility(visible, Modifier.fillMaxSize(), enter = fadeIn(tween(GlassScrimFadeMillis)), exit = fadeOut(tween(GlassScrimFadeMillis))) {
         Box(
             Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = if (colors.isDark) 0.35f else 0.2f))
+                .background(glassScrim(colors.isDark))
                 .clickable(remember { MutableInteractionSource() }, indication = null, onClick = onDismiss),
         )
     }
@@ -115,6 +116,10 @@ fun GlassDialog(
  * whatever map, imagery or alert is behind the dialog.
  */
 internal const val GlassDialogTint = 0.7f
+
+/** The dim an open dialog lays over everything behind it, and how long it takes to fade. */
+internal fun glassScrim(isDark: Boolean) = Color.Black.copy(alpha = if (isDark) 0.35f else 0.2f)
+internal const val GlassScrimFadeMillis = 200
 
 @Composable
 private fun CloseButton(onClick: () -> Unit) {

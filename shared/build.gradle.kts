@@ -11,7 +11,9 @@ plugins {
 
 // client.properties at the repo root (gitignored; see client.properties.example) sets the server address and access key
 // the apps start with. They're generated into ClientConfig.kt; without the file both are blank.
-val clientProperties = providers.fileContents(rootProject.layout.projectDirectory.file("client.properties")).asText
+// A public App Store build uses its own revocable key: -PclientProperties=client.ios.properties (also gitignored).
+val clientPropertiesFile = providers.gradleProperty("clientProperties").orElse("client.properties")
+val clientProperties = providers.fileContents(rootProject.layout.projectDirectory.file(clientPropertiesFile)).asText
     .map { text -> Properties().apply { load(text.reader()) } }
 val generateClientConfig by tasks.registering {
     val serverUrl = clientProperties.map { it.getProperty("server.url").orEmpty().trim() }.orElse("")
@@ -57,7 +59,10 @@ kotlin {
 
     android {
        namespace = "com.gusak.lab.radarnebo.shared"
-       compileSdk = libs.versions.android.compileSdk.get().toInt()
+       // Compose 1.13 (from material3 1.13.0-beta01) needs API 37.1 or later to compile against.
+       compileSdk {
+           version = release(libs.versions.android.compileSdk.get().toInt()) { minorApiLevel = 2 }
+       }
        minSdk = libs.versions.android.minSdk.get().toInt()
     
        compilerOptions {

@@ -1,0 +1,13 @@
+RadarNebo shows aerial threats over Ukraine on a live map, together with the air-raid alert level of each oblast.
+
+• Live map: drones, cruise and ballistic missiles and other threat types, each with its own icon
+• Tracks and forecasts: where a target has been and where it may be heading
+• Alert levels: oblasts coloured by their current alert
+• Favorites: save the places you care about, with a warning radius around them
+• Cinematic mode for a full-screen view of the situation
+• Filters: choose which threats to show and how long to keep them on the map
+• Streets, satellite or plain map, light and dark themes
+
+RadarNebo combines public alert sources; positions and forecasts are estimates and can be late or wrong. The app sends no push notifications. It is not an official warning system and is not affiliated with any government: always follow official alerts and your local authorities' instructions.
+
+No account, no ads, no analytics and no location access.

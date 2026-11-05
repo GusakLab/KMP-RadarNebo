@@ -18,6 +18,7 @@ import com.gusak.lab.radarnebo.ui.applyAppIdentity
 import com.gusak.lab.radarnebo.ui.debug.RequestInspectorScreen
 import com.gusak.lab.radarnebo.di.desktopModule
 import com.gusak.lab.radarnebo.di.initKoin
+import com.gusak.lab.radarnebo.di.trafficLogModule
 import com.gusak.lab.radarnebo.ui.map.LocalPinchZoom
 import com.gusak.lab.radarnebo.ui.rememberWindowPinch
 import io.ktor.client.plugins.logging.Logger
@@ -39,8 +40,12 @@ fun main() {
     } else {
         null
     }
-    val koin = initKoin(desktopModule(System.getProperty("radarnebo.settings")?.let(::File), httpLogger)).koin
-    val traffic = koin.get<TrafficLog>()
+    // Only Gradle's development runs set this (see build.gradle.kts), so a packaged app has no request inspector.
+    val debugBuild = System.getProperty("radarnebo.debug").toBoolean()
+    val koin = initKoin(desktopModule(System.getProperty("radarnebo.settings")?.let(::File), httpLogger)) {
+        if (debugBuild) modules(trafficLogModule())
+    }.koin
+    val traffic = koin.getOrNull<TrafficLog>()
     val settings = koin.get<SettingsRepository>()
     application {
         var requestsOpen by remember { mutableStateOf(false) }
@@ -51,10 +56,10 @@ fun main() {
             state = rememberWindowState(width = 1100.dp, height = 820.dp),
         ) {
             CompositionLocalProvider(LocalPinchZoom provides rememberWindowPinch(window.rootPane)) {
-                App(onOpenRequests = { requestsOpen = true })
+                App(onOpenRequests = if (traffic != null) ({ requestsOpen = true }) else null)
             }
         }
-        if (requestsOpen) {
+        if (requestsOpen && traffic != null) {
             Window(
                 onCloseRequest = { requestsOpen = false },
                 title = "RadarNebo · Requests",

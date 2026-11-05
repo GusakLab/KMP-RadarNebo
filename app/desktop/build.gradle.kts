@@ -31,6 +31,9 @@ val dockArgs = if (System.getProperty("os.name").startsWith("Mac")) {
 tasks.withType<JavaExec>().configureEach {
     jvmArgs("--add-exports=java.desktop/com.apple.eawt.event=ALL-UNNAMED")
     jvmArgs(dockArgs)
+    // Turns on the request inspector. Packaged apps only get compose.desktop's jvmArgs, so they never have this.
+    // A system property, not a jvmArg: Compose replaces the jvmArgs of `run` after this.
+    if (name != "runRelease") systemProperty("radarnebo.debug", "true")
 }
 
 dependencies {
@@ -59,15 +62,20 @@ tasks.test {
     }
 }
 
+// A Mac App Store package: ./gradlew :app:desktop:packagePkg -PmacAppStore -PclientProperties=client.ios.properties
+// -PmacProfile=<embedded.provisionprofile> -PmacKeychain=<keychain> -PmacBuildNumber=<n>. Without -PmacAppStore nothing changes.
+val macAppStore = providers.gradleProperty("macAppStore").isPresent
+
 compose.desktop {
     application {
         mainClass = "com.gusak.lab.radarnebo.desktop.MainKt"
         jvmArgs("--add-exports=java.desktop/com.apple.eawt.event=ALL-UNNAMED")
-        jvmArgs(*dockArgs.toTypedArray())
+        // dockArgs name a file in this checkout, which a shipped app doesn't have; its bundle sets the name and icon.
+        if (!macAppStore) jvmArgs(*dockArgs.toTypedArray())
         System.getProperty("radarnebo.settings")?.let { jvmArgs("-Dradarnebo.settings=$it") }
 
         nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+            targetFormats(TargetFormat.Dmg, TargetFormat.Pkg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "RadarNebo"
             packageVersion = "1.0.0"
             // The packaged app ships a trimmed JDK. `suggestRuntimeModules` finds the first three; logback needs
@@ -77,6 +85,28 @@ compose.desktop {
             macOS {
                 iconFile.set(project.file("icons/radarnebo.icns"))
                 bundleID = "com.gusak.lab.radarnebo"
+                if (macAppStore) {
+                    appStore = true
+                    infoPlist {
+                        // Standard HTTPS only, as in the iOS app's Info.plist.
+                        extraKeysRawXml = "<key>ITSAppUsesNonExemptEncryption</key><false/>"
+                    }
+                    // The same App ID as the iOS app, so one App Store listing covers both.
+                    bundleID = "com.gusak.lab.radarnebo.RadarNebo"
+                    iconFile.set(project.file("icons/radarnebo-appstore.icns"))
+                    appCategory = "public.app-category.utilities"
+                    minimumSystemVersion = "12.0"
+                    packageBuildVersion = providers.gradleProperty("macBuildNumber").getOrElse("1")
+                    entitlementsFile.set(project.file("macos/entitlements.plist"))
+                    runtimeEntitlementsFile.set(project.file("macos/runtime-entitlements.plist"))
+                    provisioningProfile.set(file(providers.gradleProperty("macProfile").get()))
+                    runtimeProvisioningProfile.set(file(providers.gradleProperty("macProfile").get()))
+                    signing {
+                        sign.set(true)
+                        identity.set("GUSAK LAB LLC")
+                        keychain.set(providers.gradleProperty("macKeychain").get())
+                    }
+                }
             }
             windows { iconFile.set(project.file("icons/radarnebo.ico")) }
             linux { iconFile.set(project.file("icons/radarnebo.png")) }

@@ -12,8 +12,8 @@ are `SCREAMING_SNAKE_CASE`, indentation is 4 spaces, default arguments and early
 guide says nothing, follow the [Kotlin coding conventions](https://kotlinlang.org/docs/coding-conventions.html), then
 the surrounding code.
 
-Examples use the repo's vocabulary. A snippet that names a real class quotes or trims the real code. Other snippets
-are illustrative.
+Examples use the repo's vocabulary and, where it helps, real class names. Every snippet shows code as these rules
+require it, so a snippet can differ in detail from the current source.
 
 "Must", "never", "no" and "only" mark rules. Rules have no exceptions, and they apply to existing code as much as to
 new code. "Prefer" and "aim" mark guidance: a reviewer may ask for the reason when code deviates from it. See
@@ -36,7 +36,7 @@ new code. "Prefer" and "aim" mark guidance: a reviewer may ask for the reason wh
 | Resources | Every resource has one owner and a visible release path. |
 | Time, randomness | Read only through an injected clock or `Random`. |
 | Tests | One behavior per test, deterministic, no real sleeps. |
-| Warnings | Kotlin compilation reports zero warnings, enforced by `allWarningsAsErrors`. Warnings are fixed, never suppressed. |
+| Warnings | Kotlin compilation reports zero warnings, and every module's build sets `allWarningsAsErrors`. Warnings are fixed, never suppressed. |
 | Violations | None are tolerated. A violation is fixed, never exempted, suppressed or baselined. |
 
 ## Tooling
@@ -80,9 +80,10 @@ Multiline declarations put each parameter on its own line, with the closing pare
 
 ```kotlin
 class TelegramChannelSource(
-    private val client: HttpClient,
     private val channel: String,
+    private val client: HttpClient = AlertsInUaSource.defaultClient(),
     private val clock: () -> Long = System::currentTimeMillis,
+    private val activeFor: Duration = 20.minutes,
     override val pollInterval: Duration = 60.seconds,
 ) : AlertsDataSource
 ```
@@ -758,10 +759,15 @@ the contract, failure behavior, resource ownership and threading. Link symbols w
 
 ```kotlin
 /**
- * Where the server's alerts come from: alerts.in.ua or the simulation. Implementations never throw for an
- * upstream failure; they return [FetchResult.Failed] with how long to wait.
+ * Wait at least [minWaitMs] (or the source's [retryAfterMs]) before trying again.
+ * [maxWaitMs] caps the exponential backoff, so a transient outage doesn't delay recovery for long.
  */
-interface AlertsDataSource
+data class Failed(
+    val message: String,
+    val minWaitMs: Long,
+    val retryAfterMs: Long? = null,
+    val maxWaitMs: Long = 60_000,
+) : FetchResult
 ```
 
 Do not document private functions unless they encode a subtle algorithm or boundary condition.

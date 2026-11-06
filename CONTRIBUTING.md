@@ -176,17 +176,19 @@ adapted for text that others read later.
 CI runs on every pull request and on every push to `main`:
 
 ```bash
-./gradlew --continue :core:jvmTest :mission-control:server:test :mission-control:ui:test :app:desktop:test
+./gradlew --continue :core:jvmTest :shared:jvmTest :mission-control:server:test :mission-control:ui:test :app:desktop:test
+./gradlew --continue :app:android:assembleDebug :mission-control:android:assembleDebug \
+    :core:compileKotlinIosArm64 :core:compileKotlinIosSimulatorArm64 \
+    :shared:compileKotlinIosArm64 :shared:compileKotlinIosSimulatorArm64
 ```
 
-- A UI change also runs `./gradlew :shared:jvmTest` locally (Compose screenshot and contrast tests).
 - New non-trivial logic gets a test: a branch, a parser, tracking math, security, or a data write.
 - When a golden fails, diff the text written under `build/golden-actual/` against the old output. Update the digest
   only for an intended change, and say why in the PR.
 - Never disable or skip a test to get CI green. A flaky test is a bug: fix it in its own PR, right away.
 - Never silence a compiler warning. Fix it (see CODE_STYLE.md, Warnings).
-- Mobile and desktop builds that CI does not run (`:app:android:assembleDebug`, the iOS app) are the author's job to
-  build when the change touches them. Note it under **Test**.
+- CI does not link or run the iOS app. A change that touches it is built in Xcode by the author. Note it under
+  **Test**.
 
 ## Dependencies
 

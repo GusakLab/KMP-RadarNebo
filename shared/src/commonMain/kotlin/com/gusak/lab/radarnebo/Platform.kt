@@ -1,7 +1,7 @@
 package com.gusak.lab.radarnebo
 
-interface Platform {
+internal interface Platform {
     val name: String
 }
 
-expect fun getPlatform(): Platform
+internal expect fun getPlatform(): Platform

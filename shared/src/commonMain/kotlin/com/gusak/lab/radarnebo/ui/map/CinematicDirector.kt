@@ -26,7 +26,7 @@ import kotlinx.coroutines.launch
 import kotlin.math.max
 
 /** One camera "shot" in cinematic mode. */
-data class CinematicShot(
+internal data class CinematicShot(
     val key: String,
     val kind: Kind,
     val title: String,
@@ -38,7 +38,7 @@ data class CinematicShot(
     enum class Kind { ThreatNearFavorite, FavoriteClear, Hotspot, Overview }
 }
 
-object ShotPlanner {
+internal object ShotPlanner {
     private const val UKRAINE_SPAN_KM = 1300f
 
     /**
@@ -51,49 +51,9 @@ object ShotPlanner {
         threats: List<ThreatMarker>,
         radiusKm: Int,
     ): List<CinematicShot> {
-        if (proximity.isNotEmpty()) {
-            return proximity.map { hit ->
-                val f = hit.favorite.point
-                val t = hit.threat.point
-                val span = max(max(hit.distanceKm.toFloat() * 3f, radiusKm * 2.6f), 60f)
-                CinematicShot(
-                    key = "hit:${hit.favorite.id}:${hit.threat.id}",
-                    kind = CinematicShot.Kind.ThreatNearFavorite,
-                    title = "THREAT NEAR ${hit.favorite.name.uppercase()}",
-                    subtitle = buildString {
-                        append(hit.threat.type.label)
-                        append(" · ")
-                        append(hit.threat.level.name.uppercase())
-                        append(" · ")
-                        append(if (hit.insideRegion) "region-wide (${hit.threat.oblastName})" else "${hit.distanceKm.toInt()} km – ${hit.threat.title}")
-                    },
-                    focus = if (hit.insideRegion) f else GeoPoint((f.lat + t.lat) / 2, (f.lon + t.lon) / 2),
-                    zoom = zoomForSpan(span),
-                    threatId = hit.threat.id,
-                )
-            }
-        }
-        val patrol = favorites.map {
-            CinematicShot(
-                key = "fav:${it.id}",
-                kind = CinematicShot.Kind.FavoriteClear,
-                title = "${it.name.uppercase()} · CLEAR",
-                subtitle = "No threats within $radiusKm km",
-                focus = it.point,
-                zoom = zoomForSpan(radiusKm * 3.5f),
-            )
-        }
-        val hotspots = threats.take(4).map {
-            CinematicShot(
-                key = "hot:${it.id}",
-                kind = CinematicShot.Kind.Hotspot,
-                title = "TRACKING · ${it.title.uppercase()}",
-                subtitle = "${it.type.label} · ${it.level.name.uppercase()} · ${it.oblastName}",
-                focus = it.point,
-                zoom = zoomForSpan(if (it.isRegionWide) 320f else 160f),
-                threatId = it.id,
-            )
-        }
+        if (proximity.isNotEmpty()) return proximity.map { threatNearFavorite(it, radiusKm) }
+        val patrol = favorites.map { favoriteClear(it, radiusKm) }
+        val hotspots = threats.take(4).map(::hotspot)
         val overview = CinematicShot(
             key = "overview",
             kind = CinematicShot.Kind.Overview,
@@ -105,6 +65,52 @@ object ShotPlanner {
         return listOf(overview) + patrol + hotspots
     }
 
+    private fun threatNearFavorite(hit: ProximityHit, radiusKm: Int): CinematicShot {
+        val f = hit.favorite.point
+        val t = hit.threat.point
+        val span = max(max(hit.distanceKm.toFloat() * 3f, radiusKm * 2.6f), 60f)
+        return CinematicShot(
+            key = "hit:${hit.favorite.id}:${hit.threat.id}",
+            kind = CinematicShot.Kind.ThreatNearFavorite,
+            title = "THREAT NEAR ${hit.favorite.name.uppercase()}",
+            subtitle = buildString {
+                append(hit.threat.type.label)
+                append(" · ")
+                append(hit.threat.level.name.uppercase())
+                append(" · ")
+                append(
+                    if (hit.insideRegion) {
+                        "region-wide (${hit.threat.oblastName})"
+                    } else {
+                        "${hit.distanceKm.toInt()} km – ${hit.threat.title}"
+                    },
+                )
+            },
+            focus = if (hit.insideRegion) f else GeoPoint((f.lat + t.lat) / 2, (f.lon + t.lon) / 2),
+            zoom = zoomForSpan(span),
+            threatId = hit.threat.id,
+        )
+    }
+
+    private fun favoriteClear(favorite: FavoriteLocation, radiusKm: Int) = CinematicShot(
+        key = "fav:${favorite.id}",
+        kind = CinematicShot.Kind.FavoriteClear,
+        title = "${favorite.name.uppercase()} · CLEAR",
+        subtitle = "No threats within $radiusKm km",
+        focus = favorite.point,
+        zoom = zoomForSpan(radiusKm * 3.5f),
+    )
+
+    private fun hotspot(threat: ThreatMarker) = CinematicShot(
+        key = "hot:${threat.id}",
+        kind = CinematicShot.Kind.Hotspot,
+        title = "TRACKING · ${threat.title.uppercase()}",
+        subtitle = "${threat.type.label} · ${threat.level.name.uppercase()} · ${threat.oblastName}",
+        focus = threat.point,
+        zoom = zoomForSpan(if (threat.isRegionWide) 320f else 160f),
+        threatId = threat.id,
+    )
+
     private fun zoomForSpan(spanKm: Float) = (UKRAINE_SPAN_KM / spanKm).coerceIn(1.5f, MapCamera.MAX_ZOOM)
 }
 
@@ -113,7 +119,7 @@ object ShotPlanner {
  * and holds it: IDE previews and screenshots render only the first frames, before any fly-to.
  */
 @Stable
-class CinematicDirector(private val start: CinematicShot? = null) {
+internal class CinematicDirector(private val start: CinematicShot? = null) {
     private val startCenter = start?.let { MapProjection.toWorld(it.focus) } ?: MapCamera.Overview.center
     private val cx = Animatable(startCenter.x)
     private val cy = Animatable(startCenter.y)
@@ -144,7 +150,11 @@ class CinematicDirector(private val start: CinematicShot? = null) {
             }
             // A new threat near a point of interest preempts the patrol order.
             val urgent = list.firstOrNull { it.kind == CinematicShot.Kind.ThreatNearFavorite && it.key != lastKey }
-            val shot = if (urgent != null && currentShot?.kind != CinematicShot.Kind.ThreatNearFavorite) urgent else list[index % list.size]
+            val shot = if (urgent != null && currentShot?.kind != CinematicShot.Kind.ThreatNearFavorite) {
+                urgent
+            } else {
+                list[index % list.size]
+            }
             shotIndex = list.indexOf(shot)
             shotCount = list.size
             currentShot = shot
@@ -158,7 +168,8 @@ class CinematicDirector(private val start: CinematicShot? = null) {
     /** Fly-to with a zoom-out arc so long hops read as travel instead of a jump cut. */
     private suspend fun flyTo(target: Offset, targetZoom: Float) = coroutineScope {
         val distance = (target - Offset(cx.value, cy.value)).getDistance()
-        val arcZoom = if (distance > 1.2f) max(1f, minOf(zoom.value, targetZoom) * 0.45f) else minOf(zoom.value, targetZoom)
+        val closest = minOf(zoom.value, targetZoom)
+        val arcZoom = if (distance > 1.2f) max(1f, closest * 0.45f) else closest
         val duration = (1800 + distance * 260).toInt().coerceAtMost(3600)
         launch { cx.animateTo(target.x, tween(duration, easing = FastOutSlowInEasing)) }
         launch { cy.animateTo(target.y, tween(duration, easing = FastOutSlowInEasing)) }
@@ -178,7 +189,7 @@ class CinematicDirector(private val start: CinematicShot? = null) {
 }
 
 @Composable
-fun rememberCinematicDirector(shots: List<CinematicShot>): CinematicDirector {
+internal fun rememberCinematicDirector(shots: List<CinematicShot>): CinematicDirector {
     val preview = LocalInspectionMode.current
     val director = remember {
         // The shot the live director would pick first: a threat near a favorite, else the first in order.

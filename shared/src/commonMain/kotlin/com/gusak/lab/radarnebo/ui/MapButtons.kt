@@ -54,7 +54,7 @@ import kotlin.math.sin
  * fades to 50% so it stays out of the shot. Tapping again returns to the static map.
  */
 @Composable
-fun CinematicToggle(cinematic: Boolean, onToggle: (Boolean) -> Unit, modifier: Modifier = Modifier) {
+internal fun CinematicToggle(cinematic: Boolean, onToggle: (Boolean) -> Unit, modifier: Modifier = Modifier) {
     val primary = MaterialTheme.colorScheme.primary
     val onPrimary = MaterialTheme.colorScheme.onPrimary
     val progress by animateFloatAsState(if (cinematic) 1f else 0f, tween(durationMillis = 450))
@@ -99,7 +99,8 @@ private fun RadarIcon(color: Color, modifier: Modifier) {
             )
         }
         val rad = sweep * PI / 180.0
-        drawLine(color, center, Offset(center.x + (r * cos(rad)).toFloat(), center.y + (r * sin(rad)).toFloat()), 2.dp.toPx())
+        val tip = Offset(center.x + (r * cos(rad)).toFloat(), center.y + (r * sin(rad)).toFloat())
+        drawLine(color, center, tip, 2.dp.toPx())
         drawCircle(color, 2.dp.toPx())
     }
 }
@@ -130,7 +131,7 @@ private fun DrawScope.drawCamera(color: Color) {
 
 /** Opens the tracked-targets panel. Outlined crosshair when closed, filled when open; shows the active count. */
 @Composable
-fun TargetsButton(open: Boolean, activeCount: Int, onClick: () -> Unit, modifier: Modifier = Modifier) {
+internal fun TargetsButton(open: Boolean, activeCount: Int, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val primary = MaterialTheme.colorScheme.primary
     val onPrimary = MaterialTheme.colorScheme.onPrimary
     val progress by animateFloatAsState(if (open) 1f else 0f, tween(durationMillis = 300))
@@ -155,7 +156,7 @@ fun TargetsButton(open: Boolean, activeCount: Int, onClick: () -> Unit, modifier
 
 /** Opens the warning-radius control; the badge shows the current radius in km. */
 @Composable
-fun RadiusButton(open: Boolean, radiusKm: Int, onClick: () -> Unit, modifier: Modifier = Modifier) {
+internal fun RadiusButton(open: Boolean, radiusKm: Int, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val primary = MaterialTheme.colorScheme.primary
     val onPrimary = MaterialTheme.colorScheme.onPrimary
     val progress by animateFloatAsState(if (open) 1f else 0f, tween(durationMillis = 300))
@@ -188,7 +189,7 @@ fun RadiusButton(open: Boolean, radiusKm: Int, onClick: () -> Unit, modifier: Mo
 
 /** Opens the request inspector: the requests the app sends to its server, with the responses. */
 @Composable
-fun RequestsButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+internal fun RequestsButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
     val primary = MaterialTheme.colorScheme.primary
     Box(
         modifier
@@ -226,7 +227,8 @@ private fun DrawScope.drawExchange(color: Color) {
 private fun DrawScope.drawRadius(color: Color) {
     val r = size.minDimension / 2
     val stroke = 1.8.dp.toPx()
-    drawCircle(color, r - stroke / 2, style = Stroke(stroke, pathEffect = PathEffect.dashPathEffect(floatArrayOf(r * 0.38f, r * 0.24f))))
+    val dashes = PathEffect.dashPathEffect(floatArrayOf(r * 0.38f, r * 0.24f))
+    drawCircle(color, r - stroke / 2, style = Stroke(stroke, pathEffect = dashes))
     drawCircle(color.copy(alpha = 0.25f), r * 0.55f)
     drawCircle(color, r * 0.2f)
 }
@@ -247,7 +249,10 @@ private fun DrawScope.drawCrosshair(color: Color) {
 @Composable
 private fun MapButtonsDarkPreview() {
     RadarTheme(ThemeMode.Dark) {
-        Row(Modifier.background(radarColors.mapBackground).padding(12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(
+            Modifier.background(radarColors.mapBackground).padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
             CinematicToggle(cinematic = false, onToggle = {})
             CinematicToggle(cinematic = true, onToggle = {})
             TargetsButton(open = false, activeCount = 4, onClick = {})
@@ -262,7 +267,10 @@ private fun MapButtonsDarkPreview() {
 @Composable
 private fun MapButtonsLightPreview() {
     RadarTheme(ThemeMode.Light) {
-        Row(Modifier.background(radarColors.mapBackground).padding(12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(
+            Modifier.background(radarColors.mapBackground).padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
             CinematicToggle(cinematic = false, onToggle = {})
             CinematicToggle(cinematic = true, onToggle = {})
             TargetsButton(open = false, activeCount = 0, onClick = {})

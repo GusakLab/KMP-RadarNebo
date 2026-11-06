@@ -25,7 +25,3 @@ class AddFavoriteUseCase(
 
     private fun Double.format() = ((this * 100).roundToInt() / 100.0).toString()
 }
-
-class RemoveFavoriteUseCase(private val favorites: FavoritesRepository) {
-    operator fun invoke(id: String) = favorites.remove(id)
-}

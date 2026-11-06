@@ -34,13 +34,14 @@ import com.gusak.lab.radarnebo.ui.RadarTheme
 import com.gusak.lab.radarnebo.ui.radarColors
 
 /** Air defense and unknown threats have no direction of travel; their icons are drawn upright. */
-val TargetKind.isDirectional get() = this != TargetKind.AirDefense && this != TargetKind.Unknown
+internal val TargetKind.isDirectional: Boolean
+    get() = this != TargetKind.AirDefense && this != TargetKind.Unknown
 
 /**
  * Top-down silhouette of [kind], nose pointing along [headingDeg] (clockwise from north). [size] is
  * the distance from the centre to the nose. Shapes are laid out in unit coordinates, nose at (0, -1).
  */
-fun DrawScope.drawTargetGlyph(
+internal fun DrawScope.drawTargetGlyph(
     kind: TargetKind,
     center: Offset,
     size: Float,
@@ -48,11 +49,12 @@ fun DrawScope.drawTargetGlyph(
     color: Color,
     outline: Color,
 ) {
-    when (kind) {
-        TargetKind.AttackDrone -> return drawDroneGlyph(center, size, headingDeg, color, outline, DroneGlyphStyle.Attack)
-        TargetKind.DecoyDrone -> return drawDroneGlyph(center, size, headingDeg, color, outline, DroneGlyphStyle.Decoy)
-        else -> Unit
+    val drone = when (kind) {
+        TargetKind.AttackDrone -> DroneGlyphStyle.Attack
+        TargetKind.DecoyDrone -> DroneGlyphStyle.Decoy
+        else -> null
     }
+    if (drone != null) return drawDroneGlyph(center, size, headingDeg, color, outline, drone)
     val g = Glyph(this, center, size, color, outline)
     rotate(if (kind.isDirectional) headingDeg else 0f, pivot = center) {
         when (kind) {
@@ -222,14 +224,25 @@ private class Glyph(val scope: DrawScope, val center: Offset, val size: Float, v
         val shield = Path().apply {
             moveTo(p(-0.78f, -0.72f).x, p(-0.78f, -0.72f).y)
             lineTo(p(0.78f, -0.72f).x, p(0.78f, -0.72f).y)
-            cubicTo(p(0.78f, 0.1f).x, p(0.78f, 0.1f).y, p(0.5f, 0.66f).x, p(0.5f, 0.66f).y, p(0f, 0.98f).x, p(0f, 0.98f).y)
-            cubicTo(p(-0.5f, 0.66f).x, p(-0.5f, 0.66f).y, p(-0.78f, 0.1f).x, p(-0.78f, 0.1f).y, p(-0.78f, -0.72f).x, p(-0.78f, -0.72f).y)
+            cubicTo(
+                p(0.78f, 0.1f).x, p(0.78f, 0.1f).y,
+                p(0.5f, 0.66f).x, p(0.5f, 0.66f).y,
+                p(0f, 0.98f).x, p(0f, 0.98f).y,
+            )
+            cubicTo(
+                p(-0.5f, 0.66f).x, p(-0.5f, 0.66f).y,
+                p(-0.78f, 0.1f).x, p(-0.78f, 0.1f).y,
+                p(-0.78f, -0.72f).x, p(-0.78f, -0.72f).y,
+            )
             close()
         }
         drawPath(shield, outline, style = Stroke(line * 1.8f, join = StrokeJoin.Round))
         drawPath(shield, color.copy(alpha = 0.3f))
         drawPath(shield, color, style = Stroke(line * 1.1f, join = StrokeJoin.Round))
-        solid(listOf(mirrored(0f, -1f, 0.1f, -0.8f, 0.1f, 0.42f, 0f, 0.42f)) + pair(0.1f, 0.18f, 0.28f, 0.46f, 0.1f, 0.4f))
+        solid(
+            listOf(mirrored(0f, -1f, 0.1f, -0.8f, 0.1f, 0.42f, 0f, 0.42f)) +
+                pair(0.1f, 0.18f, 0.28f, 0.46f, 0.1f, 0.4f),
+        )
     }
 
     /** Unknown: a diamond with an exclamation mark. */
@@ -244,7 +257,7 @@ private class Glyph(val scope: DrawScope, val center: Offset, val size: Float, v
 
 /** A target's icon on its own, e.g. in lists and cards. */
 @Composable
-fun TargetIcon(
+internal fun TargetIcon(
     kind: TargetKind,
     headingDeg: Float,
     color: Color,
@@ -261,7 +274,10 @@ fun TargetIcon(
 @Composable
 internal fun TargetIconGallery(modifier: Modifier = Modifier) {
     val colors = radarColors
-    Column(modifier.background(colors.mapBackground).padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(
+        modifier.background(colors.mapBackground).padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
         TargetKind.entries.chunked(4).forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 row.forEach { kind ->
@@ -302,7 +318,10 @@ private fun TargetIconsLightPreview() {
 @Composable
 private fun TargetIconsLargePreview() {
     RadarTheme(ThemeMode.Dark) {
-        Column(Modifier.background(radarColors.mapBackground).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(
+            Modifier.background(radarColors.mapBackground).padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             TargetKind.entries.chunked(5).forEach { row ->
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     row.forEach { TargetIcon(it, 0f, radarColors.danger, size = 72.dp) }

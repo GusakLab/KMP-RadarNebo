@@ -1,10 +1,12 @@
 package com.gusak.lab.radarnebo
 
 import android.content.Context
+import android.content.SharedPreferences
 import com.gusak.lab.radarnebo.data.KeyValueStorage
 
-class SharedPrefsStorage(context: Context) : KeyValueStorage {
-    private val prefs = context.applicationContext.getSharedPreferences("radar_nebo", Context.MODE_PRIVATE)
+internal class SharedPrefsStorage(context: Context) : KeyValueStorage {
+    private val prefs: SharedPreferences =
+        context.applicationContext.getSharedPreferences("radar_nebo", Context.MODE_PRIVATE)
 
     override fun getString(key: String): String? = prefs.getString(key, null)
 

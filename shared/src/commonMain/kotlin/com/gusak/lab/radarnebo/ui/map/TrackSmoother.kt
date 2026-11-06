@@ -1,8 +1,6 @@
 package com.gusak.lab.radarnebo.ui.map
 
 import com.gusak.lab.radarnebo.geo.GeoPoint
-import com.gusak.lab.radarnebo.tracking.DroneTrack
-import com.gusak.lab.radarnebo.tracking.InterpolatedPosition
 import kotlin.math.abs
 import kotlin.math.exp
 
@@ -13,11 +11,11 @@ import kotlin.math.exp
  *
  * Plain (non-snapshot) state: it is updated while drawing and never triggers recomposition.
  */
-class TrackSmoother(private val glideMs: Float = 700f) {
+internal class TrackSmoother(private val glideMs: Float = 700f) {
     private val shown = HashMap<String, GeoPoint>()
     private var lastFrameMs = 0L
 
-    fun smooth(positions: List<Pair<DroneTrack, InterpolatedPosition>>, nowMs: Long): List<Pair<DroneTrack, InterpolatedPosition>> {
+    fun smooth(positions: List<TrackPosition>, nowMs: Long): List<TrackPosition> {
         val dt = if (lastFrameMs == 0L) 0L else (nowMs - lastFrameMs).coerceIn(0L, 250L)
         lastFrameMs = nowMs
         val k = 1f - exp(-dt / glideMs)
@@ -29,9 +27,9 @@ class TrackSmoother(private val glideMs: Float = 700f) {
                 GeoPoint(previous.lat + (target.lat - previous.lat) * k, previous.lon + (target.lon - previous.lon) * k)
             }
             shown[track.id] = next
-            track to target.copy(lat = next.lat, lon = next.lon)
+            TrackPosition(track, target.copy(lat = next.lat, lon = next.lon))
         }
-        shown.keys.retainAll(positions.mapTo(HashSet()) { it.first.id })
+        shown.keys.retainAll(positions.mapTo(HashSet()) { it.track.id })
         return result
     }
 

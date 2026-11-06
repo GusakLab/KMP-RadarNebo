@@ -18,7 +18,12 @@ private fun Panel(selectedTrackId: String?, theme: ThemeMode = ThemeMode.Dark) {
     val places = state.favorites.map { Place(it.name, it.point, isFavorite = true) } + TrackPredictor.cityPlaces
     RadarTheme(theme) {
         Surface {
-            TargetsPanel(state.tracks, state.clockOffsetMs, places, selectedTrackId, onSelect = {}, onClose = {})
+            TargetsPanel(
+                state.tracks, state.clockOffsetMs, places, selectedTrackId,
+                onSelect = {},
+                onClose = {},
+                clock = PreviewData::nowMs,
+            )
         }
     }
 }

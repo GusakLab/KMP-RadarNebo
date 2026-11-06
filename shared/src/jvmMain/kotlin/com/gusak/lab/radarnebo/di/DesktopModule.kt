@@ -6,6 +6,7 @@ import com.gusak.lab.radarnebo.data.ServerDefaults
 import com.gusak.lab.radarnebo.ui.map.MapTiles
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.logging.Logger
+import org.koin.core.module.Module
 import org.koin.dsl.module
 import java.io.File
 
@@ -18,7 +19,7 @@ fun desktopModule(
     settingsFile: File? = null,
     httpLogger: Logger? = null,
     serverDefaults: ServerDefaults = ServerDefaults(),
-) = module {
+): Module = module {
     single<KeyValueStorage> { settingsFile?.let(::FileStorage) ?: FileStorage() }
     single { serverDefaults }
     single { MapTiles(HttpClient()) }

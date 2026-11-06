@@ -13,7 +13,7 @@ plugins {
 // the apps start with. They're generated into ClientConfig.kt; without the file both are blank.
 val clientProperties = providers.fileContents(rootProject.layout.projectDirectory.file("client.properties")).asText
     .map { text -> Properties().apply { load(text.reader()) } }
-val generateClientConfig by tasks.registering {
+val generateClientConfig = tasks.register("generateClientConfig") {
     val serverUrl = clientProperties.map { it.getProperty("server.url").orEmpty().trim() }.orElse("")
     val accessKey = clientProperties.map { it.getProperty("server.accessKey").orEmpty().trim() }.orElse("")
     val outputDir = layout.buildDirectory.dir("generated/clientConfig")
@@ -39,6 +39,11 @@ val generateClientConfig by tasks.registering {
 }
 
 kotlin {
+    // Every compilation of this module (main and test, on every target) fails on a compiler warning.
+    compilerOptions {
+        allWarningsAsErrors.set(true)
+    }
+
     listOf(
         iosArm64(),
         iosSimulatorArm64()
@@ -48,7 +53,7 @@ kotlin {
             isStatic = true
         }
     }
-    
+
     jvm {
         compilerOptions {
             jvmTarget = JvmTarget.JVM_11
@@ -56,26 +61,26 @@ kotlin {
     }
 
     android {
-       namespace = "com.gusak.lab.radarnebo.shared"
-       compileSdk = libs.versions.android.compileSdk.get().toInt()
-       minSdk = libs.versions.android.minSdk.get().toInt()
-    
-       compilerOptions {
-           jvmTarget = JvmTarget.JVM_11
-       }
-       androidResources {
-           enable = true
-       }
-       withHostTest {
-           isIncludeAndroidResources = true
-       }
-       withDeviceTestBuilder {
-           sourceSetTreeName = "test"
-       }.configure {
-           instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-       }
+        namespace = "com.gusak.lab.radarnebo.shared"
+        compileSdk = libs.versions.android.compileSdk.get().toInt()
+        minSdk = libs.versions.android.minSdk.get().toInt()
+
+        compilerOptions {
+            jvmTarget = JvmTarget.JVM_11
+        }
+        androidResources {
+            enable = true
+        }
+        withHostTest {
+            isIncludeAndroidResources = true
+        }
+        withDeviceTestBuilder {
+            sourceSetTreeName = "test"
+        }.configure {
+            instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        }
     }
-    
+
     sourceSets {
         commonMain {
             kotlin.srcDir(generateClientConfig)
@@ -104,8 +109,9 @@ kotlin {
             api(libs.koin.compose)
             api(libs.koin.compose.viewmodel)
         }
+        // Desktop needs no Compose artifact of its own: commonMain's ui and foundation carry the binaries for every
+        // desktop OS.
         jvmMain.dependencies {
-            implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutines.swing)
             implementation(libs.ktor.client.okhttp)
         }
@@ -116,7 +122,7 @@ kotlin {
             implementation(libs.kotlin.test)
         }
         jvmTest.dependencies {
-            implementation(compose.desktop.uiTestJUnit4)
+            implementation(libs.compose.uiTestJunit4)
         }
     }
 }
@@ -132,8 +138,8 @@ tasks.withType<JavaCompile>().configureEach {
     targetCompatibility = "11"
 }
 
-// ./gradlew :shared:jvmTest --tests '*ContrastScreenshotsTest*' -PcontrastScreenshots[=Radar,Nord,…] renders every overlay
-// and dialog per map background and theme (downloading satellite tiles) into build/contrast.
+// ./gradlew :shared:jvmTest --tests '*ContrastScreenshotsTest*' -PcontrastScreenshots[=Radar,Nord,…] renders every
+// overlay and dialog per map background and theme (downloading satellite tiles) into build/contrast.
 tasks.named<Test>("jvmTest") {
     providers.gradleProperty("contrastScreenshots").orNull?.let { palettes ->
         systemProperty("contrast.screenshots.dir", layout.buildDirectory.dir("contrast").get().asFile.absolutePath)

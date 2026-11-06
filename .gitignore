@@ -140,3 +140,7 @@ Desktop.ini
 # The server's archive database (ARCHIVE_JDBC_URL)
 mission-control/server/data/
 /data/
+
+# Claude Code: per-user settings and agent worktrees
+.claude/settings.local.json
+.claude/worktrees/

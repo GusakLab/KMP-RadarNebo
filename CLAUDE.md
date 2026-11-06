@@ -61,7 +61,8 @@ Incremental builds hide warnings from compiled-before files. To see every warnin
 - Koin `singleOf(::X)`, `factoryOf(::X)` and `viewModelOf(::X)` resolve every constructor parameter from the
   container, including defaulted ones. After adding a parameter, check the binding. `DependencyInjectionTest` checks
   the graph.
-- Versions live only in `gradle/libs.versions.toml`. The server deploys from `main` only.
+- Versions live only in `gradle/libs.versions.toml`, apart from settings plugins in `settings.gradle.kts`, which Gradle
+  loads before the catalog. The server deploys from `main` only.
 - Leave unrelated uncommitted files alone. Commit only the paths your task changed.
 
 ## Skill Routing

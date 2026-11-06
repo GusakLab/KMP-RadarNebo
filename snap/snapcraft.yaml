@@ -1,0 +1,55 @@
+# Snap of the desktop client, built from the Compose distributable (which bundles its own trimmed JRE). Build
+# `./gradlew :app:desktop:createDistributable` first, then run `snapcraft pack` in the repository root;
+# docs/linux-release.md has the details. The release workflow (.github/workflows/release-linux.yml) sets the version.
+name: radarnebo
+title: RadarNebo
+version: "0.0.0"
+summary: Drone and missile threats over Ukraine on a live map
+description: |
+  RadarNebo shows active air-raid alerts and the drones and missiles behind them on a map of Ukraine. Select a
+  target to see its type, its track so far and where it is predicted to go next, and save the places you care
+  about to be flagged when a threat comes near.
+
+  Tracks and predictions are estimated from public alerts and warnings. They are not official warnings: always
+  follow the air-raid alerts of your region.
+website: https://github.com/TreeDev-Innovation/KMP-RadarNebo
+issues: https://github.com/TreeDev-Innovation/KMP-RadarNebo/issues
+license: proprietary
+icon: app/desktop/icons/radarnebo.png
+
+base: core24
+grade: stable
+confinement: strict
+platforms:
+  amd64:
+
+apps:
+  radarnebo:
+    command: lib/radarnebo/bin/RadarNebo
+    desktop: usr/share/applications/com.gusak.lab.radarnebo.desktop
+    common-id: com.gusak.lab.radarnebo
+    # The GNOME extension brings the desktop libraries, fonts, GPU drivers and the x11, wayland, desktop and
+    # opengl plugs.
+    extensions: [gnome]
+    plugs: [network]
+    environment:
+      # Java takes the home directory from the passwd entry rather than $HOME, and confinement doesn't let the
+      # app write ~/.radarnebo there, so settings go to the snap's own home (~/snap/radarnebo/current).
+      JAVA_TOOL_OPTIONS: -Duser.home=$SNAP_USER_DATA
+
+parts:
+  app:
+    plugin: dump
+    source: app/desktop/build/compose/binaries/main/app/RadarNebo
+    organize:
+      "*": lib/radarnebo/
+
+  desktop-entry:
+    plugin: dump
+    source: packaging/linux
+    organize:
+      com.gusak.lab.radarnebo.desktop: usr/share/applications/com.gusak.lab.radarnebo.desktop
+      com.gusak.lab.radarnebo.metainfo.xml: usr/share/metainfo/com.gusak.lab.radarnebo.metainfo.xml
+    stage:
+      - usr/share/applications/com.gusak.lab.radarnebo.desktop
+      - usr/share/metainfo/com.gusak.lab.radarnebo.metainfo.xml

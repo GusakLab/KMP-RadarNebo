@@ -6,7 +6,7 @@ tags: cond, consolidate, duplication, extract
 
 ## Consolidate Duplicate Conditional Fragments
 
-When same code appears in all branches of a conditional, move it outside the conditional. When multiple conditions lead to same result, combine them.
+When the same code appears in all branches of a conditional, move it outside the conditional. When multiple conditions lead to the same result, combine them.
 
 **Incorrect (duplicated code in branches):**
 
@@ -74,8 +74,8 @@ function isWeekendOrFridayAfternoon(dayOfWeek: number): boolean {
 ```
 
 **When NOT to consolidate:**
-- Duplication is coincidental, not intentional
-- Branches may diverge later
-- Consolidation obscures each branch's intent
+- The duplication is coincidental, not intentional
+- The branches may diverge in the future
+- Consolidation obscures the intent of each branch
 
 Reference: [Consolidate Conditional Expression](https://refactoring.com/catalog/consolidateConditionalExpression.html)

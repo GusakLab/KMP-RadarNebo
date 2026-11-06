@@ -6,7 +6,7 @@ tags: name, readability, abbreviations, clarity, onboarding
 
 ## Avoid Cryptic Abbreviations
 
-Abbreviations save keystrokes but cost readers effort to decode. Use full words anyone understands without context clues or tribal knowledge.
+Abbreviations save a few keystrokes but cost readers significant mental effort to decode. What seems obvious to the author (who just created the abbreviation) becomes a puzzle for future readers. Use complete words that anyone can understand without context clues or tribal knowledge.
 
 **Incorrect (cryptic abbreviations):**
 
@@ -101,6 +101,8 @@ func processRequest(request *http.Request, writer http.ResponseWriter) {
 
 ### Acceptable Abbreviations
 
+Some abbreviations are so universally understood they are acceptable:
+
 | Abbreviation | Meaning | Context |
 |--------------|---------|---------|
 | `id` | identifier | Universal |
@@ -116,4 +118,14 @@ func processRequest(request *http.Request, writer http.ResponseWriter) {
 ### When NOT to Apply
 
 - Well-established domain acronyms (HTML, JSON, SQL, UUID)
+- Industry-standard abbreviations (API, HTTP, URL)
+- Language-specific idioms (`err` in Go, `e` in catch blocks)
 - Mathematical notation in algorithms
+
+### Benefits
+
+- Zero decoding time for readers
+- New team members productive immediately
+- No tribal knowledge required
+- Reduces bugs from misinterpreted abbreviations
+- Code is searchable with full words

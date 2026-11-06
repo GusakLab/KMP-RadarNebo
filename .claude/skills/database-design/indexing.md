@@ -1,5 +1,7 @@
 # Indexing Principles
 
+> When and how to create indexes effectively.
+
 ## When to Create Indexes
 
 ```

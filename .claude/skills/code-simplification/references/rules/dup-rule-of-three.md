@@ -6,7 +6,7 @@ tags: dup, abstraction, dry, timing
 
 ## Apply the Rule of Three
 
-Wait for third occurrence before extracting helper. First duplication may be coincidence. Second confirms pattern. Third proves extraction worthwhile. Early extraction builds abstractions for patterns that never materialize.
+Wait until code appears three times before extracting a helper. The first duplication might be coincidental. The second confirms a pattern exists. The third proves extraction is worthwhile. Extracting too early creates abstractions for patterns that never materialize, adding cognitive overhead without reducing maintenance burden.
 
 **Incorrect (extracting after first duplication):**
 
@@ -30,7 +30,7 @@ function validateEmail(entity: { email: string }, entityName: string) {
 // And if requirements diverge, the abstraction becomes awkward
 ```
 
-**Correct (wait for third occurrence):**
+**Correct (wait for the third occurrence):**
 
 ```typescript
 // First occurrence
@@ -54,7 +54,7 @@ function isValidEmail(email: string): boolean {
 }
 ```
 
-**Incorrect (under-extraction - obvious pattern ignored):**
+**Incorrect (under-extraction - ignoring obvious patterns):**
 
 ```python
 # Same exact logic copy-pasted 5 times
@@ -75,7 +75,7 @@ def process_product_csv(filepath):
 # Bug fix needed? Change it in 5 places
 ```
 
-**Correct (extract once pattern established):**
+**Correct (extract after pattern is established):**
 
 ```python
 def load_active_records(filepath: str) -> list[dict]:
@@ -93,5 +93,12 @@ products = load_active_records('products.csv')
 ### When NOT to Apply
 
 - Security-critical code (authentication, authorization) - extract immediately
-- Bug-prone complex algorithms - extract on second occurrence
-- Business logic says pattern will recur (known requirements)
+- Complex algorithms where bugs are likely - extract on second occurrence
+- When business logic dictates the pattern will recur (known requirements)
+
+### Benefits
+
+- Abstractions are based on real patterns, not speculation
+- Fewer premature abstractions that need refactoring later
+- Code readers encounter simpler, more concrete code
+- Easier to understand what each piece of code actually does

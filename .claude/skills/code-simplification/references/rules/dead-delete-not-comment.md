@@ -6,7 +6,7 @@ tags: dead, comments, version-control, git, cleanup
 
 ## Delete Code, Never Comment It Out
 
-Commented-out code is visual noise raising unanswerable questions. Version control exists to recover old code. Use it.
+Commented-out code is visual noise that raises unanswerable questions: Is this a work in progress? A rollback option? An alternative approach? Code archaeology shows commented blocks are almost never uncommented - they just accumulate. Version control exists specifically to recover old code; use it.
 
 **Incorrect (commented code preserved):**
 
@@ -110,9 +110,9 @@ func ProcessBatch(items []Item) error {
 
 ### Recovery Workflow
 
-To get old code back:
+When you need old code back:
 1. `git log --oneline -20` - find the commit
-2. `git show <commit>:path/to/file` - view old version
+2. `git show <commit>:path/to/file` - view the old version
 3. `git checkout <commit> -- path/to/file` - restore if needed
 
 ### When NOT to Apply
@@ -120,3 +120,10 @@ To get old code back:
 - Active debugging session (delete before committing)
 - Code review showing before/after for context (use diff view instead)
 - Documentation explicitly showing what NOT to do
+
+### Benefits
+
+- Clear intent: every line of code has a purpose
+- No confusion about what's active vs inactive
+- git blame shows actual history, not comment archaeology
+- Encourages proper use of version control

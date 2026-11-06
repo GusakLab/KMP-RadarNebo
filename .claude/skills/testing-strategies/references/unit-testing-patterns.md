@@ -1,12 +1,14 @@
 # Unit Testing Patterns
 
-Complete TypeScript unit testing examples: `examples/typescript/vitest-unit.test.ts`.
+This reference provides detailed unit testing patterns across TypeScript, Python, Go, and Rust.
 
-Complete Python unit testing examples: `examples/python/pytest_unit_test.py`.
+See `examples/typescript/vitest-unit.test.ts` for complete TypeScript unit testing examples.
+
+See `examples/python/pytest_unit_test.py` for complete Python unit testing examples.
 
 ## Key Patterns
 
-**Pure Function Testing**: Test functions without side effects.
+**Pure Function Testing**: Test functions with no side effects.
 
 **Parametrized Testing**: Test multiple inputs efficiently.
 
@@ -14,4 +16,4 @@ Complete Python unit testing examples: `examples/python/pytest_unit_test.py`.
 
 **Edge Case Testing**: Handle boundary conditions.
 
-Full implementation details and working code: examples directory.
+For complete implementation details and working code, refer to the examples directory.

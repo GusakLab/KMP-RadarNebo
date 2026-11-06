@@ -6,7 +6,7 @@ tags: couple, feature-envy, move-method, cohesion
 
 ## Fix Feature Envy by Moving Methods
 
-When a method uses more features of another class than its own, move it to that class.
+When a method uses more features of another class than its own, move it to that other class. Place behavior where the data lives.
 
 **Incorrect (method envies another class):**
 
@@ -36,7 +36,7 @@ class OrderPrinter {
 }
 ```
 
-**Correct (method moved to class it uses):**
+**Correct (method moved to the class it uses):**
 
 ```typescript
 class Customer {
@@ -68,6 +68,6 @@ class OrderPrinter {
 **Signs of feature envy:**
 - Method takes another object and accesses multiple fields
 - Method chains into another object repeatedly
-- New field on envied class forces change in envying class
+- Adding a new field to the envied class requires changing the envying class
 
 Reference: [Move Function](https://refactoring.com/catalog/moveFunction.html)

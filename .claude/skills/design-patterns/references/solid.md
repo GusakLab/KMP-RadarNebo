@@ -5,12 +5,12 @@
 
 **Goal:** Reduce complexity. One class = one concern.
 
-**Smell:** Class changes for two different reasons (e.g., business logic AND report format).
+**Smell:** You must change a class for two different reasons (e.g., business logic AND report format).
 
-**Fix:** Extract second concern into its own class.
+**Fix:** Extract the second concern into its own class.
 
 **Example:**
-- BAD: `Employee` class holds both employee data management AND timesheet formatting
+- BAD: `Employee` class contains both employee data management AND timesheet formatting
 - GOOD: Split into `Employee` (data) + `TimesheetReport` (formatting)
 
 ---
@@ -18,15 +18,15 @@
 ## O — Open/Closed Principle
 > "Classes should be open for extension but closed for modification."
 
-**Goal:** Add features without breaking existing tested code.
+**Goal:** Add new features without breaking existing tested code.
 
 **Approach:** Depend on abstractions. New variants are new subclasses/implementations, not edits.
 
 **Example:**
-- BAD: `Order` class has hardcoded shipping methods; adding one breaks class
-- GOOD: Extract `Shipping` interface; each method is its own class. `Order` never changes.
+- BAD: `Order` class has hardcoded shipping methods; adding a new one breaks the class
+- GOOD: Extract a `Shipping` interface; each method is its own class. `Order` never changes.
 
-**Related pattern:** Strategy — canonical implementation of OCP.
+**Related pattern:** Strategy — the canonical implementation of OCP.
 
 ---
 
@@ -34,17 +34,17 @@
 > "Objects of a subclass must be replaceable for objects of the superclass without breaking client code."
 
 **Checklist for subclass methods:**
-- Parameter types must be **same or more abstract** than superclass method (contravariance)
-- Return types must be **same or more specific** (covariance)
-- Must not throw new exceptions base method doesn't throw
+- Parameter types must be the **same or more abstract** than the superclass method (contravariance)
+- Return types must be the **same or more specific** (covariance)
+- Must not throw new exceptions the base method doesn't throw
 - Must not **strengthen preconditions** (e.g., adding `if value < 0: throw`)
 - Must not **weaken postconditions** (e.g., leaving DB connections open when base always closes them)
-- Must **preserve invariants** of superclass
-- Must not modify private fields of superclass (via reflection)
+- Must **preserve invariants** of the superclass
+- Must not modify private fields of the superclass (via reflection)
 
 **Classic violation:**
-- `ReadOnlyDocument extends Document` and overrides `save()` by throwing exception — breaks client code that calls `save()` on any `Document`
-- Fix: Make `ReadOnlyDocument` base; `WritableDocument` extends it and adds `save()`
+- `ReadOnlyDocument extends Document` and overrides `save()` by throwing an exception — breaks client code that calls `save()` on any `Document`
+- Fix: Make `ReadOnlyDocument` the base; `WritableDocument` extends it and adds `save()`
 
 ---
 
@@ -53,12 +53,12 @@
 
 **Goal:** Keep interfaces narrow and focused.
 
-**Smell:** Implementing class must leave some methods empty or throw `UnsupportedOperationException`.
+**Smell:** A class implementing an interface is forced to leave some methods empty or throw `UnsupportedOperationException`.
 
-**Fix:** Split fat interface into smaller, role-specific interfaces.
+**Fix:** Split the fat interface into smaller, role-specific interfaces.
 
 **Example:**
-- BAD: `CloudProvider` interface has 20 methods; `SimpleStorage` cloud supports only 5 of them
+- BAD: `CloudProvider` interface has 20 methods; `SimpleStorage` cloud only supports 5 of them
 - GOOD: Break into `StorageProvider`, `CDNProvider`, `ComputeProvider`, etc.
 
 **Warning:** Don't go too far — over-splitting creates its own complexity.
@@ -72,16 +72,16 @@
 - **Low-level** — basic ops: disk I/O, DB, network
 - **High-level** — business logic that orchestrates low-level ops
 
-**Problem without DIP:** Business logic tightly coupled to specific `MySQLDatabase` class. Changing DB = rewriting business logic.
+**Problem without DIP:** Business logic is tightly coupled to a specific `MySQLDatabase` class. Changing DB = rewriting business logic.
 
-**Solution:** Introduce `Database` interface. Business logic depends on `Database`. `MySQLDatabase` and `PostgresDatabase` both implement it.
+**Solution:** Introduce a `Database` interface. Business logic depends on `Database`. `MySQLDatabase` and `PostgresDatabase` both implement it.
 
 **Flow:**
 ```
 HIGH-LEVEL → [Interface] ← LOW-LEVEL
 ```
 
-**Related:** DIP is foundation of Dependency Injection containers.
+**Related:** This principle is the foundation of Dependency Injection containers.
 
 ---
 

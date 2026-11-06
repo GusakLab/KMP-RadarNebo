@@ -6,9 +6,9 @@ tags: struct, parameter-object, data-clumps, api-design
 
 ## Introduce Parameter Object
 
-Bundle parameters that often appear together into one object. Simplifies signatures, gives related behavior a home.
+When multiple parameters frequently appear together, bundle them into a single object. This simplifies signatures and provides a home for related behavior.
 
-**Incorrect (long parameter list, data clumps):**
+**Incorrect (long parameter list with data clumps):**
 
 ```typescript
 function searchProducts(
@@ -92,5 +92,10 @@ class ProductFilter {
   }
 }
 ```
+
+**Benefits:**
+- Related parameters travel together
+- Validation logic has a natural home
+- Adding new parameters doesn't change function signatures
 
 Reference: [Introduce Parameter Object](https://refactoring.com/catalog/introduceParameterObject.html)

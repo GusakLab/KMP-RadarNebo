@@ -7,7 +7,7 @@ tags: cache, apt-get, debian, ubuntu
 
 ## Combine apt-get update with install
 
-Separate `RUN` instructions for `apt-get update` and `apt-get install` cache update layer on its own. Adding package to install instruction later reuses stale cached index, which can point to deleted or outdated versions and fail build.
+Running `apt-get update` and `apt-get install` in separate `RUN` instructions means the update layer gets cached independently. When a new package is added to the install instruction, Docker reuses the stale cached package index, which can resolve to deleted or outdated package versions and cause build failures.
 
 **Incorrect (separate RUN instructions):**
 
@@ -25,7 +25,7 @@ RUN apt-get install -y \
     jq
 ```
 
-(Adding or changing packages triggers `E: Unable to locate package` or version mismatch errors.)
+(The cached `apt-get update` layer contains a stale package index. Adding or changing packages in the install layer triggers `E: Unable to locate package` or version mismatch errors.)
 
 **Correct (single RUN with cleanup):**
 
@@ -39,7 +39,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 ```
 
-(Update and install always run together, so index is fresh. `--no-install-recommends` skips unneeded suggested packages. Removing `/var/lib/apt/lists/*` cuts layer by 20-40 MB.)
+(The update and install always run together, ensuring a fresh package index. The `--no-install-recommends` flag avoids pulling in unnecessary suggested packages. Removing `/var/lib/apt/lists/*` reduces the layer size by 20-40 MB.)
 
 **Alternative (cache mount approach for faster rebuilds):**
 
@@ -58,6 +58,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     jq
 ```
 
-(`docker-clean` removal is required. Without it, apt deletes cached `.deb` files before cache mount can persist them. Cache mounts keep downloaded `.deb` files and package lists outside image layer, so no `rm -rf` cleanup needed. `sharing=locked` prevents parallel builds from corrupting shared package database.)
+(The `docker-clean` removal is required — without it, apt deletes cached `.deb` files before the cache mount can persist them. Cache mounts persist the downloaded `.deb` files and package lists outside the image layer. No `rm -rf` cleanup needed because the cached data lives in the mount, not the image. The `sharing=locked` flag prevents parallel builds from corrupting the shared package database.)
 
 Reference: [Docker Build - Best Practices](https://docs.docker.com/build/building/best-practices/)

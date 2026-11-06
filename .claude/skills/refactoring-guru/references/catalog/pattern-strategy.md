@@ -6,9 +6,9 @@ tags: pattern, strategy, algorithm, composition
 
 ## Extract Strategy for Algorithm Variants
 
-If class supports several algorithms for one operation, extract each into own strategy class. Enables runtime switching and independent testing.
+When a class supports multiple algorithms for the same operation, extract each algorithm into its own strategy class. This allows runtime switching and independent testing.
 
-**Incorrect (variants embedded in class):**
+**Incorrect (algorithm variants embedded in class):**
 
 ```typescript
 class PaymentProcessor {
@@ -77,5 +77,10 @@ class PaymentProcessor {
   }
 }
 ```
+
+**Benefits:**
+- Each strategy can be unit tested independently
+- New payment methods added without modifying PaymentProcessor
+- Strategies can be swapped at runtime (A/B testing)
 
 Reference: [Strategy Pattern](https://refactoring.guru/design-patterns/strategy)

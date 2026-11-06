@@ -7,7 +7,7 @@ tags: stage, parallel, buildkit, concurrency
 
 ## Exploit Parallel Stage Execution
 
-BuildKit runs independent stages in parallel automatically. Structure Dockerfile as independent branches so builder saturates CPU cores instead of building stages one by one.
+When stages do not depend on each other, BuildKit automatically executes them in parallel. Structuring your Dockerfile with independent branches lets the builder saturate available CPU cores instead of waiting for sequential stages to finish one by one.
 
 **Incorrect (linear chain forces sequential execution):**
 

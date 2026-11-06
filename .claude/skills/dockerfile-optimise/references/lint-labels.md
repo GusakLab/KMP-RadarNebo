@@ -7,7 +7,7 @@ tags: lint, labels, metadata, oci, organization
 
 ## Use Standard Labels for Image Metadata
 
-Unlabeled images are opaque blobs. Which commit built them, who maintains them, what license applies, which application version they hold: unknown without pulling and inspecting application itself. Standard OCI labels make images self-describing. They enable automated vulnerability scanning, license auditing, garbage collection policies and faster incident triage.
+Without labels, container images are opaque blobs -- you cannot determine which commit built them, who maintains them, what license applies, or which version of the application they contain without pulling and inspecting the application itself. Standard OCI labels make images self-describing, enabling automated vulnerability scanning, license auditing, garbage collection policies, and faster incident triage.
 
 **Incorrect (no labels -- image metadata is empty):**
 
@@ -23,7 +23,7 @@ EXPOSE 3000
 CMD ["node", "server.js"]
 ```
 
-(`docker inspect` shows no useful metadata.)
+(`docker inspect` shows no useful metadata. When a CVE alert fires at 2 AM, you cannot determine which repository, commit, or team owns this image without tracing deployment configs backward.)
 
 **Correct (OCI standard labels for complete image provenance):**
 
@@ -49,11 +49,11 @@ EXPOSE 3000
 CMD ["node", "server.js"]
 ```
 
-(Labels follow OCI `org.opencontainers.image.*` namespace, which Docker Hub, GitHub Container Registry and vulnerability scanners recognize.)
+(Every label follows the OCI `org.opencontainers.image.*` namespace. These are recognized by Docker Hub, GitHub Container Registry, and vulnerability scanners. `docker inspect` now returns actionable metadata for any image consumer.)
 
 ### Single-Line Multi-Label Syntax
 
-Combine labels into one instruction to reduce layers (negligible impact with BuildKit):
+Combine multiple labels into a single instruction to reduce layers (though this has negligible impact with BuildKit):
 
 ```dockerfile
 LABEL org.opencontainers.image.source="https://github.com/acme/payment-service" \
@@ -63,7 +63,7 @@ LABEL org.opencontainers.image.source="https://github.com/acme/payment-service" 
 
 ### Dynamic Labels with Build Args
 
-Inject values from CI at build time, not hardcoded:
+Inject values from CI at build time instead of hardcoding them:
 
 ```dockerfile
 ARG GIT_SHA

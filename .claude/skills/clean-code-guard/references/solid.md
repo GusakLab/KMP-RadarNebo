@@ -1,6 +1,6 @@
 # SOLID — the five principles
 
-Source: Robert C. Martin. Principles collected on Uncle Bob's "Principles of OOD" page on objectmentor.com (mirrored at butunclebob.com), updated on blog.cleancoder.com. Original papers: *C++ Report*, circa 1995–1996.
+Source: Robert C. Martin. The five principles were collected on Uncle Bob's "Principles of OOD" page on objectmentor.com (mirrored at butunclebob.com) and updated on blog.cleancoder.com. Original papers from *C++ Report* circa 1995–1996.
 
 ## Contents
 
@@ -16,7 +16,7 @@ Source: Robert C. Martin. Principles collected on Uncle Bob's "Principles of OOD
 
 ## S — Single Responsibility Principle
 
-**Definition (Martin 2014, hardened from original).** *"A module should be responsible to one, and only one, actor."*
+**Definition (Martin 2014, hardened from the original).** *"A module should be responsible to one, and only one, actor."*
 
 Older form: "A class should have only one reason to change."
 
@@ -24,17 +24,17 @@ Source: blog.cleancoder.com — SRP, 2014.
 
 ### Why
 
-Axis is *people*. Different stakeholders (Accounting, HR, DBA) want different things from same class. When needs change, they edit same file, conflict, break each other.
+The axis is *people*. Different stakeholders (Accounting, HR, DBA) want different things from the same class. When their needs change, they edit the same file, conflict, and break each other.
 
 ### Smells to flag
 
-- One class has methods touching unrelated subsystems (persistence + presentation + business rules).
-- Class methods serve disjoint stakeholder groups.
+- One class contains methods touching unrelated subsystems (persistence + presentation + business rules).
+- Methods on the class serve disjoint stakeholder groups.
 - Git history shows two distinct clusters of co-changing methods inside one class.
 
 ### Common misinterpretation
 
-*"A class should do one thing."* No. SRP means **cohesion around an actor**, not method count. A 12-method `InvoiceRepository` answerable only to data-access layer satisfies SRP. A 3-method class with one HTTP call, one Jinja render, one DB write does not.
+*"A class should do one thing."* No. SRP is about **cohesion around an actor**, not method count. A 12-method `InvoiceRepository` answerable only to the data-access layer satisfies SRP. A 3-method class with one HTTP call, one Jinja render, and one DB write does not.
 
 ### Bad
 
@@ -59,23 +59,23 @@ EmployeeRepository  // Data storage owner
 
 **Definition.** *"Software entities (classes, modules, functions) should be open for extension, but closed for modification."*
 
-Originally Bertrand Meyer (1988, *Object-Oriented Software Construction*). Martin refocused it on polymorphic abstraction, not implementation inheritance.
+Originally Bertrand Meyer (1988, *Object-Oriented Software Construction*); Martin refocused it on polymorphic abstraction rather than implementation inheritance.
 
 Source: blog.cleancoder.com — OCP, 2014; Martin's 1996 paper PDF (Duke mirror).
 
 ### Why
 
-New behavior should arrive as new code, not edits to working code.
+Protect stable high-level policy from churn in low-level variants. New behavior should arrive as new code, not edits to working code.
 
 ### Smells to flag
 
-- Branch dispatching on type tag or runtime type check — every new type means editing same function.
-- New feature requires modifying N existing files instead of adding one.
-- `match`/`enum` switches crossing module boundaries (policy reaching into details).
+- Branch dispatching on a type tag or runtime type check — every new type requires editing the same function.
+- Adding a feature requires modifying N existing files instead of adding one.
+- `match`/`enum` switches that cross module boundaries (policy reaching into details).
 
 ### Common misinterpretation
 
-*"Never modify code."* Real rule: *modules containing high-level policy* should not change to accommodate new variants. Leaf code changes freely.
+*"Never modify code."* The principle is that *modules containing high-level policy* should not be modified to accommodate new variants. Leaf code changes freely.
 
 ### Bad
 
@@ -111,21 +111,21 @@ Source: Martin's LSP paper PDF (LaBRI mirror).
 
 ### Why
 
-Substitutability. Callers written against base type must keep working when handed a subtype. Otherwise polymorphism leaks abstraction.
+Substitutability. Callers written against a base type must continue to work when handed a subtype — otherwise polymorphism leaks abstraction.
 
 ### Smells to flag
 
-- Subclass overrides a method to signal "not implemented" or "unsupported operation."
-- Subclass **strengthens preconditions** (rejects inputs parent accepts).
-- Subclass **weakens postconditions** (returns something parent guarantees against).
-- Callers check runtime subtype to decide whether to call a method.
+- A subclass overrides a method to signal "not implemented" or "unsupported operation."
+- A subclass **strengthens preconditions** (rejects inputs the parent accepts).
+- A subclass **weakens postconditions** (returns something the parent guarantees against).
+- Callers perform runtime subtype checks to decide whether to call a method.
 
 ### Common misinterpretation
 
-*"Subclasses must have the same methods."* That's signature compatibility: plain type-checking. LSP is **behavioral**:
-- Preconditions can only **weaken** in subtype.
+*"Subclasses must have the same methods."* That's signature compatibility, which is just type-checking. LSP is **behavioral**:
+- Preconditions can only **weaken** in the subtype.
 - Postconditions and invariants can only **strengthen**.
-- Parameter types contravariant; return types covariant.
+- Parameter types are contravariant; return types covariant.
 
 ### The Rectangle/Square classic
 
@@ -143,9 +143,9 @@ Square extends Rectangle
     this.width = height   // invariant: width == height
     this.height = height
 ```
-Caller holding `Rectangle` reference does `r.set_width(5); r.set_height(4); assert r.area() == 20`. With `Square`, assertion fails — LSP violated.
+A caller holding a `Rectangle` reference does `r.set_width(5); r.set_height(4); assert r.area() == 20`. With a `Square`, the assertion fails — LSP violated.
 
-Fix is *not* patching the methods. Fix: `Square is-not-a Rectangle` in behavioral sense. Compose, don't inherit.
+The fix is *not* to fix the methods. The fix is that `Square is-not-a Rectangle` in the behavioral sense. Compose, don't inherit.
 
 ---
 
@@ -157,17 +157,17 @@ Source: Martin's 1996 ISP paper, catalogued at butunclebob.com/ArticleS.UncleBob
 
 ### Why
 
-Fat interfaces create transitive coupling. Clients get dragged into recompiles and test-fixtures for methods they never call.
+Fat interfaces create transitive coupling. Clients are dragged into recompiles and test-fixtures for methods they never call.
 
 ### Smells to flag
 
-- `Service` / `Manager` / `Repository` interface with 10+ methods; any given caller uses one or two.
-- Implementations stubbing half the methods with no-op bodies, null/empty placeholders, or unimplemented failures (usually co-occurs with LSP violation).
-- One mock object reconfigured differently across tests because interface is too broad.
+- A `Service` / `Manager` / `Repository` interface with 10+ methods, where any given caller uses one or two.
+- Implementations that stub half the methods with no-op bodies, null/empty placeholders, or unimplemented failures (usually co-occurs with an LSP violation).
+- One mock object reconfigured differently across tests because the interface is too broad.
 
 ### Common misinterpretation
 
-*"Make interfaces small."* Not as count rule. ISP is **client-centric**: segregation follows *the set of methods a particular client uses*, not arbitrary method-count ceiling. Two clients with identical method needs can share one interface, even at 20 methods.
+*"Make interfaces small."* As a count rule, no. ISP is **client-centric** — segregation is driven by *the set of methods a particular client uses*, not by an arbitrary method-count ceiling. Two clients with identical method needs can share one interface even if it has 20 methods.
 
 ### Bad
 
@@ -182,7 +182,7 @@ UserService
   audit(...)
   export(...)
 ```
-Audit logger only needs `audit`. It now depends transitively on email and export subsystems.
+The audit logger only needs `audit`. It now depends transitively on the email and export subsystems.
 
 ### Good
 
@@ -208,18 +208,18 @@ Source: Martin's 1996 *C++ Report* paper, archived at Wayback / objectmentor.com
 
 ### Why
 
-Policy must not transitively `import` mechanism, or policy becomes un-reusable and untestable.
+Control the direction of the import graph. Policy must not transitively `import` mechanism, or policy becomes un-reusable and untestable.
 
 ### Smells to flag
 
-- High-level module imports concrete low-level client inside business logic.
-- Constructor that `new`/instantiates concrete collaborators instead of accepting them as parameters.
-- Abstractions defined in *low-level* package (interface beside its database or service implementation) — ownership reversed. Interface belongs in **client's** package.
+- A high-level module imports a concrete low-level client inside business logic.
+- A constructor that `new`/instantiates concrete collaborators instead of accepting them as parameters.
+- Abstractions defined in the *low-level* package (the interface lives next to its database or service implementation) — ownership reversed. The interface should live in the **client's** package.
 - Function signatures typed against concrete classes instead of interfaces, protocols, or abstract contracts.
 
 ### Common misinterpretation
 
-*"DIP means use a DI container."* No. DIP concerns **the direction of source-code dependencies**. Plain constructor injection with no framework can satisfy DIP. Code using Spring can still violate it.
+*"DIP means use a DI container."* No. DIP is about **the direction of source-code dependencies**. You can satisfy DIP with plain constructor injection and no framework; you can violate DIP while using Spring.
 
 ### Bad
 
@@ -250,29 +250,31 @@ SqlUserRepository satisfies UserRepository
   get(userId) -> User
 ```
 
-Import arrows go `sql → billing` (detail → abstraction). They do not go `billing → sql`.
+The import arrows go: `sql → billing` (detail → abstraction). They do not go `billing → sql`.
 
 ---
 
 ## How AI-generated code typically breaks SOLID
 
+Mapped to the principle each breaks:
+
 1. **God-module** from "do everything in one file" prompts — SRP + DIP + usually OCP.
 2. **Type-tag dispatch chains** (`if kind == "pdf": ...`) — OCP.
 3. **Unsupported-operation stubs in subclasses** when asked to "implement only the methods we need" — LSP + ISP.
-4. **Concrete SDK/client imports at module load time** — DIP, hard to test without patching runtime.
+4. **Concrete SDK/client imports at module load time** — DIP, hard to test without patching the runtime.
 5. **Mega-`Service` interfaces** with create/read/update/delete/email/notify/audit/export — ISP, usually SRP too.
-6. **Silent precondition strengthening on override** — defensive-looking, breaks LSP: callers holding base type now crash on previously-valid inputs.
+6. **Silent precondition strengthening on override** — defensive-looking, breaks LSP because callers holding the base type now crash on previously-valid inputs.
 7. **Invariant-breaking "convenience" subclasses** (e.g., `ReadOnlyList(list)` overriding `append` to no-op) — LSP.
-8. **Inverted ownership of abstractions** — interface/protocol/abstract contract in same file as concrete implementation. Cosmetic DIP fix, real dependency graph unchanged.
+8. **Inverted ownership of abstractions** — putting the interface/protocol/abstract contract in the same file as the concrete implementation. Cosmetic DIP fix, real dependency graph unchanged.
 
 ---
 
 ## Self-check for SOLID
 
-Before shipping code:
+Before you ship code:
 
-1. (SRP) Any class in diff answering to more than one stakeholder group?
-2. (OCP) Any change adding type-tag branch to existing function? Could it be data-driven (registry/strategy) instead?
-3. (LSP) Any new subclass signaling "not implemented", tightening preconditions, or weakening postconditions?
-4. (ISP) Any interface with a method your concrete client does not use?
-5. (DIP) High-level package importing low-level concrete? Where do new abstractions live — with client or with implementation?
+1. (SRP) Does any class in the diff answer to more than one stakeholder group?
+2. (OCP) Does any change require a type-tag branch added to an existing function? Could it be data-driven (registry/strategy) instead?
+3. (LSP) Does any new subclass signal "not implemented", tighten preconditions, or weaken postconditions?
+4. (ISP) Does any interface have a method your concrete client doesn't use?
+5. (DIP) Does the high-level package import the low-level concrete? Where do new abstractions live — with the client or with the implementation?

@@ -6,7 +6,7 @@ tags: dead, comments, documentation, context, intent
 
 ## Keep Comments That Explain Why, Not What
 
-Code shows what happens; only comments explain why. Keep comments capturing business decisions, workarounds, non-obvious constraints and history.
+Code shows what happens; only comments can explain why. Keep comments that capture business decisions, workarounds, non-obvious constraints, and historical context. These comments prevent future developers from "fixing" intentional behavior or repeating mistakes that led to the current implementation.
 
 **Incorrect (removing valuable context):**
 
@@ -41,6 +41,25 @@ function processPayment(amount: number): boolean {
 }
 // Future dev removes sleep(100) as "unnecessary" -> outage
 // Future dev changes maxRetries to 10 -> compliance violation
+```
+
+**Correct (preserve why comments):**
+
+```typescript
+function processPayment(amount: number): boolean {
+  // Visa requires amounts in cents, not dollars
+  const centAmount = Math.round(amount * 100);
+
+  // Retry limit set by PCI compliance audit (JIRA-4521)
+  const maxRetries = 3;
+
+  // 100ms delay required by payment gateway rate limits (Black Friday 2023 postmortem)
+  for (let i = 0; i < maxRetries; i++) {
+    if (gateway.charge(centAmount)) return true;
+    sleep(100);
+  }
+  return false;
+}
 ```
 
 **Comments worth keeping:**
@@ -102,4 +121,12 @@ let count: number = 0;  // Must be number (not bigint) for legacy API compatibil
 2. **Workarounds**: Browser bugs, library quirks, API limitations
 3. **Performance**: Why a non-obvious approach was faster
 4. **Historical**: Incidents, postmortems, decisions that led here
-5. **Warnings**: Code that looks wrong but is intentional
+5. **Warnings**: Things that look wrong but are intentional
+
+### Benefits
+
+- Preserves institutional knowledge
+- Prevents regression of intentional behavior
+- Reduces "why is this here?" Slack messages
+- Makes code archaeology faster during incidents
+- Protects against well-meaning "cleanup" that breaks things

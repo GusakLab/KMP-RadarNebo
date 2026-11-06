@@ -1,10 +1,10 @@
 # Commit Messages and Local History Cleanup
 
-Read when writing non-trivial commit message or tidying unpushed commits before push or PR.
+Read this when writing a non-trivial commit message, or when tidying unpushed commits before a push or PR.
 
 ## Repository convention first
 
-Before writing, check `git log --oneline -20` plus any `CONTRIBUTING.md`, commitlint config or commit-msg hook. Match existing convention (Conventional Commits, ticket prefixes, sign-off, required trailers). Use defaults below only when no convention exists.
+Before writing a message, look at `git log --oneline -20`, plus any `CONTRIBUTING.md`, commitlint config or commit-msg hook. Match the existing convention (Conventional Commits, ticket prefixes, sign-off, required trailers). Use the defaults below only when there is no convention.
 
 ## Structure
 
@@ -18,22 +18,22 @@ Before writing, check `git log --oneline -20` plus any `CONTRIBUTING.md`, commit
 
 ### Subject line
 
-- Type prefix such as `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `build`, `ci`, `chore` or `revert`. Add `!` after type or scope for breaking change.
-- Imperative mood: "add", not "added" or "adds".
-- About 50 characters (hard limit 72), no trailing period.
+- Use a type prefix such as `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `build`, `ci`, `chore` or `revert`. Add `!` after the type or scope for a breaking change.
+- Use the imperative mood: "add", not "added" or "adds".
+- Keep it to about 50 characters (hard limit 72), with no trailing period.
 - Be specific: "fix race in payment retry", not "fix bug" or "update stuff".
-- Describe outcome, not mechanics. Omit file names unless they are the point.
+- Describe the outcome, not the mechanics. Leave file names out unless they are the point.
 
 ### Body
 
-Add body when diff does not explain itself:
+Use a body whenever the diff does not explain itself:
 
-- **Why** needed: problem, root cause, constraint.
-- **What** changed, high level. Diff shows details.
-- **Side effects**, risks, rejected alternatives.
-- How you verified it, if not obvious.
+- **Why** the change was needed: the problem, the root cause, the constraint.
+- **What** changed at a high level. The diff shows the details.
+- **Side effects**, risks, and alternatives you rejected.
+- How you verified it, when that is not obvious.
 
-Blank line between subject and body. Bullets for lists.
+Separate the body from the subject with a blank line. Use bullets for lists.
 
 ### Footer
 
@@ -44,7 +44,7 @@ BREAKING CHANGE: /users now requires authentication
 Co-Authored-By: Name <email>
 ```
 
-Add attribution trailers only when repository or user instructions require them.
+Add attribution trailers only when the repository or the user's instructions call for them.
 
 ## Examples
 
@@ -95,22 +95,22 @@ Closes: #778
 
 Commit when:
 
-- Logical unit of work complete, tests pass.
-- Stable checkpoint before switching tasks or starting risky step.
-- One bug fixed (one commit per bug).
+- A logical unit of work is complete and its tests pass.
+- You are at a stable checkpoint before switching tasks or starting a risky step.
+- You fixed one bug (one commit per bug).
 
 Do not commit:
 
-- Code that does not build, or failing tests (unless test documents known issue user asked to record).
+- Code that does not build, or failing tests (unless the test documents a known issue the user asked to record).
 - Unrelated changes mixed together.
 - Debug output or temporary comments.
 - Secrets.
 
 ## Cleaning up local history (non-interactive)
 
-Rewrite only commits that have **not been pushed** to shared branch. Once others may have built on a commit, add new commit instead. Never force-push shared branch. On own feature branch, rewrite pushed commits only with user's agreement; push with `--force-with-lease`.
+Rewrite only commits that have **not been pushed** to a shared branch. Once others may have based work on a commit, add a new commit instead. Never force-push a shared branch. On your own feature branch, rewrite pushed commits only with the user's agreement, and push with `--force-with-lease`.
 
-Agents cannot drive interactive editor. Use non-interactive forms:
+Agents cannot drive an interactive editor. Use these non-interactive forms:
 
 ```bash
 # See what is unpushed
@@ -129,7 +129,7 @@ git restore --staged .           # optional: unstage, then stage per commit
 git add <paths> && git commit -m "feat: ..."
 ```
 
-`GIT_SEQUENCE_EDITOR=:` accepts generated todo list unchanged; only effect is autosquash reordering. For anything needing hand editing (splitting commit, reordering by hand), describe plan and ask user to run interactive rebase.
+`GIT_SEQUENCE_EDITOR=:` accepts the generated todo list unchanged, so the only effect is the autosquash reordering. For anything that needs hand editing (splitting a commit, reordering by hand), describe the plan and ask the user to run the interactive rebase.
 
 ### Recovery
 
@@ -139,4 +139,4 @@ git reflog                          # find the pre-rewrite commit
 git branch rescue <sha-from-reflog> # keep it safe, then compare before resetting
 ```
 
-Do not squash whole feature into one commit by default. Keep logical commits showing how change was built, unless repository's merge policy squashes anyway.
+Do not squash a whole feature into one commit by default. Keep the logical commits that explain how the change was built, unless the repository's merge policy squashes anyway.

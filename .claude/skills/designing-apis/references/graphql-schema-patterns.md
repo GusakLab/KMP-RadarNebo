@@ -1,6 +1,6 @@
 # GraphQL Schema Patterns
 
-Schema-shape patterns complementing `graphql-design.md` (type system, DataLoader, Relay pagination, partial errors). Read when designing interfaces/unions, mutation payloads, batch mutations, filtering arguments, subscriptions, scalars, directives or schema evolution.
+Schema-shape patterns that complement `graphql-design.md` (type system, DataLoader, Relay pagination, partial errors). Read this when designing interfaces/unions, mutation payloads, batch mutations, filtering arguments, subscriptions, scalars, directives or schema evolution.
 
 ## Schema Organization
 
@@ -129,6 +129,7 @@ input UpdateUserInput {
   profileInput: ProfileInput
 }
 ```
+
 
 ## Mutation Design Patterns
 
@@ -427,24 +428,25 @@ enum ErrorCode {
 }
 ```
 
+
 ## Protecting the Server
 
-GraphQL lets clients write arbitrarily deep and wide queries. Limit cost before execution:
+GraphQL lets clients write arbitrarily deep and wide queries, so limit cost before execution:
 
 | Control | What it stops | How |
 |---------|---------------|-----|
-| Depth limit | `user { friends { friends { friends ... } } }` | Validation rule rejecting depth > N (often 7-10); most servers ship plugin or rule |
-| Complexity/cost limit | Wide list fan-out (`first: 1000` on nested lists) | Assign cost per field, multiply by list size arguments, reject above budget |
-| Max page size | Unbounded lists | Cap `first`/`last` in resolver or schema directive |
+| Depth limit | `user { friends { friends { friends ... } } }` | Validation rule rejecting depth > N (often 7-10); most servers ship a plugin or rule |
+| Complexity/cost limit | Wide list fan-out (`first: 1000` on nested lists) | Assign a cost per field, multiply by list size arguments, reject above a budget |
+| Max page size | Unbounded lists | Cap `first`/`last` in the resolver or schema directive |
 | Persisted / trusted queries | Arbitrary queries from public clients | Accept only registered query hashes in production |
 | Introspection policy | Schema discovery by attackers | Disable or restrict in production for private APIs |
 | Batching limit | Many operations in one HTTP request | Cap operations per request |
 
-Check installed server library's docs for exact rule or plugin name. Do not hand-roll an AST walker unless library has none.
+Check the installed server library's docs for the exact rule or plugin name; do not hand-roll an AST walker unless the library has none.
 
 ## Schema Evolution
 
-GraphQL APIs usually versionless: evolve additively and deprecate.
+GraphQL APIs are usually versionless: evolve additively and deprecate.
 
 ```graphql
 type User {
@@ -455,19 +457,20 @@ type User {
 }
 ```
 
-1. Add new fields/types. Never change existing field's type or nullability in breaking direction (nullable -> non-null on an *input* breaks clients; non-null -> nullable on an *output* breaks clients).
+1. Add new fields/types; never change an existing field's type or nullability in a breaking direction (nullable -> non-null on an *input* breaks clients; non-null -> nullable on an *output* breaks clients).
 2. Mark replaced fields `@deprecated(reason: ...)`; track usage via field-level metrics.
-3. Remove only after usage reaches zero (or announced sunset date).
-4. Run schema diff (breaking-change check) in CI on every schema change.
+3. Remove only after usage reaches zero (or an announced sunset date).
+4. Run a schema diff (breaking-change check) in CI on every schema change.
 
 ## Best Practices Summary
 
 1. **Nullability**: Start output fields nullable unless guaranteed; make inputs non-null only when required.
-2. **Input types**: One `input` per mutation; return dedicated payload type.
+2. **Input types**: One `input` per mutation; return a dedicated payload type.
 3. **Errors**: Expected business errors in payloads or result unions; reserve top-level `errors` for unexpected failures.
 4. **Pagination**: Relay connections for lists that can grow (see `graphql-design.md`).
 5. **Naming**: camelCase fields, PascalCase types, SCREAMING_SNAKE enum values.
-6. **DataLoader** for every relationship resolver.
-7. **Cost limits** before exposing endpoint publicly.
-8. **Custom scalars** for domain types (DateTime, Email, URL, Money).
-9. **Descriptions** on every type and field (they become docs).
+6. **Deprecation** over removal; diff the schema in CI.
+7. **DataLoader** for every relationship resolver.
+8. **Cost limits** before exposing the endpoint publicly.
+9. **Custom scalars** for domain types (DateTime, Email, URL, Money).
+10. **Descriptions** on every type and field (they become the docs).

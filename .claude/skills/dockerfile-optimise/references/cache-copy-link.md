@@ -7,9 +7,9 @@ tags: cache, copy-link, buildkit, multi-stage
 
 ## Use COPY --link for Cache-Efficient Layer Copying
 
-Regular `COPY` stacks files on previous layer, creating dependency chain: if any earlier layer changes, `COPY` layer must rebuild, even with identical content. `COPY --link` creates independent layer not tied to predecessors, so cache reuses it even when earlier layers in same stage changed. Biggest win in multi-stage builds where final images copy artifacts from build stages.
+A regular `COPY` instruction adds files on top of the previous layer, creating a dependency chain -- if any earlier layer changes, the `COPY` layer must be rebuilt even when the copied content is identical. `COPY --link` creates an independent layer that does not depend on its predecessors, so it can be reused from cache even when earlier layers in the same stage have changed. This is especially valuable in multi-stage builds where final images copy artifacts from build stages.
 
-**Incorrect (regular COPY, any upstream change invalidates cache):**
+**Incorrect (regular COPY -- cache invalidated by any upstream change):**
 
 ```dockerfile
 # syntax=docker/dockerfile:1
@@ -26,7 +26,7 @@ COPY --from=build /out/server /usr/local/bin/server
 CMD ["server"]
 ```
 
-(Changing `RUN apk add` layer forces `COPY --from=build` rebuild even though copied binary is identical.)
+(If the `RUN apk add` layer changes -- say you add a new package -- the `COPY --from=build` layer must be rebuilt even though the copied binary is identical. The `COPY` depends on the layer stack below it.)
 
 **Correct (COPY --link creates independent layer):**
 
@@ -45,13 +45,20 @@ COPY --link --from=build /out/server /usr/local/bin/server
 CMD ["server"]
 ```
 
-(Changing `apk add` line no longer invalidates copied binary layer. BuildKit can also resolve this layer without base image present locally, speeding builds.)
+(The `COPY --link` creates a self-contained layer. Changing the `apk add` line does not invalidate the copied binary layer. BuildKit can also resolve this layer without needing the base image to exist locally, enabling faster builds.)
 
 ### When to Use --link
 
-Default to `COPY --link` for all `COPY` instructions unless you depend on symlinks or need files merged into existing directory contents. Performance always equals or beats regular `COPY`.
+Use `COPY --link` by default for all `COPY` instructions unless you depend on symlinks or need files to merge with existing directory contents. The performance is always equal to or better than regular `COPY`.
 
-**Static file copies into image:**
+**Multi-stage artifact copies (highest impact):**
+
+```dockerfile
+COPY --link --from=build /out/app /usr/local/bin/app
+COPY --link --from=assets /out/static /srv/static
+```
+
+**Static file copies into the image:**
 
 ```dockerfile
 COPY --link package.json package-lock.json ./
@@ -60,11 +67,11 @@ COPY --link . .
 
 ### When NOT to Use --link
 
-- `COPY` relies on symlinks in source or destination (linked copies cannot create symlinks referencing existing content)
-- Copied files must merge into directory that must already exist from prior layer
+- When your `COPY` relies on symlinks in the source or destination (linked copies cannot create symlinks that reference existing content)
+- When you need copied files to merge into a directory that must already exist from a prior layer
 
 ### Requirements
 
-`COPY --link` requires `# syntax=docker/dockerfile:1` directive (or BuildKit with Dockerfile frontend 1.4+).
+`COPY --link` requires the `# syntax=docker/dockerfile:1` directive (or BuildKit with Dockerfile frontend 1.4+).
 
 Reference: [Building best practices](https://docs.docker.com/build/building/best-practices/)

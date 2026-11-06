@@ -6,7 +6,7 @@ tags: scope, diff-size, review-quality, pr-hygiene
 
 ## Keep Changes Small and Reviewable
 
-Make every simplification the smallest possible diff. Large diffs exhaust reviewers, hide bugs in noise, make rollbacks painful. 50-line PR gets thorough review; 500-line PR gets rubber-stamped. Small changes also keep git bisect effective.
+Every simplification should produce the smallest possible diff. Large diffs exhaust reviewers, hide bugs in noise, and make rollbacks painful. A 50-line PR gets thorough review; a 500-line PR gets rubber-stamped. Small changes also make git bisect effective when bugs emerge.
 
 **Incorrect (kitchen-sink simplification):**
 
@@ -88,4 +88,12 @@ Make every simplification the smallest possible diff. Large diffs exhaust review
 - Aim for under 200 lines changed per PR
 - Never exceed 400 lines without explicit approval
 - If simplification grows large, split into multiple PRs
-- One clear purpose per PR
+- Each PR should have a single, clear purpose
+
+### Benefits
+
+- Reviewers can give full attention to each change
+- Bugs are easier to spot in small diffs
+- Rollbacks affect minimal code
+- CI/CD cycles are faster
+- Merge conflicts are less likely

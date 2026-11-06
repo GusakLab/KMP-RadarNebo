@@ -1,24 +1,28 @@
 # Behavioral Design Patterns
 
+Behavioral patterns deal with **algorithms and the assignment of responsibilities** between objects.
+
+---
+
 ## Chain of Responsibility
 *Also known as: CoR, Chain of Command*
 
-**Intent:** Pass requests along handler chain. Each handler processes request or passes it on.
+**Intent:** Pass requests along a chain of handlers. Each handler decides to process the request or pass it to the next.
 
-**Problem:** Request goes through series of checks/handlers (auth → validation → caching → ...); exact chain unknown in advance.
+**Problem:** A request needs to go through a series of checks/handlers (auth → validation → caching → ...) but the exact chain is unknown in advance.
 
-**Solution:** Link handlers in chain; each references next. Handler processes request or forwards it.
+**Solution:** Link handlers in a chain. Each handler has a reference to the next. Upon receiving a request, a handler either processes it or forwards it.
 
 **Roles:**
 - **Handler** — interface with `setNext(handler)` and `handle(request)`
 - **BaseHandler** — optional abstract class; stores next handler; delegates by default
 - **ConcreteHandler** — process or pass
-- **Client** — assembles chain; can trigger any handler, not only first
+- **Client** — assembles the chain; can trigger any handler, not just the first
 
 **When to use:**
-- Handle different request types in various ways; order/types unknown
-- Several handlers must run in specific order
-- Handler set should change at runtime
+- Handle different request types in various ways with unknown order/types
+- Must execute several handlers in a specific order
+- Set of handlers should be dynamic at runtime
 
 **Pros:** Decouple sender from receivers; OCP; add/remove handlers at runtime
 **Cons:** Some requests may go unhandled
@@ -28,37 +32,37 @@
 ## Command
 *Also known as: Action, Transaction*
 
-**Intent:** Turn request into stand-alone object holding all request info. Enables parameterizing methods, queuing, logging, undo.
+**Intent:** Turn a request into a stand-alone object containing all request info. Enables parameterizing methods, queuing, logging, and undo.
 
-**Problem:** UI elements trigger operations hardcoded in button handlers. Copy/paste gets duplicated across menu, toolbar, keyboard shortcut.
+**Problem:** UI elements trigger operations. Operations are hardcoded in button handlers. Copy/paste has to be duplicated across menu, toolbar, keyboard shortcut.
 
-**Solution:** Extract operation into `Command` object with `execute()` method. Sender holds command and calls it; Receiver does work.
+**Solution:** Extract the operation into a `Command` object with an `execute()` method. Sender holds a command and calls it. Receiver does the actual work.
 
 **Roles:**
-- **Invoker** — stores Command; triggers it (doesn't know what it does)
+- **Invoker** — stores a Command; triggers it (doesn't know what it does)
 - **Command** — interface with `execute()`
 - **ConcreteCommand** — implements `execute()`; delegates to Receiver; stores undo state
-- **Receiver** — holds business logic
+- **Receiver** — contains business logic
 - **Client** — creates and configures ConcreteCommands
 
 **When to use:**
 - Parameterize objects with operations
-- Queue or schedule operations
-- Reversible operations (undo/redo stack)
-- Transactional behavior
+- Queue operations or schedule execution
+- Implement reversible operations (undo/redo stack)
+- Implement transactional behavior
 
 **Pros:** SRP; OCP; undo/redo; deferred execution; compose commands
-**Cons:** Code grows complex (many classes for simple operations)
+**Cons:** Code becomes complex (many classes for simple operations)
 
 ---
 
 ## Iterator
 
-**Intent:** Traverse collection without exposing its structure (list, tree, stack, etc.).
+**Intent:** Traverse elements of a collection without exposing its underlying structure (list, tree, stack, etc.).
 
-**Problem:** Traverse different collection types (arrays, trees, graphs) without coupling client code to internal structure.
+**Problem:** Need to traverse different collection types (arrays, trees, graphs) without coupling client code to the internal structure.
 
-**Solution:** Extract traversal into Iterator object. Collection creates its own iterator.
+**Solution:** Extract traversal into an Iterator object. The collection provides a method to create its own iterator.
 
 **Roles:**
 - **Iterator** — interface: `hasNext()`, `next()`, optionally `currentItem()`
@@ -67,9 +71,9 @@
 - **ConcreteCollection** — returns its specific iterator
 
 **When to use:**
-- Abstract traversal of complex data structure
-- Cut duplicated traversal code across app
-- Multiple traversal algorithms for same collection
+- Abstract traversal of a complex data structure
+- Reduce duplication of traversal code across the app
+- Support multiple traversal algorithms for the same collection
 
 **Pros:** SRP; OCP; parallel iteration (multiple iterators); delay traversal
 **Cons:** Overkill for simple collections
@@ -79,24 +83,24 @@
 ## Mediator
 *Also known as: Intermediary, Controller*
 
-**Intent:** Cut chaotic dependencies; objects collaborate only through mediator.
+**Intent:** Reduce chaotic dependencies by forcing objects to collaborate only through a mediator.
 
-**Problem:** Tightly-coupled form: each field (checkbox, textbox, button) knows and directly updates every other — dependency web.
+**Problem:** A tightly-coupled form: each field (checkbox, textbox, button) knows about and directly updates every other — a dependency web.
 
-**Solution:** Components communicate only through `Mediator` interface, which coordinates interaction.
+**Solution:** All components communicate only through a `Mediator` interface. The mediator coordinates the interaction.
 
 **Roles:**
 - **Mediator** — interface with `notify(sender, event)`
 - **ConcreteMediator** — knows all components; implements coordination logic
-- **Component** — knows mediator; calls `mediator.notify()` instead of referencing others directly
+- **Component** — knows the mediator; calls `mediator.notify()` instead of directly referencing others
 
 **When to use:**
-- Classes tightly coupled through references to many others
-- Component not reusable elsewhere because it depends on many others
-- Many if-conditionals react to same set of object changes
+- Classes are tightly coupled because they refer to many others
+- Can't reuse a component in a different context because it depends on many others
+- Multiple if-conditionals reacting to the same set of object changes
 
 **Pros:** SRP; OCP; reuse components easily; replaces many-to-many with one-to-many
-**Cons:** Mediator can become god object
+**Cons:** Mediator can become a god object
 
 **Relations:** Mediator vs. Observer — Mediator centralizes control; Observer distributes it. MVC's Controller is a Mediator.
 
@@ -105,44 +109,44 @@
 ## Memento
 *Also known as: Snapshot*
 
-**Intent:** Save and restore object's previous state without revealing its implementation.
+**Intent:** Save and restore an object's previous state without revealing its implementation.
 
-**Problem:** Undo needs snapshots, but snapshotting reads private fields and breaks encapsulation.
+**Problem:** Implement undo. But to snapshot an object's state, you must access its private fields — breaking encapsulation.
 
-**Solution:** Object snapshots itself (Originator creates Memento). Caretaker stores/restores Mementos, never inspects contents.
+**Solution:** Delegate state storage to the object itself (Originator creates a Memento). Caretaker stores/restores Mementos but never inspects their contents.
 
 **Roles:**
-- **Originator** — creates Mementos from current state; restores from Memento
-- **Memento** — stores snapshot; restricted interface, so only Originator reads it
-- **Caretaker** — keeps Memento history; asks Originator to create/restore
+- **Originator** — creates Mementos from current state; restores from a Memento
+- **Memento** — stores a snapshot; interface is restricted so only the Originator can read it
+- **Caretaker** — stores the history of Mementos; asks Originator to create/restore
 
 **When to use:**
-- Snapshot object state to restore later
+- Produce snapshots of an object's state to restore it later
 - Direct access to object's fields would violate encapsulation
 
 **Pros:** Doesn't break encapsulation; simplifies Originator
-**Cons:** RAM-heavy if clients create Mementos often; Caretaker must track Originator's lifecycle
+**Cons:** RAM-heavy if clients create Mementos frequently; Caretaker must track Originator's lifecycle
 
 ---
 
 ## Observer
 *Also known as: Event-Subscriber, Listener, EventEmitter*
 
-**Intent:** Subscription mechanism that notifies multiple objects of events on another object.
+**Intent:** Define a subscription mechanism to notify multiple objects about events happening to another object.
 
-**Problem:** Customers must hear when product is back in stock. Either store spams all customers or customers spam store (polling).
+**Problem:** A store's customers must be notified when a product is back in stock. Either the store spams all customers or customers spam the store (polling).
 
-**Solution:** Publisher (subject) keeps subscriber list. On event, it notifies all subscribers via common interface.
+**Solution:** The publisher (subject) holds a list of subscribers. When an event occurs, it iterates and notifies all subscribers via a common interface.
 
 **Roles:**
-- **Publisher** (Subject) — keeps subscriber list; `subscribe()`, `unsubscribe()`, `notifySubscribers()`
+- **Publisher** (Subject) — maintains list of subscribers; `subscribe()`, `unsubscribe()`, `notifySubscribers()`
 - **Subscriber** — interface with `update(context)`
-- **ConcreteSubscriber** — reacts to notification
+- **ConcreteSubscriber** — reacts to the notification
 - **Client** — creates publishers and subscribers; registers subscribers
 
 **When to use:**
-- Change in one object may require changing others (number unknown)
-- Objects should observe others without tight coupling
+- Changes in one object may require changing others (number unknown)
+- Objects should be able to observe others without being tightly coupled
 
 **Pros:** OCP; dynamic relationships at runtime; loose coupling
 **Cons:** Subscribers notified in random order; memory leaks if not unsubscribed
@@ -151,21 +155,21 @@
 
 ## State
 
-**Intent:** Object alters behavior when internal state changes; appears to change class.
+**Intent:** Allow an object to alter its behavior when its internal state changes. Appears to change its class.
 
-**Problem:** `Document` behaves differently in Draft vs. Moderation vs. Published. If/switch everywhere is brittle, grows with each new state.
+**Problem:** A `Document` behaves differently when Draft vs. Moderation vs. Published. Using if/switch everywhere is brittle and grows with every new state.
 
-**Solution:** Extract state behaviors into separate State classes. Context delegates to State object for its current state.
+**Solution:** Extract state-related behaviors into separate State classes. The original object (Context) delegates behavior to a State object that represents its current state.
 
 **Roles:**
-- **Context** — references current State; delegates behavior; exposes `setState()`
+- **Context** — holds a reference to current State; delegates behavior; exposes `setState()`
 - **State** — interface with all state-specific methods
 - **ConcreteState** — implements behavior for that state; may trigger state transitions on Context
 
 **When to use:**
-- Behavior depends on state, many states exist, and state-specific code changes often
-- Class polluted with massive conditionals on current state
-- Many duplicate switch/if statements
+- Object behaves differently depending on state, state count is large, and state-specific code changes frequently
+- Class is polluted with massive conditionals based on current state
+- Code has many duplicate switch/if statements
 
 **Pros:** SRP; OCP; eliminate conditionals
 **Cons:** Overkill for few states; states aware of each other = coupling
@@ -176,22 +180,22 @@
 
 ## Strategy
 
-**Intent:** Define algorithm family, each in own class, with interchangeable objects.
+**Intent:** Define a family of algorithms, put each in a separate class, and make their objects interchangeable.
 
-**Problem:** Route planner needs walking, car, public transit directions, all crammed into `Navigator` class. Adding cycling changes tested class.
+**Problem:** A route-planning app needs walking, car, and public transit directions. All crammed into `Navigator` class. Adding cycling means changing a tested class.
 
-**Solution:** Each algorithm becomes Strategy class with common interface. Context holds Strategy, delegates algorithm call.
+**Solution:** Extract each algorithm into its own Strategy class with a common interface. Context holds a Strategy and delegates the algorithm call.
 
 **Roles:**
-- **Context** — references Strategy; calls `strategy.execute(data)`
+- **Context** — holds reference to Strategy; calls `strategy.execute(data)`
 - **Strategy** — interface with `execute(data)`
 - **ConcreteStrategy** — implements an algorithm
 
 **When to use:**
-- Switch algorithm variants at runtime
-- Many similar classes differ only in execution behavior
-- Isolate business logic from algorithm details
-- Replace massive conditionals selecting variants of same algorithm
+- Use different variants of an algorithm at runtime
+- Have many similar classes differing only in execution behavior
+- Isolate business logic from implementation details of algorithms
+- Replace massive conditionals that select variants of the same algorithm
 
 **Pros:** Swap algorithms at runtime; isolate implementation; OCP
 **Cons:** Clients must know differences between strategies; function callbacks can replace simple strategies
@@ -202,48 +206,65 @@
 
 ## Template Method
 
-**Intent:** Algorithm skeleton in base class; some steps deferred to subclasses.
+**Intent:** Define the skeleton of an algorithm in a base class, deferring some steps to subclasses.
 
-**Problem:** Two classes have similar algorithms differing in details. Duplicate code is hard to maintain.
+**Problem:** Two classes have similar algorithms but differ in details. Duplicate code is hard to maintain.
 
-**Solution:** Move common skeleton into base class method. Differing steps are abstract (subclasses must implement) or hooks (subclasses may override).
+**Solution:** Extract the common algorithm skeleton into a base class method. Make the differing steps either abstract (subclasses must implement) or hooks (subclasses may optionally override).
 
 **Roles:**
-- **AbstractClass** — declares template method + abstract/hook steps
+- **AbstractClass** — declares the template method + abstract/hook steps
 - **ConcreteClass** — implements abstract steps; optionally overrides hooks
 
 **When to use:**
-- Clients extend only particular steps, not whole algorithm
-- Several classes hold nearly identical algorithms with minor differences
+- Let clients extend only particular steps, not the whole algorithm
+- Several classes contain nearly identical algorithms with minor differences
 
-**Pros:** Pull duplicate code into base class; subclasses extend partial algorithm
-**Cons:** May violate LSP; harder to maintain as steps grow; inversed control ("Hollywood Principle")
+**Pros:** Pull duplicate code into base class; let subclasses extend partial algorithm
+**Cons:** May violate LSP; harder to maintain as more steps are added; inversed control ("Hollywood Principle")
 
-**Relations:** Factory Method specializes Template Method. Template Method varies parts of algorithm via inheritance; Strategy swaps whole algorithm via composition.
+**Relations:** Factory Method is a specialization of Template Method. Strategy differs: Template Method uses inheritance to vary parts of algorithm; Strategy uses composition to swap whole algorithm.
 
 ---
 
 ## Visitor
 
-**Intent:** Separate algorithms from objects they operate on.
+**Intent:** Separate algorithms from the objects on which they operate.
 
-**Problem:** Add operations (export to XML, calculate area) to existing class hierarchy without modifying those classes. Operation in each class violates SRP.
+**Problem:** Want to add new operations (export to XML, calculate area) to an existing class hierarchy without modifying those classes. But putting the operation in each class violates SRP.
 
-**Solution:** Move operations into `Visitor` class; each concrete visitor implements operation for every element type. Elements `accept(visitor)`, passing `this` to visitor.
+**Solution:** Extract operations into a `Visitor` class. Each concrete visitor implements the operation for every element type. Elements `accept(visitor)`, passing `this` to the visitor.
 
 **Roles:**
 - **Visitor** — interface with `visit(ConcreteElementA)`, `visit(ConcreteElementB)`, etc.
-- **ConcreteVisitor** — implements operations per element type
+- **ConcreteVisitor** — implements operations for each element type
 - **Element** — interface with `accept(visitor)`
 - **ConcreteElement** — calls `visitor.visit(this)` in `accept()`
 - **Client** — creates visitors and elements; runs visitor over element tree
 
-**Double dispatch:** `element.accept(visitor)` → `visitor.visit(element)` — runtime picks method by both visitor type and element type.
+**Double dispatch:** `element.accept(visitor)` → `visitor.visit(element)` — the right method is chosen at runtime based on both the visitor type and the element type.
 
 **When to use:**
-- Operation on all elements of complex structure (e.g., AST)
-- Clean auxiliary behaviors out of business logic
-- New operations on class hierarchy that shouldn't change existing classes
+- Perform an operation on all elements of a complex structure (e.g., AST)
+- Clean up business logic of auxiliary behaviors
+- New operations on a class hierarchy that shouldn't change existing classes
 
-**Pros:** OCP (new operations via new visitor classes); SRP; accumulate state across tree
-**Cons:** Adding element class means updating all visitors; visitors may need private field access
+**Pros:** OCP (add new operations via new visitor classes); SRP; accumulate state across tree
+**Cons:** Update all visitors when adding a new element class; visitors may need access to private fields
+
+---
+
+## Behavioral Patterns Comparison
+
+| Pattern | Core Idea |
+|---------|-----------|
+| Chain of Responsibility | Request flows down a handler chain |
+| Command | Request is an object; supports undo/queue |
+| Iterator | Traverse a collection without knowing its structure |
+| Mediator | All components go through a central coordinator |
+| Memento | Snapshot and restore state without breaking encapsulation |
+| Observer | Automatic notification of subscribers on events |
+| State | Object changes behavior when its state changes |
+| Strategy | Swap interchangeable algorithm implementations |
+| Template Method | Algorithm skeleton in base class; steps in subclasses |
+| Visitor | Add operations to class hierarchy without modifying it |

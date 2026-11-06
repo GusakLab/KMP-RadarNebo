@@ -6,9 +6,9 @@ tags: idiom, rust, error-handling, question-mark-operator
 
 ## Use ? for Error Propagation
 
-`?` is Rust's idiomatic way to propagate errors up the call stack. Replaces verbose nested `match` with concise syntax. Happy path stays obvious; errors stay explicit.
+The `?` operator is Rust's idiomatic way to propagate errors up the call stack. It replaces verbose nested `match` statements with a concise syntax that makes the happy path obvious while still handling errors explicitly. This is central to Rust's philosophy of making error handling visible but not burdensome.
 
-**Incorrect (nested match obscures logic):**
+**Incorrect (nested match statements obscure logic):**
 
 ```rust
 fn read_config(path: &str) -> Result<Config, ConfigError> {
@@ -30,7 +30,7 @@ fn read_config(path: &str) -> Result<Config, ConfigError> {
 }
 ```
 
-**Correct (? for clean propagation):**
+**Correct (? operator for clean propagation):**
 
 ```rust
 fn read_config(path: &str) -> Result<Config, ConfigError> {
@@ -50,9 +50,9 @@ fn read_config_chained(path: &str) -> Result<Config, ConfigError> {
 
 ### When to Use match Instead
 
-- Specific error variants need different handling
-- Error needs added context or transformation
-- Recoverable error you don't want to propagate
+- When you need to handle specific error variants differently
+- When you want to add context or transform the error
+- When recovery is possible and you don't want to propagate
 
 ```rust
 // match is appropriate here - different handling per error
@@ -70,5 +70,7 @@ fn connect_with_retry(addr: &str) -> Result<Connection, Error> {
 
 ### Benefits
 
-- Works with `Result` and `Option`
-- Pairs with `From` trait for automatic error conversion
+- Happy path is immediately visible
+- Error propagation is explicit but concise
+- Works with both `Result` and `Option` types
+- Combines well with `From` trait for automatic error conversion

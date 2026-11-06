@@ -6,7 +6,7 @@ tags: flow, optional-chaining, nullish-coalescing, null-checks
 
 ## Use Optional Chaining and Nullish Coalescing
 
-Deep null checks build `if` pyramids that hide real logic. Optional chaining (`?.`) and nullish coalescing (`??`) collapse them into readable expressions with clear intent: "get this value, or use a fallback."
+Deep null-checking creates pyramids of `if` statements that obscure the actual logic. Optional chaining (`?.`) and nullish coalescing (`??`) collapse these checks into readable expressions that clearly show the intent: "get this value, or use a fallback."
 
 **Incorrect (nested null checks):**
 
@@ -71,6 +71,13 @@ def get_config_value(config, section, key, default=None):
 
 ### When NOT to Apply
 
-- Must distinguish `null`, `undefined`, and `false`/`0`/`''` (use explicit checks)
-- Each null check has its own error handling or logging
-- `||` falsy-value semantics intentionally differ from `??`
+- When you need to distinguish between `null`, `undefined`, and `false`/`0`/`''` (use explicit checks)
+- When each null check has different error handling or logging
+- When the falsy-value semantics of `||` are intentionally different from `??`
+
+### Benefits
+
+- Eliminates 3-8 lines of null-checking per access chain
+- Reduces nesting by 2-4 levels
+- Intent is immediately clear: "access this path or use default"
+- Fewer intermediate variables needed

@@ -6,7 +6,7 @@ tags: dead, unused, variables, functions, imports, parameters
 
 ## Delete Unused Code Artifacts
 
-Unused variables, functions, imports and parameters obscure real logic. Modern tooling catches unused code. Delete it immediately instead of leaving it "just in case."
+Unused variables, functions, imports, and parameters are noise that obscures the real logic. They force readers to track dead references, bloat bundle sizes, and create phantom dependencies that complicate refactoring. Modern tooling catches unused code - delete it immediately rather than leaving it "just in case."
 
 **Incorrect (unused artifacts throughout):**
 
@@ -109,6 +109,13 @@ def process_order(order, _config, _logger, _metrics, _cache):
 - Public API where removal would be a breaking change
 - Parameters used only in debug/logging modes
 - Imports used only in type annotations (may appear unused to some tools)
+
+### Benefits
+
+- Faster code comprehension for new developers
+- Smaller bundle sizes (tree-shaking works better)
+- Clearer dependency graphs for refactoring tools
+- Eliminates false positives in static analysis
 
 ### References
 

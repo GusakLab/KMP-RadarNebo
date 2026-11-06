@@ -6,7 +6,7 @@ tags: flow, nesting, refactoring, complexity, extraction
 
 ## Flatten Deep Nesting to Maximum 2-3 Levels
 
-Past 2-3 levels, nesting gets exponentially harder to read. At 4+ levels, extract functions, return early, or restructure.
+Code nested beyond 2-3 levels becomes exponentially harder to understand. Each level requires holding more context in working memory. When you find yourself at 4+ levels, it's a signal to extract functions, use early returns, or restructure the logic. Flat code is maintainable code.
 
 **Incorrect (excessive nesting):**
 
@@ -36,7 +36,7 @@ function processTransactions(accounts: Account[]) {
 }
 ```
 
-**Correct (extraction and early continues):**
+**Correct (flattened with extraction and early continues):**
 
 ```typescript
 function processTransactions(accounts: Account[]) {
@@ -76,7 +76,7 @@ function applyRules(account: Account, transaction: Transaction) {
 }
 ```
 
-**Incorrect (nested validation conditionals):**
+**Incorrect (nested conditionals for validation):**
 
 ```typescript
 function validateForm(form: FormData): ValidationResult {
@@ -177,14 +177,21 @@ function getTheme(config: Config): Theme | undefined {
 
 ### Flattening Strategies
 
-1. **Early returns/continues** - Exit current scope ASAP
+1. **Early returns/continues** - Exit the current scope ASAP
 2. **Extract helper functions** - Each handles one level of complexity
 3. **Filter before iterate** - Move conditions out of loops
-4. **Use optional chaining** - Safe property access
+4. **Use optional chaining** - For safe property access
 5. **Use lookup tables** - Replace nested conditionals with data
+
+### Benefits
+
+- Each function fits in working memory
+- Code can be tested in smaller units
+- Easier to parallelize or optimize specific parts
+- Clearer separation of concerns
 
 ### When NOT to Apply
 
 - State machines with inherent nesting
-- Recursive-descent parser/compiler code
-- Extraction would need excessive parameter passing
+- Parser/compiler code with recursive descent
+- When extraction would require excessive parameter passing

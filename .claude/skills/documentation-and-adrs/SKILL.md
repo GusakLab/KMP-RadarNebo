@@ -5,43 +5,47 @@ description: Write ADRs, READMEs, inline comments, API reference updates and cha
 
 # Documentation and ADRs
 
-Document decisions, not just code. Capture the *why*: context, constraints, trade-offs and alternatives considered. Code shows *what*.
+## Overview
+
+Document decisions, not just code. The most valuable documentation captures the *why* — the context, constraints, and trade-offs that led to a decision. Code shows *what* was built; documentation explains *why it was built this way* and *what alternatives were considered*. This context is essential for future humans and agents working in the codebase.
 
 ## When to Use
 
-- Making significant architectural decision
+- Making a significant architectural decision
 - Choosing between competing approaches
-- Adding or changing public API
-- Shipping user-facing behavior change
-- Onboarding new team members (or agents)
-- Explaining same thing repeatedly
+- Adding or changing a public API
+- Shipping a feature that changes user-facing behavior
+- Onboarding new team members (or agents) to the project
+- When you find yourself explaining the same thing repeatedly
 
-**When NOT to use:** Don't document obvious code. Don't write comments restating code. Don't document throwaway prototypes.
+**When NOT to use:** Don't document obvious code. Don't add comments that restate what the code already says. Don't write docs for throwaway prototypes.
 
 ## Architecture Decision Records (ADRs)
 
+ADRs capture the reasoning behind significant technical decisions. They're the highest-value documentation you can write.
+
 ### When to Write an ADR
 
-- Choosing framework, library or major dependency
-- Designing data model or database schema
-- Selecting authentication strategy
-- Choosing API architecture (REST vs. GraphQL vs. tRPC)
-- Choosing build tools, hosting platforms or infrastructure
-- Any decision expensive to reverse
+- Choosing a framework, library, or major dependency
+- Designing a data model or database schema
+- Selecting an authentication strategy
+- Deciding on an API architecture (REST vs. GraphQL vs. tRPC)
+- Choosing between build tools, hosting platforms, or infrastructure
+- Any decision that would be expensive to reverse
 
 ### Match the existing convention first
 
-Before creating an ADR, check available repository context for established convention: existing ADRs, project instructions, ADR configuration or tooling (e.g. `.adr-dir` file). Established convention overrides defaults below. Match:
+Before creating an ADR, inspect the available repository context for an established convention — existing ADRs, project instructions, and ADR-related configuration or tooling (e.g. an `.adr-dir` file). An established convention overrides the defaults below. Match:
 
-- **Location and format** — e.g. `docs/adr/*.md`, `Documentation/Decisions/*.rst`, MADR layout or `adr-tools` setup. Match directory, file extension and markup (Markdown vs reStructuredText).
-- **Numbering and naming** — continue existing sequence and filename pattern (`ADR-004-Title.rst`, `0004-title.md`, …). Don't restart at 001 or add second scheme.
-- **Section headings** — reuse project's headings, not this template's.
+- **Location and format** — e.g. `docs/adr/*.md`, `Documentation/Decisions/*.rst`, a MADR layout, or an `adr-tools` setup. Match the existing directory, file extension, and markup (Markdown vs reStructuredText).
+- **Numbering and naming** — continue the existing sequence and filename pattern (`ADR-004-Title.rst`, `0004-title.md`, …); don't restart at 001 or introduce a second scheme.
+- **Section headings** — reuse the project's heading set rather than imposing this template's.
 
-If evidence conflicts, surface the conflict. Do not silently add another scheme. Use default below only when no convention can be established.
+If the available evidence conflicts, surface the conflict rather than silently introducing another scheme. Only when no convention can be established do you apply the default below.
 
 ### ADR Template
 
-Store ADRs in `docs/decisions/`, numbered sequentially (unless project uses another location; see above):
+Store ADRs in `docs/decisions/` with sequential numbering (unless the project already uses another location — see above):
 
 ```markdown
 # ADR-001: Use PostgreSQL for primary database
@@ -92,8 +96,8 @@ Use PostgreSQL with Prisma ORM.
 PROPOSED → ACCEPTED → (SUPERSEDED or DEPRECATED)
 ```
 
-- **Don't delete old ADRs.** They hold historical context.
-- When decision changes, write new ADR that references and supersedes old one.
+- **Don't delete old ADRs.** They capture historical context.
+- When a decision changes, write a new ADR that references and supersedes the old one.
 
 ## Inline Documentation
 
@@ -147,7 +151,7 @@ export function initializeTheme(theme: Theme): void {
 
 ## API Documentation
 
-For public APIs (REST, GraphQL, library interfaces): document while designing; don't wait for API to stabilize. Doc is first test of design.
+For public APIs (REST, GraphQL, library interfaces):
 
 ### Inline with Types (Preferred for TypeScript)
 
@@ -195,21 +199,21 @@ paths:
 
 ### Keep API docs true to the code
 
-Examples, generated or hand-written, are claims about code. Check them:
+Generated or hand-written examples are claims about the code, so check them:
 
-1. Read implementation and its test fixtures, not just route name or type signature.
-2. Update request/response examples and any affected prose (pagination, errors, auth).
-3. Run project's existing doc or schema build (OpenAPI validation, TypeDoc/Sphinx build, doc tests). Where safe, run documented read-only call against local or test fixture.
-4. Record commands that ran and checks you could not run. Never present untested example as verified.
+1. Read the implementation and its test fixtures, not just the route name or type signature.
+2. Update the request/response examples and any prose (pagination, errors, auth) that the change affects.
+3. Run the project's existing doc or schema build (OpenAPI validation, TypeDoc/Sphinx build, doc tests). Where it is safe, run a documented read-only call against a local or test fixture.
+4. Record which commands actually ran and which checks you could not run. Never present an untested example as verified.
 5. Keep secrets, internal hostnames and real customer data out of examples.
 
-*Worked example:* endpoint changes from offset to cursor pagination. Read handler and its tests. Update response example (`next_cursor`) and pagination section. Regenerate or validate OpenAPI spec with repository's command. Exercise one documented request against test server. Report: "spec validated with `<cmd>`; example request checked against fixture X."
+*Worked example:* an endpoint changes from offset to cursor pagination. Read the handler and its tests. Update the response example (`next_cursor`) and the pagination section, regenerate or validate the OpenAPI spec with the repository's command, and exercise one documented request against the test server. Report: "spec validated with `<cmd>`; example request checked against fixture X."
 
-For doc tooling setup (docs sites, generators, CI publishing), use `generating-documentation`.
+For setting up doc tooling (docs sites, generators, CI publishing), use `generating-documentation`.
 
 ## README Structure
 
-Every project needs README covering:
+Every project should have a README that covers:
 
 ```markdown
 # Project Name
@@ -259,21 +263,41 @@ For shipped features:
 
 ## Documentation for Agents
 
-For AI agent context:
+Special consideration for AI agent context:
 
 - **CLAUDE.md / rules files** — Document project conventions so agents follow them
-- **Spec files** — Keep specs current so agents build right thing
-- **ADRs** — Show agents why past decisions were made (prevents re-deciding)
-- **Inline gotchas** — Keep agents out of known traps
+- **Spec files** — Keep specs updated so agents build the right thing
+- **ADRs** — Help agents understand why past decisions were made (prevents re-deciding)
+- **Inline gotchas** — Prevent agents from falling into known traps
+
+## Common Rationalizations
+
+| Rationalization | Reality |
+|---|---|
+| "The code is self-documenting" | Code shows what. It doesn't show why, what alternatives were rejected, or what constraints apply. |
+| "We'll write docs when the API stabilizes" | APIs stabilize faster when you document them. The doc is the first test of the design. |
+| "Nobody reads docs" | Agents do. Future engineers do. Your 3-months-later self does. |
+| "ADRs are overhead" | A 10-minute ADR prevents a 2-hour debate about the same decision six months later. |
+| "Comments get outdated" | Comments on *why* are stable. Comments on *what* get outdated — that's why you only write the former. |
+
+## Red Flags
+
+- Architectural decisions with no written rationale
+- Public APIs with no documentation or types
+- README that doesn't explain how to run the project
+- Commented-out code instead of deletion
+- TODO comments that have been there for weeks
+- No ADRs in a project with significant architectural choices
+- Documentation that restates the code instead of explaining intent
 
 ## Verification
 
 After documenting:
 
 - [ ] ADRs exist for all significant architectural decisions
-- [ ] README covers quick start, commands and architecture overview
+- [ ] README covers quick start, commands, and architecture overview
 - [ ] API functions have parameter and return type documentation
-- [ ] Known gotchas documented inline where they matter
+- [ ] Known gotchas are documented inline where they matter
 - [ ] No commented-out code remains
-- [ ] Rules files (CLAUDE.md etc.) current and accurate
-- [ ] Changed API examples checked against code or build, with commands run reported
+- [ ] Rules files (CLAUDE.md etc.) are current and accurate
+- [ ] Changed API examples were checked against the code or build, and the commands run are reported

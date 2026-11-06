@@ -12,6 +12,8 @@
 
 ## Overview
 
+Test data management is critical for reliable, maintainable tests. Choose the right strategy based on your testing needs.
+
 ### The Four Primary Strategies
 
 | Strategy | Deterministic | Variety | Speed | Best For |
@@ -30,23 +32,40 @@ Predefined, static test data loaded before tests run.
 **Characteristics**:
 - Same data every test run
 - Easy to understand and debug
-- Version-controlled with tests
-- Can go stale
+- Version-controlled alongside tests
+- Can become stale or outdated
 
 ### When to Use Fixtures
 
 ✅ **Use fixtures when**:
 - Testing known scenarios (happy path, specific edge cases)
-- Regression testing (bug stays fixed)
+- Regression testing (ensure bug stays fixed)
 - Need deterministic, reproducible tests
 - Debugging failing tests (same data every run)
 
 ❌ **Avoid fixtures when**:
-- Need variety (many scenarios)
-- Data structure changes often
+- Need variety (testing many scenarios)
+- Data structure changes frequently
 - Testing edge cases you haven't thought of
 
 ### TypeScript/JavaScript Example (Vitest)
+
+**Inline fixtures**:
+```typescript
+import { describe, test, expect } from 'vitest'
+import { calculateTotal } from './cart'
+
+describe('calculateTotal', () => {
+  test('calculates total for known items', () => {
+    const items = [
+      { id: 1, name: 'Widget', price: 10, quantity: 2 },
+      { id: 2, name: 'Gadget', price: 5, quantity: 1 }
+    ]
+
+    expect(calculateTotal(items)).toBe(25)
+  })
+})
+```
 
 **External fixture files**:
 ```typescript
@@ -86,6 +105,28 @@ test('parses API response', () => {
 ```
 
 ### Python Example (pytest)
+
+**pytest fixtures** (function-scoped):
+```python
+import pytest
+
+@pytest.fixture
+def sample_user():
+    """Provide a sample user for testing"""
+    return {
+        'id': 1,
+        'name': 'Alice',
+        'email': 'alice@example.com',
+        'age': 30
+    }
+
+def test_user_validation(sample_user):
+    assert validate_user(sample_user) is True
+
+def test_user_serialization(sample_user):
+    serialized = serialize_user(sample_user)
+    assert serialized['name'] == 'Alice'
+```
 
 **Fixture scopes**:
 ```python
@@ -175,10 +216,10 @@ mod tests {
 
 ### What Are Factories?
 
-Functions generating test data with sensible defaults you can override.
+Functions that generate test data with sensible defaults, allowing customization.
 
 **Characteristics**:
-- Fresh data per test
+- Generate fresh data for each test
 - Customizable (override defaults)
 - More flexible than fixtures
 - Slightly less deterministic
@@ -187,8 +228,8 @@ Functions generating test data with sensible defaults you can override.
 
 ✅ **Use factories when**:
 - Need variety in test data
-- Testing many scenarios with similar structure
-- Avoiding data coupling between tests
+- Testing multiple scenarios with similar structure
+- Want to avoid data coupling between tests
 - Need realistic but flexible data
 
 ❌ **Avoid factories when**:
@@ -356,13 +397,13 @@ func TestAdminPermissions(t *testing.T) {
 
 ### What Is Property-Based Testing?
 
-Generate hundreds/thousands of random inputs to find edge cases you missed.
+Generate hundreds/thousands of random inputs to find edge cases you didn't think of.
 
 **Characteristics**:
 - Discovers unexpected edge cases
 - Tests invariants (properties that should always hold)
 - Slower than fixture/factory tests
-- Failures can be hard to debug (shrinking helps)
+- Failures can be hard to debug (but shrinking helps)
 
 ### When to Use Property-Based Testing
 
@@ -373,8 +414,8 @@ Generate hundreds/thousands of random inputs to find edge cases you missed.
 - Finding edge cases in validation logic
 
 ❌ **Avoid property-based testing when**:
-- Simple functions
-- Performance-critical test suites (property tests slow)
+- Simple, straightforward functions
+- Performance-critical test suites (property tests are slow)
 - Need deterministic test data
 
 ### TypeScript/JavaScript Example (fast-check)
@@ -491,7 +532,7 @@ proptest! {
 
 ### When to Use Database Seeding
 
-For integration tests needing specific database state.
+For integration tests that require specific database state.
 
 **Characteristics**:
 - Sets up known database state before tests
@@ -504,9 +545,6 @@ For integration tests needing specific database state.
 ```typescript
 import { beforeEach, afterEach, test, expect } from 'vitest'
 import { db } from './database'
-
-// Guard: TRUNCATE below wipes tables; refuse unless pointed at a dedicated test DB
-if (!process.env.DATABASE_URL?.includes('_test')) throw new Error('DATABASE_URL is not a test database')
 
 beforeEach(async () => {
   // Seed database
@@ -565,7 +603,7 @@ def test_fetch_users(db_session):
 
 ### What Is Snapshot Testing?
 
-Capture output, compare against saved snapshots to catch unintended changes.
+Capture output and compare against saved snapshots to detect unintended changes.
 
 **When to Use**:
 - UI component rendering
@@ -618,7 +656,7 @@ def test_generated_html(snapshot):
 | Integration test setup | Database Seeding + Factories | Realistic data, flexible |
 | UI component rendering | Snapshot | Detect unintended changes |
 | Round-trip validation | Property-Based | Tests invariants |
-| Regression test | Fixtures | Specific bug stays fixed |
+| Regression test | Fixtures | Ensure specific bug stays fixed |
 | Performance testing | Factories | Generate large datasets |
 
 ### Combining Strategies
@@ -668,8 +706,17 @@ test('user can login and access dashboard', async ({ page }) => {
 
 ## Summary
 
+**Key Takeaways**:
+
+1. **Fixtures**: Best for known scenarios, regression tests, debugging
+2. **Factories**: Best for flexible data, integration tests, avoiding duplication
+3. **Property-Based**: Best for complex algorithms, finding edge cases, validating invariants
+4. **Database Seeding**: Best for integration tests requiring realistic data
+5. **Snapshots**: Best for UI components, configuration files, detecting unintended changes
+
 **Recommendations**:
 - Start with fixtures for simple tests
-- Add factories as tests grow and need flexibility
+- Use factories as tests grow and need flexibility
 - Add property-based tests for critical logic
+- Combine strategies for comprehensive coverage
 - Update snapshots mindfully (not automatically)

@@ -7,7 +7,7 @@ tags: cache, dependencies, copy, layer-ordering
 
 ## Copy Dependency Files Before Source Code
 
-Copying whole source tree before installing dependencies makes any source change trigger full reinstall. Copy only dependency manifests (lock files) first: Docker caches expensive install step and re-runs it only when dependencies change.
+Copying the entire source tree before installing dependencies means any source file change triggers a full dependency reinstall. By copying only the dependency manifest files (lock files) first, Docker can cache the expensive install step and only re-run it when dependencies actually change.
 
 ### Node.js
 
@@ -21,6 +21,8 @@ WORKDIR /app
 COPY . .
 RUN npm ci --production
 ```
+
+(Editing `src/api/routes.ts` forces a complete `npm ci`, re-downloading and installing all packages.)
 
 **Correct (copy manifests, install, then copy source):**
 
@@ -36,6 +38,8 @@ RUN npm ci --production
 COPY . .
 ```
 
+(Editing `src/api/routes.ts` skips the `npm ci` layer entirely since `package-lock.json` has not changed.)
+
 ### Python
 
 **Incorrect (full source copy before install):**
@@ -48,6 +52,8 @@ WORKDIR /app
 COPY . .
 RUN pip install --no-cache-dir -r requirements.txt
 ```
+
+(Editing `app/views.py` forces a full `pip install` of every package in `requirements.txt`.)
 
 **Correct (copy requirements first, then source):**
 
@@ -62,5 +68,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Source changes only affect this layer
 COPY . .
 ```
+
+(Editing `app/views.py` reuses the cached pip install layer. Dependencies only reinstall when `requirements.txt` changes.)
 
 Reference: [Docker Build Cache - Optimize](https://docs.docker.com/build/cache/optimize/)

@@ -5,12 +5,12 @@ description: Prove existing work meets acceptance conditions without expanding s
 
 # Verify and stop
 
-Turn acceptance conditions into smallest sufficient proof set.
+Translate acceptance conditions into smallest sufficient proof set.
 
-- Reuse still-current results matching repository state.
+- Reuse still-current results with matching repository state.
 - Run focused checks before wider gates.
-- Distinguish pass, fail, unavailable, blocked exactly.
+- Distinguish pass, fail, unavailable, and blocked exactly.
 - Do not edit product code unless verification request includes fixes.
-- Do not add polish, cleanup or unrelated tests after criteria pass.
+- Do not add polish, cleanup, or unrelated tests after criteria pass.
 
-Stop immediately once acceptance proof complete. Report only commands, results, unresolved risk.
+Stop immediately when acceptance proof is complete. Report commands, results, and unresolved risk only.

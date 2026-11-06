@@ -1,5 +1,8 @@
 # API Protocol Selection Guide
 
+Decision framework for choosing REST, GraphQL, WebSockets, or message queues.
+
+
 ## Table of Contents
 
 - [Quick Decision Tree](#quick-decision-tree)
@@ -28,6 +31,11 @@
   - [REST + WebSockets](#rest-websockets)
   - [REST + Message Queue](#rest-message-queue)
   - [GraphQL + Subscriptions](#graphql-subscriptions)
+- [Decision Checklist](#decision-checklist)
+  - [Choose REST if:](#choose-rest-if)
+  - [Choose GraphQL if:](#choose-graphql-if)
+  - [Choose WebSockets if:](#choose-websockets-if)
+  - [Choose Message Queue if:](#choose-message-queue-if)
 
 ## Quick Decision Tree
 
@@ -65,23 +73,22 @@ START: What type of API do you need?
 ## REST: Request-Response Pattern
 
 ### When to Use
-- Public APIs, diverse clients
-- CRUD on resources
-- Caching critical (HTTP caching)
-- Simple, predictable patterns
-- Wide client compatibility
-- Team knows HTTP/REST
+- Public-facing APIs with diverse clients
+- CRUD operations on resources
+- Caching is critical (HTTP caching)
+- Simple, predictable patterns needed
+- Wide client compatibility required
 
 ### Advantages
 - ✅ Simple, well-understood HTTP semantics
 - ✅ Built-in caching (HTTP headers)
 - ✅ Stateless, scales horizontally
-- ✅ Mature tooling
+- ✅ Mature tooling ecosystem
 - ✅ Works everywhere (browsers, mobile, IoT)
 
 ### Disadvantages
-- ❌ Over-fetching (more data than needed)
-- ❌ Under-fetching (multiple requests needed)
+- ❌ Over-fetching (get more data than needed)
+- ❌ Under-fetching (need multiple requests)
 - ❌ Version management complexity
 - ❌ No built-in real-time updates
 
@@ -96,13 +103,12 @@ START: What type of API do you need?
 ### When to Use
 - Complex, interconnected data models
 - Mobile apps (minimize over-fetching)
-- Clients need flexible queries
-- Rapid frontend iteration
-- Multiple client types, different needs
-- Real-time subscriptions
+- Clients need flexible data queries
+- Rapid frontend iteration required
+- Real-time subscriptions needed
 
 ### Advantages
-- ✅ Client specifies exact data
+- ✅ Client specifies exact data needed
 - ✅ Single endpoint for all queries
 - ✅ Strongly typed schema
 - ✅ Real-time subscriptions
@@ -110,10 +116,10 @@ START: What type of API do you need?
 
 ### Disadvantages
 - ❌ More complex than REST
-- ❌ Harder caching
+- ❌ Caching more difficult
 - ❌ N+1 query problem (requires DataLoader)
-- ❌ Harder monitoring and rate limiting
-- ❌ Learning curve
+- ❌ Monitoring and rate limiting harder
+- ❌ Learning curve for developers
 
 ### Example Use Cases
 - GitHub API
@@ -124,14 +130,14 @@ START: What type of API do you need?
 ## WebSockets: Real-Time Bidirectional
 
 ### When to Use
-- Real-time updates (chat, notifications)
-- Low latency
-- Bidirectional (server can push)
+- Real-time updates required (chat, notifications)
+- Low-latency communication needed
+- Bidirectional communication (server can push)
 - Long-lived connections acceptable
 
 ### Advantages
 - ✅ Persistent connection
-- ✅ Bidirectional (client and server both send)
+- ✅ Bidirectional (client and server send)
 - ✅ Low overhead (no HTTP header per message)
 - ✅ Low latency
 
@@ -151,20 +157,20 @@ START: What type of API do you need?
 ## Message Queues: Event-Driven
 
 ### When to Use
-- Decoupled microservice communication
-- Event sourcing and CQRS
+- Decoupled microservices communication
+- Event sourcing and CQRS patterns
 - High-throughput message processing
-- Guaranteed delivery
+- Guaranteed delivery required
 
 ### Advantages
-- ✅ Publish-subscribe
+- ✅ Publish-subscribe pattern
 - ✅ Durable message storage
 - ✅ Ordered processing
-- ✅ Decoupled services
+- ✅ Decoupling of services
 - ✅ High throughput
 
 ### Disadvantages
-- ❌ Extra infrastructure (Kafka, RabbitMQ)
+- ❌ Additional infrastructure (Kafka, RabbitMQ)
 - ❌ Eventual consistency
 - ❌ Complex error handling
 - ❌ Message ordering challenges
@@ -178,23 +184,53 @@ START: What type of API do you need?
 ## Hybrid Approaches
 
 ### REST + WebSockets
-- REST for CRUD
+- REST for CRUD operations
 - WebSockets for real-time updates
-- Example: chat app (REST for message history, WebSockets for live chat)
+- Example: Chat app (REST for message history, WebSockets for live chat)
 
 ### REST + Message Queue
 - REST for synchronous requests
-- Queue for async background jobs
-- Example: e-commerce (REST for orders, queue for email notifications)
+- Message queue for async background jobs
+- Example: E-commerce (REST for orders, queue for email notifications)
 
 ### GraphQL + Subscriptions
 - GraphQL queries/mutations for data
 - GraphQL subscriptions (over WebSockets) for real-time
-- Example: social media feed
+- Example: Social media feed
+
+## Decision Checklist
+
+### Choose REST if:
+- [ ] Building public API
+- [ ] Simple CRUD operations
+- [ ] Caching is important
+- [ ] Wide client compatibility needed
+- [ ] Team familiar with HTTP/REST
+
+### Choose GraphQL if:
+- [ ] Complex, nested data relationships
+- [ ] Mobile app (bandwidth constraints)
+- [ ] Rapid frontend iteration
+- [ ] Multiple client types with different needs
+- [ ] Real-time subscriptions needed
+
+### Choose WebSockets if:
+- [ ] Real-time updates critical
+- [ ] Bidirectional communication required
+- [ ] Low latency important
+- [ ] Long-lived connections acceptable
+- [ ] Chat, gaming, or collaborative editing
+
+### Choose Message Queue if:
+- [ ] Microservices architecture
+- [ ] Event-driven system
+- [ ] High throughput required
+- [ ] Guaranteed delivery needed
+- [ ] Decoupling services important
 
 ## RPC-Style Options: tRPC and gRPC
 
-Tree above covers resource, query, push and event styles. Two RPC styles common for internal or same-language consumers:
+The tree above covers resource, query, push and event styles. Two RPC styles are common for internal or same-language consumers:
 
 ```
 Who consumes the API?
@@ -216,6 +252,6 @@ Who consumes the API?
 | Browser support | Native | Native | Native | Needs gRPC-Web/Connect |
 | Non-TS clients | Yes | Yes | No (effectively) | Yes |
 
-Selection questions: Who consumes it, and are they external? Is every client TypeScript? How nested is the data? Does HTTP caching matter? Need streaming?
+Selection questions: Who are the consumers and are they external? Is every client TypeScript? How nested are the data needs? Is HTTP caching important? Do you need streaming?
 
-Implementation (frameworks, server code) lives in `implementing-api-patterns` skill.
+Implementation (frameworks, server code) lives in the `implementing-api-patterns` skill.

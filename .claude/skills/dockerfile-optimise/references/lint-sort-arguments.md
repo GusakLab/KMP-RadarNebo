@@ -7,7 +7,7 @@ tags: lint, readability, maintainability, apt-get
 
 ## Sort Multi-Line Arguments Alphabetically
 
-Unordered package lists in `RUN` hide duplicates, bloat diffs and cause frequent merge conflicts. Packages added ad hoc over months can appear two or three times unnoticed. Alphabetical order makes duplicates obvious and diffs show exactly what changed.
+Unordered package lists in `RUN` instructions make duplicates invisible, diffs noisy, and merge conflicts frequent. When packages are added ad hoc over months of development, the same package can appear two or three times without anyone noticing. Alphabetical ordering turns package lists into a predictable structure where duplicates are immediately obvious and version control diffs show exactly what changed.
 
 **Incorrect (unsorted packages with a hidden duplicate):**
 
@@ -25,7 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 ```
 
-(`curl` appears twice, hard to spot unsorted.)
+(`curl` appears twice -- difficult to spot in an unsorted list. Each duplicate adds noise to the install step and signals that the package list is not actively maintained. Reviewers scanning this list cannot quickly verify completeness or spot unrelated additions.)
 
 **Correct (alphabetically sorted, one package per line):**
 
@@ -42,11 +42,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 ```
 
-(Trailing `&& rm -rf /var/lib/apt/lists/*` cleanup stays visually separate.)
+(Alphabetical order makes duplicates impossible to miss. Diffs show a single added or removed line per package change. The trailing `&& rm -rf /var/lib/apt/lists/*` cleanup is visually separate from the package list.)
 
 ### Why This Matters for Code Review
 
-Unsorted lists produce noisy diffs on add or remove:
+Unsorted lists produce noisy diffs when packages are added or removed:
 
 ```diff
  RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -60,7 +60,7 @@ Unsorted lists produce noisy diffs on add or remove:
      wget \
 ```
 
-Same change on sorted list is clean single-line diff:
+The same change with a sorted list produces a clean, single-line diff:
 
 ```diff
  RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -74,7 +74,7 @@ Same change on sorted list is clean single-line diff:
 
 ### Applies Beyond apt-get
 
-Same rule fits any multi-line argument list:
+The same principle applies to any multi-line argument list:
 
 ```dockerfile
 # pip packages
@@ -95,7 +95,7 @@ RUN apk add --no-cache \
 
 ### COPY and Multi-Source Instructions
 
-Sort sources in multi-source COPY too, for same readability gain:
+Sort source files in multi-source COPY instructions for the same readability benefit:
 
 ```dockerfile
 COPY \

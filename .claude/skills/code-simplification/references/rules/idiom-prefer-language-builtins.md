@@ -6,7 +6,7 @@ tags: idiom, all-languages, stdlib, builtins
 
 ## Prefer Language and Standard Library Builtins
 
-Before writing utility code, check whether language or standard library already provides it.
+Every language provides optimized, well-tested utilities for common operations. Manual implementations are almost always buggier, slower, and harder to maintain. Before writing utility code, check if the language or standard library already provides it.
 
 **Incorrect (manual implementations):**
 
@@ -157,3 +157,10 @@ let counts: HashMap<_, _> = items.iter().fold(HashMap::new(), |mut acc, x| {
 | Find | `.find()` | `next(x for...)` | `slices.Index` | `.find()` |
 | Group | `Object.groupBy` | `itertools.groupby` | manual/lo | `.group_by()` |
 | Flatten | `.flat()` | `chain.from_iterable` | manual | `.flatten()` |
+
+### Benefits
+
+- Battle-tested implementations with edge cases handled
+- Often optimized at the language/runtime level
+- Familiar to other developers reading your code
+- Reduces maintenance burden and potential bugs

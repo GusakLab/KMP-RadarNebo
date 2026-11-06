@@ -6,7 +6,7 @@ tags: scope, boundaries, modules, coupling, encapsulation
 
 ## Respect Module and Component Boundaries
 
-When simplifying, stay inside current module or component boundary. Reaching across to "simplify" creates tight coupling, breaks encapsulation, pulls in other teams' reviewers. Each module has own owners, contracts, release cycles.
+When simplifying code, stay within the current module or component boundary. Reaching across boundaries to "simplify" creates tight coupling, violates encapsulation, and pulls in reviewers from other teams. Each module has its own owners, contracts, and release cycles.
 
 **Incorrect (crossing boundaries to simplify):**
 
@@ -73,13 +73,20 @@ class OrderService {
 |-----------|-----------------|
 | Direct database access across modules | Bypasses business logic, breaks encapsulation |
 | Importing internal utilities | Creates hidden dependencies |
-| Accessing private/internal APIs | Breaks on internal refactors |
+| Accessing private/internal APIs | Will break on internal refactors |
 | Copying code from other modules | Creates drift and duplication |
-| Modifying other modules "to simplify" | Needs other team's review/approval |
+| Modifying other modules "to simplify" | Requires other team's review/approval |
 
 ### When NOT to Apply
 
-- You own both modules and they're tightly related
-- Boundary itself is the problem (propose boundary changes separately)
-- Monolith with no clear module ownership
-- Public API genuinely lacks needed functionality (request it)
+- When you own both modules and they're tightly related
+- When the boundary itself is the problem (propose boundary changes separately)
+- When working in a monolith with no clear module ownership
+- When the public API is genuinely missing needed functionality (request it)
+
+### Benefits
+
+- Each module can evolve independently
+- Changes only require review from affected team
+- Testing is scoped to the current module
+- Coupling stays low and explicit

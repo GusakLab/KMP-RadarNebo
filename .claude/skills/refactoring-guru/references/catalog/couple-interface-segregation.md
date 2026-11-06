@@ -6,7 +6,7 @@ tags: couple, isp, solid, interface-design
 
 ## Apply Interface Segregation Principle
 
-Do not force clients to depend on methods they don't use. Split large interfaces into smaller, focused ones.
+Clients should not be forced to depend on methods they don't use. Split large interfaces into smaller, focused ones.
 
 **Incorrect (fat interface forces unused dependencies):**
 
@@ -75,5 +75,10 @@ class SeniorEmployee implements Workable, Feedable, MeetingAttendee, ReportWrite
   writeReport(): void { /* ... */ }
 }
 ```
+
+**Benefits:**
+- Classes only implement what they actually do
+- Changes to one interface don't affect unrelated clients
+- Testing is focused on relevant capabilities
 
 Reference: [Interface Segregation Principle](https://en.wikipedia.org/wiki/Interface_segregation_principle)

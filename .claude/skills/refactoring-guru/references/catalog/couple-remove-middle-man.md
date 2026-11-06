@@ -6,7 +6,7 @@ tags: couple, middle-man, delegation, simplification
 
 ## Remove Middle Man When Excessive
 
-When a class becomes a pass-through with too many delegating methods, let clients call the delegate directly.
+When a class becomes a simple pass-through with too many delegating methods, let clients call the delegate directly. Balance encapsulation with simplicity.
 
 **Incorrect (excessive delegation):**
 
@@ -57,7 +57,7 @@ function getDirectManager(person: Person): Person {
 
 **Guidelines for balance:**
 - Hide navigation that reveals internal structure
-- Expose stable, cohesive objects with their own API
-- Count delegating methods. If they outnumber real methods, reconsider
+- Expose stable, cohesive objects that have their own API
+- Count the delegating methods—if they outnumber real methods, reconsider
 
 Reference: [Remove Middle Man](https://refactoring.com/catalog/removeMiddleMan.html)

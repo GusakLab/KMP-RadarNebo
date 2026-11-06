@@ -7,7 +7,7 @@ tags: cache, cache-mount, package-manager, buildkit
 
 ## Use Cache Mounts for Package Managers
 
-Without cache mounts, every build missing layer cache re-downloads every package from internet. `RUN --mount=type=cache` persists directory across builds, so package managers reuse downloaded files even when dependency manifest changes. Full download becomes incremental update.
+Without cache mounts, each build that misses the layer cache re-downloads every package from the internet. A `RUN --mount=type=cache` instruction persists a directory across builds so package managers can reuse previously downloaded files, even when the dependency manifest changes. This turns a full download into an incremental update.
 
 **Incorrect (re-downloads everything on cache miss):**
 
@@ -17,6 +17,8 @@ WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 ```
+
+(Adding a single new dependency forces pip to re-download all packages from PyPI.)
 
 **Correct (cache mount preserves downloaded packages):**
 
@@ -28,7 +30,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     pip install -r requirements.txt
 ```
 
-(New dependency downloads only that package. Cached data lives in host mount, not image layer, so images stay small without explicit cleanup commands.)
+(Adding a new dependency only downloads that one package. The cached data lives in the mount on the host, not in the image layer — so images stay small without explicit cleanup commands.)
 
 ### Package Manager Cache Directories
 
@@ -44,7 +46,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 
 ### Language-Specific Details
 
-Full incorrect/correct examples and edge cases live in dedicated rules:
+For full examples with incorrect/correct patterns and edge cases, see the dedicated rules:
 
 - [`dep-cache-mount-apt`](dep-cache-mount-apt.md) — apt/Debian/Ubuntu (requires `docker-clean` removal)
 - [`dep-cache-mount-npm`](dep-cache-mount-npm.md) — npm, yarn Classic, yarn Berry, pnpm
@@ -59,5 +61,7 @@ COPY go.mod go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod \
     go mod download
 ```
+
+(Only new or updated modules are downloaded. The rest are served from the persistent `/go/pkg/mod` cache.)
 
 Reference: [Docker Build Cache - Optimize](https://docs.docker.com/build/cache/optimize/)

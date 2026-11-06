@@ -6,7 +6,7 @@ tags: idiom, python, comprehensions, readability
 
 ## Use Comprehensions for Simple Transforms
 
-Comprehensions (list, dict, set, generator) are idiomatic Python for simple transforms and filters. More concise and usually faster than equivalent loops in CPython (measure if it matters). Multiple conditions or nested logic make them unreadable. Use regular loops there.
+Python comprehensions (list, dict, set, generator) are idiomatic for simple transformations and filtering. They're more concise and often faster than equivalent loops. However, complex comprehensions with multiple conditions or nested logic become unreadable—use regular loops instead.
 
 **Incorrect (loop for simple transform):**
 
@@ -73,7 +73,7 @@ for category in categories:
 | Single filter + map | Multiple conditions |
 | One level of nesting | Side effects needed |
 | Fits on one line (~80 chars) | Complex transformations |
-| Pure data transformation | Exception handling needed |
+| Pure data transformation | Exception handling required |
 
 ### Walrus Operator in Comprehensions (Python 3.8+)
 
@@ -81,3 +81,10 @@ for category in categories:
 # Avoid repeated computation
 results = [y for x in data if (y := expensive_transform(x)) is not None]
 ```
+
+### Benefits
+
+- More readable for simple cases
+- Usually faster than an equivalent explicit loop in CPython (measure if it matters)
+- Generator expressions avoid building intermediate lists
+- Clearly signals "this is a data transformation"

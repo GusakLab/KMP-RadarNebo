@@ -5,12 +5,12 @@ description: Fix bugs and small behavior changes at the narrowest responsible la
 
 # Surgical patch
 
-Reproduce failure first when cheap; otherwise capture strongest available evidence.
+Reproduce failure first when economical; otherwise capture strongest available evidence.
 
 - Trace symptom to responsible mechanism.
-- Change narrowest layer owning incorrect behavior.
-- Keep unrelated behavior and user changes.
-- Avoid cleanup, renaming or abstraction outside fix.
+- Change narrowest layer that owns incorrect behavior.
+- Preserve unrelated behavior and user changes.
+- Avoid cleanup, renaming, and abstraction outside fix.
 - Add only regression proof relevant to task.
 
-Run focused proof plus nearest affected gate. Stop when failure fixed and regression proof passes.
+Run focused proof plus nearest affected gate. Stop when failure is fixed and regression proof passes.

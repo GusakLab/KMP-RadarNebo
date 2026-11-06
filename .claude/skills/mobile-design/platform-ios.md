@@ -1,6 +1,7 @@
 # iOS Platform Guidelines
 
-> **Read when building for iPhone/iPad.**
+> Human Interface Guidelines (HIG) essentials, iOS design conventions, SF Pro typography, and native patterns.
+> **Read this file when building for iPhone/iPad.**
 
 ---
 
@@ -35,7 +36,7 @@ DEPTH:
 | **Aesthetic Integrity** | Design matches function (game ≠ productivity) |
 | **Consistency** | Use system controls, familiar patterns |
 | **Direct Manipulation** | Touch directly affects content |
-| **Feedback** | Acknowledge actions |
+| **Feedback** | Actions are acknowledged |
 | **Metaphors** | Real-world comparisons aid understanding |
 | **User Control** | User initiates actions, can cancel |
 
@@ -537,7 +538,7 @@ AccessibilityInfo.isReduceMotionEnabled()
 
 ### Before Every iOS Screen
 
-- [ ] SF Pro or SF Symbols used
+- [ ] Using SF Pro or SF Symbols
 - [ ] Dynamic Type supported
 - [ ] Safe areas respected
 - [ ] Navigation follows HIG (back gesture works)
@@ -554,3 +555,7 @@ AccessibilityInfo.isReduceMotionEnabled()
 - [ ] Notch/Dynamic Island handled
 - [ ] Home indicator area respected
 - [ ] Native components used where possible
+
+---
+
+> **Remember:** iOS users have strong expectations from other iOS apps. Deviating from HIG patterns feels "broken" to them. When in doubt, use the native component.

@@ -97,7 +97,7 @@ Q7: Service Integration (Microservices)
 | Add to cart | Integration | Component + state test | State management + UI |
 | Checkout flow | E2E | Playwright | Critical revenue path |
 | Payment processing | Integration + E2E | Mock payment API, full flow | Critical + external API |
-| Order confirmation | Integration | Email mock, DB validation | Multi-system interaction |
+| Order confirmation | Integration | Email mock, DB validation | Multiple system interaction |
 | Inventory update | Integration | Real DB, transaction test | Data integrity critical |
 
 ### Data Processing Features
@@ -142,7 +142,7 @@ Rails/Django Monolith:
 
 **Decision Factors**:
 - Distributed services → Contract tests essential
-- Service boundaries → Integration tests per service
+- Service boundaries → Integration tests for each service
 - Avoid E2E test explosion → Focus on critical user journeys
 
 **Example**:
@@ -182,7 +182,7 @@ AWS Lambda Functions:
 - **10% E2E Tests**: Critical user flows
 
 **Decision Factors**:
-- Component-based → Integration tests worth more than unit
+- Component-based → Integration tests more valuable than unit
 - State management → Integration tests validate state transitions
 - User interactions → E2E for complete workflows
 
@@ -202,7 +202,7 @@ React/Vue SPA:
 
 **Recommended Approach**:
 1. **Unit Tests**: Core calculation logic with fixtures
-2. **Property-Based Tests**: Random scenarios to find edge cases
+2. **Property-Based Tests**: Generate random scenarios to find edge cases
 3. **Integration Tests**: Full tax calculation API endpoint with database
 
 **Example**:
@@ -347,6 +347,8 @@ def test_user_receives_confirmation_email(page, email_client):
 
 ### When to Test at Multiple Levels
 
+Some features benefit from testing at multiple levels for comprehensive coverage.
+
 **Example: Password Validation**
 
 ```typescript
@@ -384,11 +386,11 @@ test('signup form shows password requirements', async ({ page }) => {
 ```
 
 **Rationale**:
-- **Unit test**: Validates core logic fast (many edge cases)
+- **Unit test**: Validates core logic quickly (many edge cases)
 - **Integration test**: Validates API contract and error responses
 - **E2E test**: Validates user experience and error messaging
 
-**Trade-off**: Fuller coverage vs. test suite complexity. Use multi-level testing for:
+**Trade-off**: More comprehensive coverage vs. test suite complexity. Use multi-level testing for:
 - Critical features (authentication, payment)
 - Complex business rules (tax calculation, pricing)
 - User-facing validation (forms, input requirements)
@@ -401,3 +403,19 @@ test('signup form shows password requirements', async ({ page }) => {
 2. **Dependencies**: None → Unit, Database/API → Integration, Full stack → E2E
 3. **Criticality**: High → Multi-level testing, Medium → Integration + Unit, Low → Unit only
 4. **Architecture**: Monolith → More integration, Microservices → More contract, SPA → More component integration
+
+**Quick Reference Table**:
+
+| What | Dependencies | Critical? | Test Type |
+|------|--------------|-----------|-----------|
+| Pure function | None | Any | Unit |
+| API endpoint | Database | Yes | Integration + E2E |
+| API endpoint | Database | No | Integration |
+| UI component | State management | No | Integration |
+| User workflow | Full stack | Yes | E2E |
+| Service interface | Other services | Yes | Contract + Integration |
+
+**Next Steps**:
+- Use this decision tree when planning tests for new features
+- Review existing tests and identify misplaced test types
+- Refactor tests to appropriate levels for better speed/confidence balance

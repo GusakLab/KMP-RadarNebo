@@ -6,7 +6,7 @@ tags: cond, decompose, readability, extract-function
 
 ## Decompose Complex Conditionals
 
-Extract complex boolean expressions into well-named functions. Function name documents business rule.
+Extract complex boolean expressions into well-named functions. The function name documents the business rule.
 
 **Incorrect (complex inline condition):**
 
@@ -71,5 +71,10 @@ function isEligibleForStandardDiscount(customer: Customer, order: Order): boolea
          order.subtotal > 200
 }
 ```
+
+**Benefits:**
+- Business rules are named and documented
+- Each predicate can be tested independently
+- Changes to eligibility rules are localized
 
 Reference: [Decompose Conditional](https://refactoring.com/catalog/decomposeConditional.html)

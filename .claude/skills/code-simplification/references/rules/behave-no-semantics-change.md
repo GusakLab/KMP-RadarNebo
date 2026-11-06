@@ -6,7 +6,7 @@ tags: behave, semantics, null, undefined, equality, coercion
 
 ## Forbid Subtle Semantic Changes
 
-Most dangerous simplifications look equivalent but differ in semantics: null vs undefined, loose vs strict equality, truthy vs explicit checks. Cleaner-looking code can silently change behavior on edge cases existing tests do not cover.
+The most dangerous simplifications are those that look equivalent but have different semantics. Null vs undefined, loose vs strict equality, truthy vs explicit checks - these distinctions matter. Code that appears cleaner may silently change behavior for edge cases that existing tests do not cover.
 
 **Incorrect (changes null/undefined semantics):**
 
@@ -49,6 +49,14 @@ function isEmpty(value) {
 // Breaks: isEmpty(undefined) now returns false
 ```
 
+**Correct (preserve loose equality when intentional):**
+
+```javascript
+function isEmpty(value) {
+  return value == null; // Intentionally catches null and undefined
+}
+```
+
 **Incorrect (changes short-circuit semantics):**
 
 ```python
@@ -60,6 +68,13 @@ def first_or_zero(items):
 def first_or_zero(items):
     return (items and items[0]) or 0
 # Breaks: returns 0 when items[0] is 0, empty string, False, etc.
+```
+
+**Correct (preserve original semantics):**
+
+```python
+def first_or_zero(items):
+    return items[0] if items else 0
 ```
 
 **Incorrect (changes nil vs empty slice semantics):**
@@ -87,6 +102,13 @@ func findUsers(query string) []User {
 
 ### When NOT to Apply
 
-- Fixing a bug caused by incorrect semantics
-- Semantic difference is explicitly documented and approved
-- Migrating to stricter types with full test coverage
+- When fixing a bug caused by incorrect semantics
+- When the semantic difference is explicitly documented and approved
+- When migrating to stricter types with full test coverage
+
+### Benefits
+
+- Edge cases continue working correctly
+- No silent failures in production
+- Behavior matches developer expectations
+- Tests remain valid without modification

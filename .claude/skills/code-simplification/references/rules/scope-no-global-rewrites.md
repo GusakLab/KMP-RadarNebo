@@ -6,7 +6,7 @@ tags: scope, global-changes, architecture, risk-management
 
 ## Avoid Global Rewrites and Architectural Changes
 
-Simplification is no time for sweeping changes. Global renames, mass migrations, or architecture shifts disguised as "simplification" cause merge-conflict nightmares and need extensive testing. They need dedicated planning, not drive-by edits.
+Code simplification is not the time for sweeping changes. Global renames, mass migrations, or architectural shifts disguised as "simplification" create merge conflict nightmares and require extensive testing. These changes need dedicated planning, not drive-by implementation.
 
 **Incorrect (global rename during simplification):**
 
@@ -72,7 +72,7 @@ export async function processOrder(cart: Cart, payment: Payment) {
 | Change Type | Why It's Not Simplification |
 |-------------|---------------------------|
 | Global renames | Touches every file, massive merge conflicts |
-| Dependency upgrades | Needs compatibility testing |
+| Dependency upgrades | Requires compatibility testing |
 | Architecture changes | Needs design review and migration plan |
 | Pattern migrations | (callbacks->promises, classes->hooks) Need incremental rollout |
 | Directory restructuring | Breaks imports across entire codebase |
@@ -80,5 +80,12 @@ export async function processOrder(cart: Cart, payment: Payment) {
 ### When NOT to Apply
 
 - During a planned, scheduled migration sprint
-- Global change is the explicit, approved task
-- Breaking change already coordinated with team
+- When the global change is the explicit, approved task
+- When a breaking change is already coordinated with the team
+
+### Benefits
+
+- Other developers can continue merging their work
+- No surprise regressions in unrelated features
+- Changes can be reviewed by domain experts
+- Rollback is possible without reverting weeks of work

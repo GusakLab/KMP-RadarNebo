@@ -18,32 +18,34 @@ Source: Robert C. Martin, *Clean Code*. Summaries: Vivek Khatri Ch. 4, Vivek Kha
 
 ## Comments
 
-Foundational rule: **"Don't comment bad code — rewrite it."** Comments signal failure to express intent in code; each is rename or extract candidate.
+The foundational rule: **"Don't comment bad code — rewrite it."** Comments are failures to express intent in code. Every comment is a candidate for rename or extract.
 
 ### C1. Acceptable comments
 
+A short list of comments that earn their keep:
+
 - **Legal headers** — license boilerplate, copyright.
-- **Intent** — *why* behind non-obvious decision. Example: `// Use exponential backoff to avoid hammering the rate limiter during retries.`
+- **Intent** — explaining *why* a decision was made when the choice is non-obvious. Example: `// Use exponential backoff to avoid hammering the rate limiter during retries.`
 - **Warnings of consequences** — `// This function is called during transaction commit; do not raise.`
-- **TODOs** — sparingly, with tracking ticket. `// TODO(JIRA-1234): switch to streaming once API supports it.`
-- **Public API documentation** — docstrings documenting *contract* (preconditions, postconditions, raises), not body.
-- **Amplification** — flags something non-obvious. `# The `+ 1` accounts for the inclusive end of the range; see RFC §3.2.`
+- **TODOs** — sparingly, with a tracking ticket reference. `// TODO(JIRA-1234): switch to streaming once API supports it.`
+- **Public API documentation** — docstrings that document *contract* (preconditions, postconditions, raises), not body.
+- **Amplification** — calling attention to something non-obvious. `# The `+ 1` accounts for the inclusive end of the range; see RFC §3.2.`
 
 ### C2. Banned comments
 
 Delete on sight:
 
-- **Restating-code comments.** `// increment counter by one` above `counter += 1`. Zero signal, double maintenance.
+- **Restating-code comments.** `// increment counter by one` above `counter += 1`. The comment adds zero signal and creates two things to maintain.
 - **Noise comments.** `# default constructor`, `# getter`, `# returns the day of month`.
-- **Banner comments.** `# ====== USER FUNCTIONS ======`. Use class or module split instead.
-- **Closing-brace comments.** `}  // end of for loop`. Need one to follow flow? Function is too long.
+- **Banner comments.** `# ====== USER FUNCTIONS ======`. Use a class or module split instead.
+- **Closing-brace comments.** `}  // end of for loop`. If you need this to follow the flow, the function is too long.
 - **Attributions and journal comments.** `# Updated by Bob on 2023-04-01 to fix bug #42`. Version control records this.
-- **Commented-out code.** Delete; git has it. Commented blocks are toxic: readers do not know whether to trust them.
-- **`Step 1` / `Step 2` scaffolding.** Common LLM artifact. Make each step named function call; names give structure.
+- **Commented-out code.** Delete it. If you need it back, git has it. Commented blocks are toxic — readers don't know whether to trust them.
+- **`Step 1` / `Step 2` scaffolding.** Common LLM artifact. Each step should be a function call with a name; the names provide the structure.
 
 ### C3. Docstring discipline
 
-Documentation comment paraphrasing signature is noise:
+A documentation comment that paraphrases the function signature is noise:
 
 **Bad:**
 ```text
@@ -58,7 +60,7 @@ add(a, b)
   return a + b
 ```
 
-Documentation comment earns keep by documenting contract: what may be passed or returned, errors raised, non-obvious side effects.
+A documentation comment earns its keep when it documents contract: what may be passed, what may be returned, what errors are raised, and any non-obvious side effects.
 
 **Good:**
 ```text
@@ -75,17 +77,17 @@ charge(paymentSourceId, amountCents)
 
 ### Fmt1. Vertical openness separates concepts
 
-Blank lines between concepts, none inside tightly-coupled block. Eye reads them as boundaries.
+Blank lines between concepts. No blank lines inside a tightly-coupled block. The eye uses blank lines as boundaries.
 
 ### Fmt2. Vertical density implies association
 
-Related code sits together. Variable declared 30 lines from use is smell.
+Code that belongs together should sit together. Variable declared 30 lines from its use is a smell.
 
 ### Fmt3. Vertical distance
 
-- **Variables declared close to use.** Not at function top "C-style."
-- **Caller above callee.** Top-down: high-level function first, then helpers it calls. Step-down rule ([naming-and-functions.md](naming-and-functions.md) F4).
-- **Conceptually related functions adjacent.** If `parse_invoice` and `validate_invoice` are siblings, keep them adjacent, not at opposite ends of file.
+- **Variables declared close to use.** Not at the top of the function "C-style."
+- **Caller above callee.** Top-down reading: high-level function first, then the helpers it calls. The step-down rule ([naming-and-functions.md](naming-and-functions.md) F4).
+- **Conceptually related functions adjacent.** If `parse_invoice` and `validate_invoice` are siblings, put them next to each other, not on opposite ends of the file.
 
 ### Fmt4. Horizontal density
 
@@ -95,19 +97,19 @@ Related code sits together. Variable declared 30 lines from use is smell.
 
 ### Fmt5. Match the file you're editing
 
-Most common cross-cutting violation: new style in file that already has one. In snake_case file, do not introduce camelCase. With double quotes, do not introduce single quotes. With alphabetized imports, do not append at bottom. If project has HTTP client, database wrapper, or logging helper, reuse it; do not add another.
+The most common cross-cutting violation: introducing a new style in a file that already had one. If the file uses snake_case, do not introduce camelCase. If it uses double quotes, do not introduce single quotes. If it sorts imports alphabetically, do not append at the bottom. If the project already has an HTTP client, database wrapper, or logging helper, reuse it instead of introducing another one.
 
-Team rules beat personal preference. Read file, then write.
+Team rules override personal preference. Read the file, then write.
 
 ---
 
 ## Self-check for comments and formatting
 
-Before shipping code:
+Before you ship code:
 
-1. Walk every comment you added. If it explains *what*, not *why*, delete it.
-2. Walk every documentation comment you added. Paraphrase of signature? Delete it; keep only contract documentation.
+1. Walk every comment you added. For each, ask: does it explain *why*? If it explains *what*, delete it.
+2. Walk every documentation comment you added. Is it paraphrasing the signature? Delete the paraphrase; keep only contract documentation.
 3. Any commented-out code? Delete it.
 4. Any `Step 1`, `Step 2`, `First, ...`, or `Then, ...` scaffolding comments? Delete.
-5. Variables declared near use, not at top?
-6. Casing, quoting, import order match file's existing style?
+5. Are variables declared near their use, not at the top?
+6. Does the casing, quoting, and import order match the file's existing style?

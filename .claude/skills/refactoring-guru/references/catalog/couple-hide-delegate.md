@@ -6,7 +6,7 @@ tags: couple, hide-delegate, encapsulation, law-of-demeter
 
 ## Hide Delegate to Reduce Coupling
 
-When client code navigates object chains (a.b.c.method()), changes to intermediate objects break many callers. Create direct method to hide navigation.
+When client code navigates through object chains (a.b.c.method()), changes to intermediate objects break many callers. Create a direct method to hide the navigation.
 
 **Incorrect (exposing delegate chain):**
 
@@ -32,7 +32,7 @@ function notifyManager(person: Person, message: string): void {
 // If Department structure changes, ALL callers break
 ```
 
-**Correct (delegating method hides chain):**
+**Correct (delegating method hides the chain):**
 
 ```typescript
 class Person {
@@ -64,8 +64,8 @@ function notifyManager(person: Person, message: string): void {
 ```
 
 **When NOT to hide:**
-- Delegate relationship is part of public API
-- Hiding would create excessively large interface
-- Chain is stable and unlikely to change
+- The delegate relationship is part of the public API
+- Hiding would create an excessively large interface
+- The chain is genuinely stable and unlikely to change
 
 Reference: [Hide Delegate](https://refactoring.com/catalog/hideDelegate.html)

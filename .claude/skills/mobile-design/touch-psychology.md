@@ -1,6 +1,7 @@
 # Touch Psychology Reference
 
-> **Mobile equivalent of ux-psychology.md - CRITICAL for all mobile work.**
+> Deep dive into mobile touch interaction, Fitts' Law for touch, thumb zone anatomy, gesture psychology, and haptic feedback.
+> **This is the mobile equivalent of ux-psychology.md - CRITICAL for all mobile work.**
 
 ---
 
@@ -129,7 +130,7 @@ Left hand is mirrored.
 | **Tab bar** | Bottom | Natural thumb position |
 | **FAB** | Bottom right | Easy for right hand |
 | **Navigation** | Top (stretch) | Less frequent use |
-| **Destructive actions** | Top left | Hard to reach, so fewer accidental taps |
+| **Destructive actions** | Top left | Hard to reach = harder to accidentally tap |
 | **Dismiss/Cancel** | Top left | Convention + safety |
 | **Confirm/Done** | Top right or bottom | Convention |
 
@@ -256,6 +257,22 @@ Swipe actions need visual hints:
 
 ## 5. Haptic Feedback Patterns
 
+### Why Haptics Matter
+
+```
+Haptics provide:
+├── Confirmation without looking
+├── Richer, more premium feel
+├── Accessibility (blind users)
+├── Reduced error rate
+└── Emotional satisfaction
+
+Without haptics:
+├── Feels "cheap" or web-like
+├── User unsure if action registered
+└── Missed opportunity for delight
+```
+
 ### iOS Haptic Types
 
 | Type | Intensity | Use Case |
@@ -264,15 +281,15 @@ Swipe actions need visual hints:
 | `light` | Light | Minor actions, hover equivalent |
 | `medium` | Medium | Standard tap confirmation |
 | `heavy` | Strong | Important completed, drop |
-| `success` | Pattern | Task succeeded |
-| `warning` | Pattern | Warning, needs attention |
-| `error` | Pattern | Error |
+| `success` | Pattern | Task completed successfully |
+| `warning` | Pattern | Warning, attention needed |
+| `error` | Pattern | Error occurred |
 
 ### Android Haptic Types
 
 | Type | Use Case |
 |------|----------|
-| `CLICK` | Standard tap |
+| `CLICK` | Standard tap feedback |
 | `HEAVY_CLICK` | Important actions |
 | `DOUBLE_CLICK` | Confirm actions |
 | `TICK` | Scroll/scrub feedback |
@@ -318,7 +335,7 @@ Swipe actions need visual hints:
 
 | Factor | Desktop | Mobile | Implication |
 |--------|---------|--------|-------------|
-| **Attention** | Focused sessions | Constant interruptions | Design for micro-sessions |
+| **Attention** | Focused sessions | Interrupted constantly | Design for micro-sessions |
 | **Context** | Controlled environment | Anywhere, any condition | Handle bad lighting, noise |
 | **Multitasking** | Multiple windows | One app visible | Complete task in-app |
 | **Input speed** | Fast (keyboard) | Slow (touch typing) | Minimize input, smart defaults |
@@ -417,11 +434,11 @@ OR the target is:
 
 | Pattern | Accessible Implementation |
 |---------|---------------------------|
-| Swipe actions | Menu alternative |
-| Drag and drop | Select + move option |
-| Pinch zoom | Zoom buttons |
-| Force touch | Long press alternative |
-| Shake gesture | Button alternative |
+| Swipe actions | Provide menu alternative |
+| Drag and drop | Provide select + move option |
+| Pinch zoom | Provide zoom buttons |
+| Force touch | Provide long press alternative |
+| Shake gesture | Provide button alternative |
 
 ---
 
@@ -469,8 +486,8 @@ Trust signals in touch interactions:
 - [ ] **All touch targets ≥ 44-48px?**
 - [ ] **Primary CTA in thumb zone?**
 - [ ] **Destructive actions require confirmation?**
-- [ ] **Visible button alternatives for gestures?**
-- [ ] **Haptics on important actions?**
+- [ ] **Gesture alternatives exist (visible buttons)?**
+- [ ] **Haptic feedback on important actions?**
 - [ ] **Immediate visual feedback on tap?**
 - [ ] **Loading states for actions > 100ms?**
 
@@ -479,7 +496,7 @@ Trust signals in touch interactions:
 - [ ] **Tested on smallest supported device?**
 - [ ] **Tested one-handed on large phone?**
 - [ ] **All gestures have visible alternatives?**
-- [ ] **Haptics verified on device?**
+- [ ] **Haptics work correctly (test on device)?**
 - [ ] **Touch targets tested with accessibility settings?**
 - [ ] **No tiny close buttons or icons?**
 
@@ -495,3 +512,26 @@ Minimum:           44pt       48dp       44px
 Recommended:       48pt+      56dp+      -
 Spacing:           8pt+       8dp+       8px+
 ```
+
+### Thumb Zone Actions
+
+```
+TOP:      Navigation, settings, back (infrequent)
+MIDDLE:   Content, secondary actions
+BOTTOM:   Primary CTA, tab bar, FAB (frequent)
+```
+
+### Haptic Selection
+
+```
+Light:    Selection, toggle, minor
+Medium:   Tap, standard action
+Heavy:    Confirm, complete, drop
+Success:  Task done
+Error:    Failed action
+Warning:  Attention needed
+```
+
+---
+
+> **Remember:** Every touch is a conversation between user and device. Make it feel natural, responsive, and respectful of human fingers—not precise cursor points.

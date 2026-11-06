@@ -6,7 +6,7 @@ tags: ctx, conventions, best-practices, pragmatism
 
 ## Project Conventions Override Generic Best Practices
 
-Generic best practices are starting points, not absolute rules. When project conventions conflict with generic guidance, always follow the project.
+Generic best practices are starting points, not absolute rules. Teams adopt specific conventions for good reasons: domain requirements, performance constraints, team preferences, or historical decisions. When project conventions conflict with generic guidance, always follow the project's established approach.
 
 **Incorrect (applying generic "arrow function" pattern against project convention):**
 
@@ -53,9 +53,15 @@ function validateAge(age) {
 
 **When to propose changes to conventions:**
 
-- Discuss with the team first
-- Document the reasoning
+- Open a discussion with the team first
+- Document the reasoning for the change
 - Apply consistently across the codebase, not piecemeal
+
+**Benefits:**
+
+- Respects team decisions and domain knowledge
+- Avoids religious debates about style
+- Simplifications are accepted without friction
 
 **References:**
 

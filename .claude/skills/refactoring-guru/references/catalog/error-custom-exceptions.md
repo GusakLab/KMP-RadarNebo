@@ -6,7 +6,7 @@ tags: error, custom-exceptions, domain, hierarchy
 
 ## Create Domain-Specific Exception Types
 
-Generic exceptions force callers to parse error messages. Create typed exceptions carrying structured information about what went wrong.
+Generic exceptions force callers to parse error messages. Create typed exceptions that carry structured information about what went wrong.
 
 **Incorrect (generic exceptions with string messages):**
 
@@ -106,5 +106,10 @@ try {
   }
 }
 ```
+
+**Benefits:**
+- Type-safe error handling with instanceof
+- Structured data available without parsing
+- Derived properties (shortfall) on exceptions
 
 Reference: [Clean Code - Error Handling](https://www.oreilly.com/library/view/clean-code-a/9780136083238/)

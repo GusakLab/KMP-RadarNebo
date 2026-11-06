@@ -7,7 +7,7 @@ description: "GRASP responsibility-assignment audit and design guidance (Informa
 
 ## Overview
 
-GRASP (General Responsibility Assignment Software Patterns, Craig Larman): guidelines for assigning responsibilities to classes and objects in object-oriented design. Principles are language-neutral. Examples here and in `references/` use PHP 8.4. Translate them to project's language and idioms.
+GRASP (General Responsibility Assignment Software Patterns, Craig Larman) gives guidelines for assigning responsibilities to classes and objects in object-oriented design. The principles are language-neutral. The examples here and in `references/` are written in PHP 8.4, so translate them to the project's language and idioms.
 
 | Principle | Core Question | Goal |
 |-----------|---------------|------|
@@ -23,25 +23,25 @@ GRASP (General Responsibility Assignment Software Patterns, Craig Larman): guide
 
 ## Workflow
 
-1. **Scope.** Pick module or use case to audit. For design question, start from responsibility in question ("who should compute the order total?").
-2. **Gather signals.** Use violation signals below. Text search only produces leads. Confirm each by reading code and its callers.
-3. **Map to a principle.** Name violated principle, evidence (`file:line`), and cost it causes today (change ripple, untestable unit, duplicated rule).
-4. **Recommend the smallest move.** Move behavior to data owner, extract handler, inject abstraction, or replace type switch. Principles trade off: Indirection and Pure Fabrication add coupling points. Protected Variations pays off only at real, recurring variation points.
-5. **Report.** Use [assets/report-template.md](assets/report-template.md). Report confirmed findings only. Do not compute scores.
+1. **Scope.** Pick the module or use case to audit. For a design question, start from the responsibility in question ("who should compute the order total?").
+2. **Gather signals.** Use the violation signals below. Text search only produces leads. Confirm each one by reading the code and its callers.
+3. **Map to a principle.** Name which principle is violated, the evidence (`file:line`), and the cost it causes today (change ripple, untestable unit, duplicated rule).
+4. **Recommend the smallest move.** Move behavior to the data owner, extract a handler, inject an abstraction, or replace a type switch. Principles trade off against each other: Indirection and Pure Fabrication add coupling points, and Protected Variations is worth it only at real, recurring variation points.
+5. **Report.** Use [assets/report-template.md](assets/report-template.md). Report confirmed findings only and do not compute scores.
 
 ## Violation Signals (language-neutral)
 
 | Principle | Signals in the code | Search hints (adapt syntax) |
 |---|---|---|
-| Information Expert | Method mostly reads another object's fields or getters; chains like `a.getB().getC().x`; data classes with all logic in a "service" | two or more chained getter calls, e.g. `getB().getC()` |
-| Creator | Objects constructed far from owning aggregate or container; same construction repeated in many places | `new [A-Z]\w+\(` (or language's constructor syntax) |
-| Controller | Controllers or handlers holding business rules, persistence, and formatting; one controller handling unrelated use cases | file sizes under controller or handler directories |
-| Low Coupling | Constructors with many dependencies; domain code depending on concrete infrastructure classes (ORM, SDK clients) | constructor parameter lists; infrastructure package imports in domain modules |
-| High Cohesion | Vague names (`*Manager`, `*Helper`, `*Utils`, `*Processor`); methods sharing no fields; method names joined with "And" | class names; largest files |
-| Polymorphism | `switch`/`match`/`if` chains on type or kind field repeated across several sites; `instanceof` ladders | `instanceof`, `switch`/`match` on `type`/`kind` |
-| Protected Variations | Third-party SDKs or unstable APIs instantiated directly throughout code | direct SDK constructors |
+| Information Expert | A method mostly reads another object's fields or getters; chains like `a.getB().getC().x`; data classes with all logic in a "service" | two or more chained getter calls, e.g. `getB().getC()` |
+| Creator | Objects constructed far from the aggregate or container that owns them; the same construction repeated in many places | `new [A-Z]\w+\(` (or the language's constructor syntax) |
+| Controller | Controllers or handlers that contain business rules, persistence, and formatting; one controller handling unrelated use cases | file sizes under controller or handler directories |
+| Low Coupling | Constructors with many dependencies; depending on concrete infrastructure classes (ORM, SDK clients) from domain code | constructor parameter lists; imports of infrastructure packages in domain modules |
+| High Cohesion | Vague names (`*Manager`, `*Helper`, `*Utils`, `*Processor`); methods that share no fields; method names joined with "And" | class names; largest files |
+| Polymorphism | `switch`/`match`/`if` chains on a type or kind field repeated across several sites; `instanceof` ladders | `instanceof`, `switch`/`match` on `type`/`kind` |
+| Protected Variations | Third-party SDKs or unstable APIs instantiated directly throughout the code | direct SDK constructors |
 
-Thresholds like "more than 7 dependencies" or "controllers over 100 lines" are inspection prompts, not rules. Judge against project norms. Runnable PHP search commands: appendix of [assets/report-template.md](assets/report-template.md).
+Thresholds such as "more than 7 dependencies" or "controllers over 100 lines" are inspection prompts, not rules. Judge them against the project's norms. For runnable PHP search commands, see the appendix of [assets/report-template.md](assets/report-template.md).
 
 ## Quick Examples (PHP 8.4)
 
@@ -120,7 +120,7 @@ final readonly class UserRegistrationService
 
 | GRASP | DDD Application |
 |-------|-----------------|
-| Information Expert | Entities hold own behavior |
+| Information Expert | Entities contain their behavior |
 | Creator | Aggregates create their entities |
 | Controller | Application Services / Use Cases |
 | Low Coupling | Bounded Context boundaries |
@@ -132,7 +132,7 @@ final readonly class UserRegistrationService
 
 ## References
 
-Detailed patterns and examples in `references/`:
+For detailed patterns and examples, see `references/`:
 - `information-expert.md` — Tell Don't Ask, calculations in owner
 - `creator.md` — Factory patterns, aggregation rules
 - `controller.md` — Use case handlers, thin controllers
@@ -143,3 +143,7 @@ Detailed patterns and examples in `references/`:
 - `indirection.md` — Adapters, mediators
 - `protected-variations.md` — Stable interfaces
 - `antipatterns.md` — Common GRASP violations
+
+## Assets
+
+- `assets/report-template.md` — GRASP audit report format

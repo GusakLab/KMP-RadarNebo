@@ -6,7 +6,7 @@ tags: data, split-variable, clarity, single-assignment
 
 ## Split Variable with Multiple Assignments
 
-When a variable is assigned multiple times for different purposes, split it into separate variables.
+When a variable is assigned multiple times for different purposes, split it into separate variables. Each variable should have a single clear purpose.
 
 **Incorrect (variable reused for different purposes):**
 
@@ -78,5 +78,10 @@ function applyShippingBounds(cost: number): number {
   return Math.min(Math.max(cost, 10), 100)
 }
 ```
+
+**Benefits:**
+- Each variable's meaning is immediately clear
+- Easier to debug - inspect any variable at any point
+- Prevents accidental use of stale value
 
 Reference: [Split Variable](https://refactoring.com/catalog/splitVariable.html)

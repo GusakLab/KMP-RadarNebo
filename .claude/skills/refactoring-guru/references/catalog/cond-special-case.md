@@ -6,7 +6,7 @@ tags: cond, special-case, null-object, null-checks
 
 ## Introduce Special Case Object
 
-When many places check for a special case (often null) and do same thing, create special case object that encapsulates that behavior.
+When many places check for a special case (often null) and do the same thing, create a special case object that encapsulates that behavior.
 
 **Incorrect (repeated null checks):**
 
@@ -37,7 +37,7 @@ function sendInvoice(customer: Customer | null): void {
 }
 ```
 
-**Correct (special case object handles behavior):**
+**Correct (special case object handles the behavior):**
 
 ```typescript
 interface Customer {
@@ -81,5 +81,10 @@ function sendInvoice(customer: Customer): void {
   const plan = customer.billingPlan  // No null check needed
 }
 ```
+
+**Benefits:**
+- Null checks eliminated throughout codebase
+- Default behavior centralized in one place
+- New special cases can add different default behaviors
 
 Reference: [Introduce Special Case](https://refactoring.com/catalog/introduceSpecialCase.html)

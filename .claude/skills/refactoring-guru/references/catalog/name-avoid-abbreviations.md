@@ -6,7 +6,7 @@ tags: name, abbreviations, clarity, consistency
 
 ## Avoid Abbreviations and Acronyms
 
-Write full words unless abbreviation is universally understood.
+Abbreviated names save keystrokes but cost comprehension time. Write out full words unless the abbreviation is universally understood.
 
 **Incorrect (cryptic abbreviations):**
 
@@ -30,7 +30,7 @@ const mgr = getUserMgr()
 const cfg = getAppCfg()
 ```
 
-**Correct (spelled out):**
+**Correct (spelled out for clarity):**
 
 ```typescript
 interface UserAccountDetails {
@@ -61,6 +61,6 @@ const applicationConfig = getApplicationConfig()
 **When to keep abbreviations:**
 - External API uses them and consistency matters
 - Domain experts universally use the abbreviation
-- Full name excessively long (>30 characters)
+- Full name would be excessively long (>30 characters)
 
 Reference: [Clean Code - Meaningful Names](https://www.oreilly.com/library/view/clean-code-a/9780136083238/)

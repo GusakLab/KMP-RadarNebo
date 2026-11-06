@@ -6,7 +6,7 @@ tags: data, encapsulation, record, class
 
 ## Encapsulate Record into Class
 
-When a plain data structure grows behavior or needs derived fields, convert it to a class.
+When a plain data structure grows behavior or needs derived fields, convert it to a class. This centralizes logic and protects invariants.
 
 **Incorrect (plain object with scattered logic):**
 
@@ -92,5 +92,10 @@ function printReceipt(order: Order): void {
   console.log(`Total: ${order.total}`)
 }
 ```
+
+**Benefits:**
+- Derived data calculated consistently
+- Changes to calculation logic happen in one place
+- Impossible to access stale or incorrect calculations
 
 Reference: [Encapsulate Record](https://refactoring.com/catalog/encapsulateRecord.html)

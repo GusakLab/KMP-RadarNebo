@@ -6,7 +6,7 @@ tags: data, temp-variable, query-method, extract
 
 ## Replace Temp with Query
 
-Replace temporary variables with query methods when value is used multiple times or represents a meaningful concept.
+Replace temporary variables with query methods when the value is used multiple times or represents a meaningful concept. This makes the code more self-documenting.
 
 **Incorrect (temporary variable obscures intent):**
 
@@ -60,7 +60,7 @@ class OrderPrinter {
 **When NOT to replace:**
 - Variable is used once and extraction adds no clarity
 - Calculation is expensive and would be repeated (use memoization or keep temp)
-- Variable is intermediate step in complex algorithm
+- Variable represents an intermediate step in a complex algorithm
 
 **Performance consideration:**
 

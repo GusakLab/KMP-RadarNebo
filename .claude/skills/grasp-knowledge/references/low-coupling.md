@@ -2,7 +2,7 @@
 
 ## Definition
 
-Assign responsibilities to keep coupling low. Coupling measures how strongly one element connects to, knows about, or relies on other elements.
+Assign responsibilities so that coupling remains low. Coupling is a measure of how strongly one element is connected to, has knowledge of, or relies upon other elements.
 
 ## When to Apply
 
@@ -25,14 +25,14 @@ Assign responsibilities to keep coupling low. Coupling measures how strongly one
 
 - Few dependencies (≤5)
 - Interface-based design
-- Localized changes
-- Testable in isolation
+- Changes are localized
+- Easy to test in isolation
 
 ## Types of Coupling
 
 | Type | Description | Severity |
 |------|-------------|----------|
-| Content | Direct access to internal data | CRITICAL |
+| Content | Access internal data directly | CRITICAL |
 | Common | Share global data | CRITICAL |
 | Control | Pass control flags | WARNING |
 | Stamp | Pass complex structures | INFO |

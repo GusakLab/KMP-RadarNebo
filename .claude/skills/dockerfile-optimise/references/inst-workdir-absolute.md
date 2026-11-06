@@ -7,7 +7,7 @@ tags: inst, workdir, paths, clarity
 
 ## Use Absolute Paths with WORKDIR
 
-Each RUN runs in new shell, so `cd /path` inside RUN does not affect later instructions. `RUN cd /path && command` is fragile: forget `&&` chain and command silently runs in wrong directory. Relative WORKDIR paths (e.g., `WORKDIR src`) resolve against previous WORKDIR. Resulting implicit chain is hard to follow and breaks easily in refactoring.
+Each RUN instruction executes in a new shell, so `cd /path` within a RUN command does not affect subsequent instructions. Using `RUN cd /path && command` is fragile because forgetting the `&&` chain silently runs the command in the wrong directory. Relative WORKDIR paths (e.g., `WORKDIR src`) resolve against the previous WORKDIR, creating an implicit dependency chain that is hard to follow and easy to break during refactoring.
 
 **Incorrect (cd does not persist across RUN instructions):**
 
@@ -19,7 +19,7 @@ RUN cd /usr/src/app && npm install
 RUN npm run build
 ```
 
-(`RUN npm run build` runs in `/` (default working directory), not `/usr/src/app`. Earlier `cd` affected only its own RUN shell. Build fails: no `package.json` in `/`.)
+(The second `RUN npm run build` executes in `/` (the default working directory), not `/usr/src/app`. The `cd` in the previous RUN instruction only affected that instruction's shell. The build fails because there is no `package.json` in `/`.)
 
 **Incorrect (relative WORKDIR creates implicit dependency chain):**
 
@@ -31,7 +31,7 @@ WORKDIR src
 WORKDIR ../config
 ```
 
-(Each resolves against previous: `app` becomes `/app`, `src` becomes `/app/src`, `../config` becomes `/app/config`.)
+(Each relative WORKDIR resolves against the previous one: `app` becomes `/app`, then `src` becomes `/app/src`, then `../config` becomes `/app/config`. This chain is hard to follow and breaks if any WORKDIR is reordered or removed.)
 
 **Correct (absolute WORKDIR persists across all subsequent instructions):**
 
@@ -50,7 +50,7 @@ EXPOSE 3000
 CMD ["node", "dist/server.js"]
 ```
 
-(WORKDIR applies to all later RUN, CMD, ENTRYPOINT, COPY and ADD instructions. `npm ci` and `npm run build` both run in `/usr/src/app` with no `cd`. `COPY . .` copies into `/usr/src/app`, because relative `.` resolves against WORKDIR.)
+(WORKDIR sets the working directory for all subsequent RUN, CMD, ENTRYPOINT, COPY, and ADD instructions. Both `npm ci` and `npm run build` execute in `/usr/src/app` without needing `cd`. The `COPY . .` instruction copies into `/usr/src/app` because the relative `.` destination resolves against WORKDIR.)
 
 **Correct (WORKDIR with multi-stage builds):**
 
@@ -73,13 +73,13 @@ COPY --from=build /bin/server ./server
 ENTRYPOINT ["./server"]
 ```
 
-(Each stage has own WORKDIR: build in `/src`, runtime in `/app`.)
+(Each stage has its own WORKDIR. The build stage works in `/src` and the runtime stage works in `/app`. Using absolute paths in each stage makes the Dockerfile self-documenting and prevents confusion about which directory is active.)
 
 ### Guidelines
 
 - **Always use absolute paths** with WORKDIR (e.g., `WORKDIR /app`, not `WORKDIR app`).
-- **Set WORKDIR once per stage**, near top, after FROM. Avoid changing it within stage unless there is clear reason.
-- **WORKDIR creates the directory** if missing. No need for preceding `RUN mkdir -p /app`.
-- **Use WORKDIR instead of `cd`** in RUN. For temporary directory change, use `cd` within one chained command: `RUN cd /tmp && wget ... && tar -xzf ...`.
+- **Set WORKDIR once per stage** near the top, after the FROM instruction. Avoid changing WORKDIR multiple times within a stage unless there is a clear reason.
+- **WORKDIR creates the directory** if it does not exist. There is no need for a preceding `RUN mkdir -p /app`.
+- **Use WORKDIR instead of `cd`** in RUN instructions. If a specific directory is needed temporarily, use `cd` within a single chained command: `RUN cd /tmp && wget ... && tar -xzf ...`.
 
 Reference: [Building best practices](https://docs.docker.com/build/building/best-practices/)

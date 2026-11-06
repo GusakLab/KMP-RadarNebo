@@ -6,7 +6,7 @@ tags: struct, extract-class, decomposition, large-class
 
 ## Extract Class from Large Class
 
-Extract cohesive field and method groups into separate classes.
+When a class grows too large, it becomes difficult to understand and maintain. Extract cohesive groups of fields and methods into separate classes.
 
 **Incorrect (class doing too much):**
 
@@ -90,9 +90,9 @@ class ContactInfo {
 }
 ```
 
-**Signs to extract:**
-- Fields always used together
-- Methods using subset of fields
+**Signs you need to extract:**
+- Groups of fields that are always used together
+- Methods that operate on a subset of fields
 - Fields with common prefixes (address_, contact_)
 
 Reference: [Extract Class](https://refactoring.com/catalog/extractClass.html)

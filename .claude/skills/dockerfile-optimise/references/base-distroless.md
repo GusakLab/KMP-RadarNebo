@@ -7,9 +7,9 @@ tags: base, distroless, scratch, minimal, security
 
 ## Use Distroless or Scratch Images for Production
 
-Even slim images ship shell (`/bin/sh`), package manager (`apt`/`apk`) and dozens of system utilities. Attacker with code execution in container uses them for privilege escalation, data exfiltration and lateral movement. Distroless and scratch keep only application and runtime dependencies: nothing left to exploit.
+Even slim images include a shell (`/bin/sh`), a package manager (`apt`/`apk`), and dozens of system utilities. If an attacker gains code execution inside a container, these tools become their toolkit for privilege escalation, data exfiltration, and lateral movement. Distroless and scratch images remove everything except the application and its runtime dependencies, leaving nothing for an attacker to exploit.
 
-**Incorrect (slim image for compiled binary):**
+**Incorrect (slim image for a compiled binary):**
 
 ```dockerfile
 FROM golang:1.23 AS build
@@ -25,7 +25,7 @@ EXPOSE 8080
 CMD ["/bin/server"]
 ```
 
-(Statically-linked Go binary lands in Python slim image carrying 150MB+ of Python runtime, apt, bash and hundreds of unused utilities. Final image ~170MB instead of ~12MB.)
+(A statically-linked Go binary is copied into a Python slim image that includes 150MB+ of Python runtime, apt, bash, and hundreds of utilities the binary never uses. The final image is ~170MB instead of ~12MB.)
 
 **Correct (scratch for statically-linked Go binaries):**
 
@@ -44,7 +44,7 @@ EXPOSE 8080
 ENTRYPOINT ["/bin/server"]
 ```
 
-(`scratch` is empty. Image holds only static binary and CA certificates for TLS.)
+(The `scratch` image is completely empty. The final image contains only the static binary and CA certificates for TLS. No shell, no package manager, no OS -- approximately 12MB total.)
 
 **Correct (distroless for Java applications):**
 
@@ -60,7 +60,7 @@ EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "/app.jar"]
 ```
 
-(`gcr.io/distroless/java21-debian12` holds only JRE and its dependencies. ~220MB, against ~450MB for slim JDK image.)
+(The `gcr.io/distroless/java21-debian12` image contains only the JRE and its dependencies. No shell, no package manager, no coreutils. The image is ~220MB compared to ~450MB for a slim JDK image.)
 
 **Correct (distroless for Node.js applications):**
 
@@ -78,13 +78,13 @@ EXPOSE 3000
 CMD ["server.js"]
 ```
 
-(Distroless Node.js image ships only Node.js runtime. No npm, no shell, no OS utilities.)
+(The distroless Node.js image ships only the Node.js runtime. There is no npm, no shell, and no OS utilities in the final image.)
 
 ### Choosing the Right Minimal Base
 
 | Base Image | Contents | Best For | Size |
 |------------|----------|----------|------|
-| `scratch` | Nothing | Statically-linked binaries (Go, Rust) | Binary size only |
+| `scratch` | Nothing at all | Statically-linked binaries (Go, Rust) | Binary size only |
 | `gcr.io/distroless/static-debian12` | CA certs, timezone data, `/etc/passwd` | Static binaries needing TLS + user IDs | ~2MB |
 | `gcr.io/distroless/base-debian12` | Above + glibc | Dynamically-linked C/C++ binaries | ~20MB |
 | `gcr.io/distroless/java21-debian12` | Above + JRE 21 | Java applications | ~220MB |
@@ -93,7 +93,7 @@ CMD ["server.js"]
 
 ### When NOT to Use Distroless or Scratch
 
-Distroless has no shell, which makes exec-based debugging of running containers hard. When you need it, use multi-stage build with debug target:
+When you need to exec into running containers for debugging, distroless images make troubleshooting difficult because there is no shell. Use a multi-stage approach with a debug target instead:
 
 ```dockerfile
 FROM golang:1.23 AS build
@@ -110,6 +110,6 @@ COPY --from=build /bin/server /bin/server
 ENTRYPOINT ["/bin/server"]
 ```
 
-Build with `--target debug` for development, `--target production` for deployment.
+Build with `--target debug` during development and `--target production` for deployment.
 
 Reference: [Building best practices](https://docs.docker.com/build/building/best-practices/)

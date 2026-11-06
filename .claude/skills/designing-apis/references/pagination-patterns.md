@@ -1,5 +1,8 @@
 # Pagination Patterns
 
+Implementation guide for offset-based, cursor-based, and keyset pagination.
+
+
 ## Table of Contents
 
 - [Pattern Comparison](#pattern-comparison)
@@ -83,7 +86,12 @@ LIMIT 20 OFFSET 40;
 GET /users?limit=20&cursor=eyJpZCI6MTIzfQ==
 ```
 
-Cursor is base64-encoded JSON.
+Cursor is base64-encoded JSON:
+```javascript
+const cursor = { id: 123, timestamp: "2025-12-03T10:00:00Z" };
+const encoded = Buffer.from(JSON.stringify(cursor)).toString('base64');
+// eyJpZCI6MTIzLCJ0aW1lc3RhbXAiOiIyMDI1LTEyLTAzVDEwOjAwOjAwWiJ9
+```
 
 ### Response Format
 
@@ -177,11 +185,11 @@ CREATE INDEX idx_posts_pagination ON posts(created_at, id);
 
 - Always use unique tiebreaker (e.g., id)
 - Create composite index on sort columns
-- Keep same sort order for consistency
+- Use same sort order for consistency
 
 ## Link Headers (Optional)
 
-Pagination links in headers:
+Provide pagination links in headers:
 
 ```http
 Link: </users?limit=20&cursor=abc123>; rel="next",
@@ -224,9 +232,9 @@ type PageInfo {
 
 - [ ] Set reasonable default and max limits
 - [ ] Include pagination metadata
-- [ ] Support forward and backward pagination
+- [ ] Support both forward and backward pagination
 - [ ] Handle empty result sets gracefully
 - [ ] Validate pagination parameters
 - [ ] Use indexes for efficiency
 - [ ] Document pagination behavior
-- [ ] Weigh total-count performance cost
+- [ ] Consider total count performance impact

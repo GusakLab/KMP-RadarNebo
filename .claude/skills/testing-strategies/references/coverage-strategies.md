@@ -11,7 +11,13 @@
 
 ### Anti-Pattern: 100% Coverage Goal
 
-**Better Approach**: Risk-based targets
+**Problem**: Chasing 100% coverage leads to:
+- Testing trivial code (getters/setters)
+- Testing framework code
+- False sense of security
+- Wasted effort
+
+**Better Approach**: Risk-based coverage targets
 
 ### Recommended Targets
 
@@ -19,7 +25,7 @@
 |-----------|--------|-----------|
 | **Critical Business Logic** | 90%+ | Payment, auth, data integrity |
 | **API Endpoints** | 80%+ | Public interfaces |
-| **Utility Functions** | 70%+ | Widely reused code |
+| **Utility Functions** | 70%+ | Commonly reused code |
 | **UI Components** | 60%+ | Focus on logic, not markup |
 | **Overall Project** | 70-80% | Balanced coverage |
 
@@ -102,7 +108,7 @@ cargo tarpaulin --out Html
 
 ### What Is Mutation Testing?
 
-Mutation testing checks test quality: inject bugs (mutations), see if tests catch them.
+Mutation testing validates test quality by introducing bugs (mutations) and checking if tests catch them.
 
 **Example**:
 ```typescript
@@ -147,7 +153,7 @@ cargo mutants
 ✅ **Use mutation testing for**:
 - High-criticality code (payment, auth)
 - Core business logic
-- Checking test suite quality
+- Validating test suite quality
 
 ❌ **Skip mutation testing for**:
 - Simple CRUD operations
@@ -158,7 +164,7 @@ cargo mutants
 
 ### Branch Coverage
 
-Test every conditional branch:
+Ensure all conditional branches are tested:
 
 ```typescript
 function getUserStatus(age: number) {
@@ -181,11 +187,11 @@ test('returns adult for age >= 18', () => {
 
 ### Function Coverage
 
-Every function called at least once.
+Ensure all functions are called at least once.
 
 ### Statement Coverage
 
-Every statement executed.
+Ensure all statements are executed.
 
 ## CI/CD Integration
 
@@ -207,6 +213,23 @@ Every statement executed.
 
 ### Track Coverage Trends
 
-Track coverage over time with Codecov or Coveralls:
+Use tools like Codecov or Coveralls to track coverage over time:
 - Prevent coverage regressions
+- Visualize coverage trends
 - Comment coverage changes on PRs
+
+## Summary
+
+**Key Takeaways**:
+
+1. **Don't chase 100% coverage**: Focus on meaningful coverage
+2. **Risk-based targets**: Higher coverage for critical code
+3. **Use mutation testing**: Validate test quality, not just coverage
+4. **Enforce in CI/CD**: Prevent coverage regressions
+5. **Track trends**: Monitor coverage over time
+
+**Next Steps**:
+- Set realistic coverage targets for your project
+- Configure coverage tools in your test framework
+- Consider mutation testing for critical paths
+- Integrate coverage reporting into CI/CD

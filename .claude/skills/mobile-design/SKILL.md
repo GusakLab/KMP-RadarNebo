@@ -1,47 +1,50 @@
 ---
 name: mobile-design
 description: Mobile-first design thinking and decision-making for iOS and Android apps. Touch interaction, performance patterns, platform conventions. Teaches principles, not fixed values. Use when building React Native, Flutter, or native mobile apps.
-allowed-tools: Read, Glob, Grep, Bash(python3 scripts/mobile_audit.py:*)
+allowed-tools: Read, Glob, Grep, Bash
 ---
 
 # Mobile Design System
 
-> **Core Principle:** Mobile is NOT small desktop: touch-first, battery-conscious, platform-respectful, offline-capable. Design for WORST conditions: bad network, one hand, bright sun, low battery.
+> **Philosophy:** Touch-first. Battery-conscious. Platform-respectful. Offline-capable.
+> **Core Principle:** Mobile is NOT a small desktop. THINK mobile constraints, ASK platform choice.
+
+---
 
 ## 🔧 Runtime Scripts
 
 | Script | Purpose | Usage |
 |--------|---------|-------|
-| `scripts/mobile_audit.py` | Read-only regex scan for common mobile UX/touch issues | `python3 scripts/mobile_audit.py <project_path>` (run from skill directory) |
+| `scripts/mobile_audit.py` | Read-only regex scan for common mobile UX/touch issues | `python3 scripts/mobile_audit.py <project_path>` (run from this skill's directory) |
 
 ---
 
 ## 📖 Reference Files: Load on Demand
 
-Read only files relevant to task. Small edit needs none. New screen or app needs those matching its topics.
+Read only the files relevant to the task at hand. A small edit needs none of them; a new screen or app needs the ones matching its topics.
 
 | File | Read when |
 |------|-----------|
-| [mobile-design-thinking.md](mobile-design-thinking.md) | Starting new app or screen design; avoiding default patterns |
+| [mobile-design-thinking.md](mobile-design-thinking.md) | Starting a new app or screen design; avoiding default patterns |
 | [touch-psychology.md](touch-psychology.md) | Touch targets, gestures, haptics, thumb zone |
-| [mobile-performance.md](mobile-performance.md) | Lists, animations, memory, battery, 60fps work in RN/Flutter |
+| [mobile-performance.md](mobile-performance.md) | Lists, animations, memory, 60fps work in RN/Flutter |
 | [mobile-backend.md](mobile-backend.md) | Push notifications, offline sync, mobile API design |
 | [mobile-testing.md](mobile-testing.md) | Test strategy, E2E, platform-specific tests |
 | [mobile-debugging.md](mobile-debugging.md) | Native vs JS debugging, React Native DevTools, Logcat |
 | [mobile-navigation.md](mobile-navigation.md) | Tab/Stack/Drawer, deep linking |
-| [mobile-typography.md](mobile-typography.md) | Type scale, system fonts, Dynamic Type, a11y |
+| [mobile-typography.md](mobile-typography.md) | System fonts, Dynamic Type, a11y |
 | [mobile-color-system.md](mobile-color-system.md) | OLED, dark mode, battery-aware color |
 | [decision-trees.md](decision-trees.md) | Framework/state/storage selection |
 | [platform-ios.md](platform-ios.md) | Building for iPhone/iPad (HIG, SF Pro, SwiftUI) |
 | [platform-android.md](platform-android.md) | Building for Android (Material 3, Roboto, Compose) |
 
-For cross-platform (React Native / Flutter) UI work, consult both platform files where platforms diverge.
+For cross-platform (React Native / Flutter) UI work, consult both platform files where the platforms diverge.
 
 ---
 
 ## ⚠️ CRITICAL: ASK BEFORE ASSUMING (MANDATORY)
 
-> **STOP! If user request is open-ended, DO NOT default to your favorites.**
+> **STOP! If the user's request is open-ended, DO NOT default to your favorites.**
 
 ### You MUST Ask If Not Specified:
 
@@ -56,6 +59,8 @@ For cross-platform (React Native / Flutter) UI work, consult both platform files
 
 ### ⛔ AI MOBILE ANTI-PATTERNS (FORBIDDEN LIST)
 
+> 🚫 **These are AI default tendencies that MUST be avoided!**
+
 #### Performance Sins
 
 | ❌ NEVER DO | Why It's Wrong | ✅ ALWAYS DO |
@@ -65,7 +70,7 @@ For cross-platform (React Native / Flutter) UI work, consult both platform files
 | **Missing keyExtractor** | Index-based keys cause bugs on reorder | Unique, stable ID from data |
 | **Skip getItemLayout** | Async layout = janky scroll | Provide when items have fixed height |
 | **setState() everywhere** | Unnecessary widget rebuilds | Targeted state, `const` constructors |
-| **Native driver: false** | Animations blocked by JS thread | `useNativeDriver: true` for transform/opacity. Native driver does not support layout props (width, height, top...); use Reanimated or JS driver for them |
+| **Native driver: false** | Animations blocked by JS thread | `useNativeDriver: true` for transform/opacity; layout props (width, height, top...) are not supported by the native driver, so use Reanimated or the JS driver for them |
 | **console.log in production** | Blocks JS thread severely | Remove before release build |
 | **Skip React.memo/const** | Every item re-renders on any change | Memoize list items ALWAYS |
 
@@ -86,7 +91,7 @@ For cross-platform (React Native / Flutter) UI work, consult both platform files
 | ❌ NEVER DO | Why It's Wrong | ✅ ALWAYS DO |
 |-------------|----------------|--------------|
 | **Token in AsyncStorage** | Easily accessible, stolen on rooted device | `SecureStore` / `Keychain` / `EncryptedSharedPreferences` |
-| **Ship API secrets in app** | Anything in bundle, including build-time env vars (`EXPO_PUBLIC_*`, react-native-config), can be extracted from APK/IPA | Keep secrets on backend you control and proxy calls through it, or issue short-lived per-user tokens. Only publishable keys belong in client |
+| **Ship API secrets in the app** | Anything in the bundle, including build-time env vars (`EXPO_PUBLIC_*`, react-native-config), can be extracted from the APK/IPA | Keep secrets on a backend you control and proxy calls through it, or issue short-lived per-user tokens; only publishable keys belong in the client |
 | **Skip SSL pinning** | MITM attacks possible | Pin certificates in production |
 | **Log sensitive data** | Logs can be extracted | Never log tokens, passwords, PII |
 
@@ -174,7 +179,7 @@ Mobile:  Finger is imprecise (~7mm contact area)
 | Large viewport | Limited space, scroll vertical |
 | Stable attention | Interrupted constantly |
 
-Deep dive: [touch-psychology.md](touch-psychology.md)
+For deep dive: [touch-psychology.md](touch-psychology.md)
 
 ---
 
@@ -247,13 +252,13 @@ GPU-accelerated (FAST):     CPU-bound (SLOW):
                             └── (AVOID animating these)
 ```
 
-Complete guide: [mobile-performance.md](mobile-performance.md)
+For complete guide: [mobile-performance.md](mobile-performance.md)
 
 ---
 
 ## 📝 CHECKPOINT (New Apps and Screens)
 
-> **Before building new app or screen, fill in checkpoint. Skip for small edits and bug fixes.**
+> **Before building a new app or screen, fill in this checkpoint. Skip it for small edits and bug fixes.**
 
 ```
 🧠 CHECKPOINT:
@@ -291,7 +296,7 @@ Anti-Patterns I Will Avoid:
 3. AsyncStorage for tokens → SecureStore
 ```
 
-> **Can't fill checkpoint? Read reference files for topics involved.**
+> **Can't fill the checkpoint? → Read the reference files for the topics involved.**
 
 ---
 
@@ -317,11 +322,21 @@ WHAT ARE YOU BUILDING?
             └── ✅ Flutter
 ```
 
-Complete decision trees: [decision-trees.md](decision-trees.md)
+For complete decision trees: [decision-trees.md](decision-trees.md)
 
 ---
 
 ## 📋 Pre-Development Checklist
+
+### Before Starting ANY Mobile Project
+
+- [ ] **Platform confirmed?** (iOS / Android / Both)
+- [ ] **Framework chosen?** (RN / Flutter / Native)
+- [ ] **Navigation pattern decided?** (Tabs / Stack / Drawer)
+- [ ] **State management selected?** (Zustand / Redux / Riverpod / BLoC)
+- [ ] **Offline requirements known?**
+- [ ] **Deep linking planned from day one?**
+- [ ] **Target devices defined?** (Phone / Tablet / Both)
 
 ### Before Every Screen
 
@@ -341,3 +356,25 @@ Complete decision trees: [decision-trees.md](decision-trees.md)
 - [ ] **Memory cleanup on unmount?**
 - [ ] **Tested on low-end devices?**
 - [ ] **Accessibility labels on all interactive elements?**
+
+---
+
+## 📚 Reference Files
+
+For deeper guidance on specific areas:
+
+| File | When to Use |
+|------|-------------|
+| [mobile-design-thinking.md](mobile-design-thinking.md) | **FIRST! Anti-memorization, forces context-based thinking** |
+| [touch-psychology.md](touch-psychology.md) | Understanding touch interaction, Fitts' Law, gesture design |
+| [mobile-performance.md](mobile-performance.md) | Optimizing RN/Flutter, 60fps, memory/battery |
+| [platform-ios.md](platform-ios.md) | iOS-specific design, HIG compliance |
+| [platform-android.md](platform-android.md) | Android-specific design, Material Design 3 |
+| [mobile-navigation.md](mobile-navigation.md) | Navigation patterns, deep linking |
+| [mobile-typography.md](mobile-typography.md) | Type scale, system fonts, accessibility |
+| [mobile-color-system.md](mobile-color-system.md) | OLED optimization, dark mode, battery |
+| [decision-trees.md](decision-trees.md) | Framework, state, storage decisions |
+
+---
+
+> **Remember:** Mobile users are impatient, interrupted, and using imprecise fingers on small screens. Design for the WORST conditions: bad network, one hand, bright sun, low battery. If it works there, it works everywhere.

@@ -6,7 +6,7 @@ tags: micro, rename, clarity, refactoring
 
 ## Rename for Clarity
 
-Rename names that don't clearly convey meaning.
+When a name doesn't clearly convey meaning, rename it. Good names eliminate the need for explanatory comments.
 
 **Incorrect (unclear or misleading names):**
 
@@ -37,7 +37,7 @@ const isReady = loadingComplete && !hasError && itemCount > 0
 // Should processing continue if isReady is true or false?
 ```
 
-**Correct (intention-revealing names):**
+**Correct (clear, intention-revealing names):**
 
 ```typescript
 // Descriptive parameter names
@@ -73,8 +73,8 @@ if (shouldProcessItems) {
 ```
 
 **Rename method:**
-1. Use IDE rename refactoring (updates all references)
+1. Use IDE's rename refactoring (updates all references)
 2. Run tests to verify nothing broke
-3. If name appears in logs/databases, plan migration
+3. If the name appears in logs/databases, plan migration
 
 Reference: [Rename Variable](https://refactoring.com/catalog/renameVariable.html)

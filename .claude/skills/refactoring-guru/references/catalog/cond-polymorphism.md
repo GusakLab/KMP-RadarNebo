@@ -6,7 +6,7 @@ tags: cond, polymorphism, switch-statement, strategy-pattern
 
 ## Replace Conditional with Polymorphism
 
-When same switch/if-else on type appears in multiple places, replace it with polymorphism.
+When the same switch/if-else on type appears in multiple places, replace it with polymorphism. New types can be added without modifying existing code.
 
 **Incorrect (repeated type-based conditionals):**
 
@@ -95,7 +95,7 @@ class Pentagon implements Shape {
 
 **When to use polymorphism:**
 - Same conditional on type appears 3+ times
-- New types likely to be added
+- New types are likely to be added
 - Behavior differs significantly between types
 
 Reference: [Replace Conditional with Polymorphism](https://refactoring.com/catalog/replaceConditionalWithPolymorphism.html)

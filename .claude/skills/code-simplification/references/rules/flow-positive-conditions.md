@@ -6,7 +6,7 @@ tags: flow, conditions, boolean, readability, naming
 
 ## Prefer Positive Conditions Over Double Negatives
 
-Double negatives force mental inversion, slowing comprehension and raising error rates. State what IS true, not what ISN'T NOT true.
+The human brain processes positive statements faster than negative ones. Double negatives require mental inversion that slows comprehension and increases error rates. Write conditions that state what IS true, not what ISN'T NOT true.
 
 **Incorrect (double negatives):**
 
@@ -92,6 +92,49 @@ if (isAdmin(user) && isEnabled(feature)) {
 }
 ```
 
+**Incorrect (negative variable names):**
+
+```typescript
+const notFound = items.indexOf(target) === -1;
+if (!notFound) {
+  processItem(target);
+}
+
+const isInvalid = !schema.validate(data);
+if (!isInvalid) {
+  save(data);
+}
+
+let hideModal = true;
+if (!hideModal) {
+  modal.show();
+}
+```
+
+**Correct (positive variable names):**
+
+```typescript
+const found = items.indexOf(target) !== -1;
+if (found) {
+  processItem(target);
+}
+
+// Or even better with includes:
+if (items.includes(target)) {
+  processItem(target);
+}
+
+const isValid = schema.validate(data);
+if (isValid) {
+  save(data);
+}
+
+let showModal = false;
+if (showModal) {
+  modal.show();
+}
+```
+
 **Incorrect (confusing boolean logic):**
 
 ```typescript
@@ -129,13 +172,21 @@ function canAccessSystem(user: User, config: Config): boolean {
 | `!isNotValid` | `isValid` |
 | `!isEmpty` | `hasItems` |
 | `!isDisabled` | `isEnabled` |
-| `notFound === false` | `found === true` or `found` |
+| `notFound === false` | `found === true` or just `found` |
 | `!user.inactive` | `user.isActive` (may need data change) |
 | `errors.length === 0` | `isValid` or `hasNoErrors` |
 
+### Benefits
+
+- Conditions read like natural language
+- Fewer mental inversions when reading
+- Reduced chance of logic errors
+- Easier to combine conditions with && and ||
+- Self-documenting variable and function names
+
 ### When NOT to Apply
 
-- Negative is natural domain concept (e.g., `isDeprecated`, `wasDeleted`)
-- External API uses negative naming
-- Guard clauses where `if (!x) return` is idiomatic
-- `!condition` clearer than new named positive
+- When the negative is the natural domain concept (e.g., `isDeprecated`, `wasDeleted`)
+- When matching an external API that uses negative naming
+- In guard clauses where `if (!x) return` is idiomatic
+- When `!condition` is clearer than creating a new named positive

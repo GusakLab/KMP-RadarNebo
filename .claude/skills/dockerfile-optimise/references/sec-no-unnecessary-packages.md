@@ -7,7 +7,7 @@ tags: sec, packages, minimal, attack-surface
 
 ## Avoid Installing Unnecessary Packages
 
-Every installed package is potential vulnerability vector. Debug utilities, editors, network diagnostics and documentation packages help in development but serve no purpose in production. They grow image size and build time and, critically, widen attack surface with binaries attacker can leverage after initial access.
+Every package installed in a container is a potential vulnerability vector. Debug utilities, editors, network diagnostic tools, and documentation packages are useful during development but serve no purpose in a production image. They increase the image size, extend build times, and -- critically -- widen the attack surface by introducing binaries an attacker could leverage after gaining initial access.
 
 **Incorrect (debug and convenience tools in a production image):**
 
@@ -34,7 +34,7 @@ COPY . .
 CMD ["gunicorn", "app.wsgi:application"]
 ```
 
-(None needed to serve application. `tcpdump` and `strace` give attacker network sniffing and process tracing. `curl` and `wget` fetch more payloads after initial compromise. Adds ~80MB and dozens of CVE-trackable packages.)
+(None of these tools are needed to serve the application. `tcpdump` and `strace` give an attacker network sniffing and process tracing capabilities. `curl` and `wget` enable downloading additional payloads after initial compromise. Installing them adds ~80MB and dozens of additional CVE-trackable packages.)
 
 **Correct (only runtime dependencies, no recommends):**
 
@@ -57,7 +57,7 @@ USER nobody
 CMD ["gunicorn", "app.wsgi:application"]
 ```
 
-(Only `libpq5`: runtime library psycopg2 needs for PostgreSQL.)
+(Only `libpq5` is installed -- the runtime library needed by psycopg2 for PostgreSQL connectivity. The `--no-install-recommends` flag prevents apt from pulling in additional suggested packages that are not strict dependencies.)
 
 **Correct (debug tools isolated in a development stage):**
 
@@ -88,7 +88,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN pip install --no-cache-dir debugpy ipdb
 
-# debugpy has no auth (attach = code execution): publish on host loopback only
 CMD ["python", "-m", "debugpy", "--listen", "0.0.0.0:5678", "manage.py", "runserver"]
 
 # -- Production stage: minimal runtime only --
@@ -103,15 +102,16 @@ Build commands:
 ```bash
 # Development (includes debug tools)
 docker build --target development -t myapp:dev .
-docker run -p 127.0.0.1:5678:5678 myapp:dev   # never -p 5678:5678 (all interfaces)
 
 # Production (no debug tools, minimal attack surface)
 docker build --target production -t myapp:prod .
 ```
 
+(Debug tools exist only in the `development` stage. The `production` target inherits from `base` and contains nothing beyond the application and its runtime dependencies.)
+
 ### Audit Checklist
 
-Before shipping to production, verify no unnecessary packages:
+Before shipping an image to production, verify there are no unnecessary packages:
 
 ```bash
 # List all installed packages in the image

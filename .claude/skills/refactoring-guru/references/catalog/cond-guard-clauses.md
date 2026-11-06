@@ -6,7 +6,7 @@ tags: cond, guard-clause, early-return, nesting
 
 ## Replace Nested Conditionals with Guard Clauses
 
-Deep nesting makes code hard to follow. Use guard clauses to handle edge cases early and keep main logic at top level.
+Deep nesting makes code hard to follow. Use guard clauses to handle edge cases early and keep the main logic at the top level.
 
 **Incorrect (deeply nested conditionals):**
 
@@ -65,5 +65,10 @@ function processPayment(order: Order, user: User): PaymentResult {
   return { success: true, transactionId: payment.id }
 }
 ```
+
+**Benefits:**
+- Validation logic is clearly separated from business logic
+- Maximum nesting depth is 1 instead of 5+
+- Easy to add new validations without restructuring
 
 Reference: [Replace Nested Conditional with Guard Clauses](https://refactoring.com/catalog/replaceNestedConditionalWithGuardClauses.html)

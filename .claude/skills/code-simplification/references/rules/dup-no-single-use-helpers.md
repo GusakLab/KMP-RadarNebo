@@ -6,7 +6,7 @@ tags: dup, helpers, abstraction, indirection
 
 ## Avoid Single-Use Helper Functions
 
-Do not extract a helper called from only one place. Single-use helpers scatter one coherent operation across locations: local complexity becomes distributed complexity.
+Do not extract code into a helper function if it will only be called from one place. Single-use helpers fragment logic across multiple locations, forcing readers to jump between files or scroll to understand what should be a single coherent operation. The cure is worse than the disease - you trade local complexity for distributed complexity.
 
 **Incorrect (single-use helper obscures logic):**
 
@@ -75,7 +75,7 @@ class OrderProcessor:
 # Class is now 150 lines but process_order reads like a mystery novel
 ```
 
-**Correct (inline simple single-use logic):**
+**Correct (inline when logic is simple and single-use):**
 
 ```python
 class OrderProcessor:
@@ -96,7 +96,7 @@ class OrderProcessor:
 # Comments provide structure; complex logic gets extracted
 ```
 
-**Incorrect (extracted for testability; integration test suffices):**
+**Incorrect (extracting for testability when integration test suffices):**
 
 ```go
 func ProcessPayment(order *Order) error {
@@ -118,7 +118,7 @@ func validatePaymentDetails(order *Order) error {
 }
 ```
 
-**Correct (test through public interface):**
+**Correct (test through the public interface):**
 
 ```go
 func ProcessPayment(order *Order) error {
@@ -135,7 +135,14 @@ func ProcessPayment(order *Order) error {
 
 ### When Single-Use Helpers ARE Appropriate
 
-- Function exceeds 50 lines with clear logical sections
-- Logic needs extensive comments; descriptive name would help
-- Testing helper in isolation adds significant value
-- Complex algorithm that deserves its own tests
+- Function exceeds 50 lines and has clear logical sections
+- Logic requires extensive comments that would benefit from a descriptive name
+- Testing the helper in isolation provides significant value
+- The helper encapsulates a complex algorithm that deserves its own tests
+
+### Benefits
+
+- Code flows linearly without jumping between locations
+- Reduces file count and cognitive load
+- Makes debugging easier - stack traces are shorter
+- Faster code review - reviewers see complete logic in context

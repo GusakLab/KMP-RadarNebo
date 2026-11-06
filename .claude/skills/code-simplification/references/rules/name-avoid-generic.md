@@ -6,7 +6,7 @@ tags: name, specificity, clarity, readability, context
 
 ## Avoid Generic Names
 
-Names like `data`, `info`, `temp`, `item`, `result`, `value`, and `thing` say nothing about contents. Replace them with specific names for actual content or purpose.
+Names like `data`, `info`, `temp`, `item`, `result`, `value`, and `thing` tell you nothing about what they contain. They force readers to trace through the code to understand what they represent. Replace generic names with specific ones that describe the actual content or purpose.
 
 **Incorrect (generic names):**
 
@@ -131,3 +131,11 @@ func handleUserProfileRequest(w http.ResponseWriter, r *http.Request) {
 - Short-lived variables in tiny scopes (3-5 lines max)
 - Generic type parameters (`T`, `K`, `V` are conventional)
 - Language-specific idioms (e.g., `_` for unused variables)
+
+### Benefits
+
+- Code reads like documentation
+- No need to trace variable origins
+- Bugs become obvious when wrong data flows through
+- Refactoring is safer with distinct names
+- Code reviews catch misuse immediately

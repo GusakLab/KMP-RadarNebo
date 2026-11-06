@@ -6,7 +6,7 @@ tags: behave, verification, testing, review, diff
 
 ## Verify Behavior Preservation Before Finalizing Changes
 
-Never assume a simplification preserves behavior. Verification must be explicit and documented.
+Never assume a simplification preserves behavior - verify it. Run existing tests, manually test edge cases, and review diffs for semantic changes. The confidence that code "looks equivalent" is insufficient. Verification must be explicit and documented.
 
 **Incorrect (commits without verification):**
 
@@ -54,11 +54,11 @@ function getLimit(limit: number | undefined): number {
 
 Before finalizing any simplification:
 
-1. **Run existing tests** - All must pass without modification
+1. **Run existing tests** - All tests must pass without modification
 2. **Check edge cases** - null, undefined, empty, zero, negative, boundary values
 3. **Review error paths** - Exceptions, error messages, failure modes
 4. **Verify side effects** - Logging, I/O, state changes still occur
-5. **Test with real data** - If available, run production-like inputs
+5. **Test with real data** - If available, run against production-like inputs
 6. **Review the diff** - Look for type changes, reordering, removed code
 
 ### Verification Commands by Language
@@ -83,9 +83,16 @@ cargo clippy
 
 ### When Tests Are Insufficient
 
-If existing tests do not cover modified code:
+If existing tests do not cover the modified code:
 
-1. **Add tests before simplifying** - Capture current behavior
+1. **Add tests before simplifying** - Write tests that capture current behavior
 2. **Use snapshot testing** - Capture outputs before and after
 3. **Property-based testing** - Generate inputs to find edge cases
-4. **Manual verification** - Document what was checked by hand
+4. **Manual verification** - Document what was manually checked
+
+### Benefits
+
+- Catches behavior changes before they reach production
+- Builds confidence in simplifications
+- Documents verification for reviewers
+- Creates a safety net for future changes

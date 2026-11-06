@@ -6,9 +6,9 @@ tags: micro, boolean, simplification, expressions
 
 ## Simplify Boolean Expressions
 
-Simplify complex boolean expressions with boolean algebra and language features.
+Complex boolean expressions can often be simplified. Apply boolean algebra and use language features to make conditions clearer.
 
-**Incorrect (overcomplicated boolean logic):**
+**Incorrect (overly complex boolean logic):**
 
 ```typescript
 // Double negatives
@@ -42,7 +42,7 @@ function isEligible(user: User): boolean {
 const label = isAdmin ? 'Admin' : isManager ? 'Manager' : isEmployee ? 'Employee' : 'Guest'
 ```
 
-**Correct (simplified):**
+**Correct (simplified expressions):**
 
 ```typescript
 // Remove double negative

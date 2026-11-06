@@ -6,9 +6,9 @@ tags: ctx, consistency, patterns, style
 
 ## Match Existing Code Style in File and Project
 
-Foreign patterns, even technically better ones, create jarring inconsistency. Before simplifying, study surrounding code for the patterns already in use.
+Every codebase develops its own idioms and patterns over time. Simplifications that introduce foreign patterns, even if technically better, create jarring inconsistencies. Before simplifying, study the surrounding code to understand naming conventions, error handling approaches, and structural patterns already in use.
 
-**Incorrect (arrow functions in a file using function declarations):**
+**Incorrect (introducing arrow functions in a file using function declarations):**
 
 ```javascript
 // Existing file uses function declarations throughout
@@ -58,5 +58,11 @@ function validateAge(age) {
 
 **When NOT to use:**
 
-- Explicitly refactoring to modernize the entire file
-- Team acknowledges existing patterns as anti-patterns
+- When explicitly refactoring to modernize the entire file
+- When existing patterns are acknowledged anti-patterns by the team
+
+**Benefits:**
+
+- Code reads as if written by one author
+- Easier to maintain and understand
+- Reduces cognitive load during code review

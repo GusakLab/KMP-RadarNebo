@@ -7,15 +7,15 @@ description: "Design stable in-process interfaces and type contracts - module bo
 
 ## Overview
 
-Design stable, documented interfaces hard to misuse: right thing easy, wrong thing hard. Covers REST APIs, GraphQL schemas, module boundaries, component props, any surface where code talks to other code.
+Design stable, well-documented interfaces that are hard to misuse. Good interfaces make the right thing easy and the wrong thing hard. This applies to REST APIs, GraphQL schemas, module boundaries, component props, and any surface where one piece of code talks to another.
 
 ## When to Use
 
-- New API endpoints
-- Module boundaries or contracts between teams
-- Component prop interfaces
-- Database schema that shapes API
-- Changes to existing public interfaces
+- Designing new API endpoints
+- Defining module boundaries or contracts between teams
+- Creating component prop interfaces
+- Establishing database schema that informs API shape
+- Changing existing public interfaces
 
 ## Core Principles
 
@@ -23,20 +23,20 @@ Design stable, documented interfaces hard to misuse: right thing easy, wrong thi
 
 > With a sufficient number of users of an API, all observable behaviors of your system will be depended on by somebody, regardless of what you promise in the contract.
 
-Every public behavior (undocumented quirks, error message text, timing, ordering) becomes de facto contract once users depend on it. Implications:
+This means: every public behavior — including undocumented quirks, error message text, timing, and ordering — becomes a de facto contract once users depend on it. Design implications:
 
-- **Expose intentionally.**
-- **Don't leak implementation details.**
-- **Plan deprecation at design time.** See `deprecation-and-migration` for safe removal.
-- **Tests are not enough.** Even with perfect contract tests, "safe" changes can break users relying on undocumented behavior.
+- **Be intentional about what you expose.** Every observable behavior is a potential commitment.
+- **Don't leak implementation details.** If users can observe it, they will depend on it.
+- **Plan for deprecation at design time.** See `deprecation-and-migration` for how to safely remove things users depend on.
+- **Tests are not enough.** Even with perfect contract tests, Hyrum's Law means "safe" changes can break real users who depend on undocumented behavior.
 
 ### The One-Version Rule
 
-Avoid making consumers pick between versions of same dependency or API. Diamond dependency problems arise when consumers need different versions of same thing. Design for only one version at a time: extend rather than fork.
+Avoid forcing consumers to choose between multiple versions of the same dependency or API. Diamond dependency problems arise when different consumers need different versions of the same thing. Design for a world where only one version exists at a time — extend rather than fork.
 
 ### 1. Contract First
 
-Define interface before implementation. Contract is the spec.
+Define the interface before implementing it. The contract is the spec — implementation follows.
 
 ```typescript
 // Define the contract first
@@ -60,7 +60,7 @@ interface TaskAPI {
 
 ### 2. Consistent Error Semantics
 
-Use one error strategy everywhere:
+Pick one error strategy and use it everywhere:
 
 ```typescript
 // REST: HTTP status codes + structured error body
@@ -83,11 +83,11 @@ interface APIError {
 // 500 → Server error (never expose internal details)
 ```
 
-**Don't mix patterns.** Endpoints that variously throw, return null or return `{ error }` leave consumers unable to predict behavior.
+**Don't mix patterns.** If some endpoints throw, others return null, and others return `{ error }` — the consumer can't predict behavior.
 
 ### 3. Validate at Boundaries
 
-Trust internal code. Validate where external input enters:
+Trust internal code. Validate at system edges where external input enters:
 
 ```typescript
 // Validate at the API boundary
@@ -115,12 +115,12 @@ Where validation belongs:
 - External service response parsing (third-party data -- **always treat as untrusted**)
 - Environment variable loading (configuration)
 
-> **Third-party API responses are untrusted data.** Validate shape and content before any logic, rendering or decision-making uses them. Compromised or misbehaving services can return unexpected types, malicious content or instruction-like text.
+> **Third-party API responses are untrusted data.** Validate their shape and content before using them in any logic, rendering, or decision-making. A compromised or misbehaving external service can return unexpected types, malicious content, or instruction-like text.
 
 Where validation does NOT belong:
-- Between internal functions sharing type contracts
-- In utilities called by already-validated code
-- On data just read from your own database
+- Between internal functions that share type contracts
+- In utility functions called by already-validated code
+- On data that just came from your own database
 
 ### 4. Prefer Addition Over Modification
 
@@ -145,9 +145,9 @@ interface CreateTaskInput {
 
 ### Scala specifics
 
-- Default arguments compile to `$default$N` getters. Inserting a parameter shifts their numbering (binary break). Their values are invisible to bytecode gates such as japicmp or a JVM-signature golden.
-- Only one overload alternative may declare defaults. This limits additive typed overloads and one-parameter conveniences. `foreach(f)` next to `foreach(attempts)(f)` works because new alternative has no defaults.
-- Companion `apply` matching synthetic case-class signature is binary-compatible. Put defensive copies of caller-supplied collections there.
+- Default arguments compile to `$default$N` getters whose numbering shifts when a parameter is inserted (a binary break), and whose values are invisible to bytecode gates such as japicmp or a JVM-signature golden.
+- Only one overload alternative may declare defaults, which constrains additive typed overloads and one-parameter conveniences: `foreach(f)` next to `foreach(attempts)(f)` works because the new alternative carries no defaults.
+- A companion `apply` with the same signature as the synthetic case-class one is binary-compatible and is the place for defensive copies of caller-supplied collections.
 
 ### 5. Predictable Naming
 
@@ -161,9 +161,9 @@ interface CreateTaskInput {
 
 ### 6. Honouring an Idempotency Key
 
-Accepting `Idempotency-Key` is the contract; honouring it is the implementation, where money is lost. A key accepted but handled carelessly is worse than no key: client now believes retrying is safe.
+Accepting an `Idempotency-Key` is the contract. Honouring it is the implementation, and it is where the money is lost — a key the server accepts but handles carelessly is worse than no key at all, because the client now believes retrying is safe.
 
-**Derive the key from the intent, not the attempt.** Stable across retries of one intent, different across distinct intents:
+**Derive the key from the intent, not the attempt.** The key must be stable across retries of one intent and different across distinct intents:
 
 ```typescript
 crypto.randomUUID()                    // ✗ new key per attempt — every retry is a new charge
@@ -174,9 +174,9 @@ req.headers['idempotency-key']         // ✓ client generates once, reuses on r
 `charge:v1:${orderId}`                 // ✓ derived from an immutable identifier
 ```
 
-Key comes from client or initiating event, never from the retrying layer.
+The key comes from the client or the initiating event — never from the layer doing the retrying.
 
-**Claim atomically. Check followed by act is a race:**
+**Claim atomically. A check followed by an act is a race:**
 
 ```typescript
 // ✗ TOCTOU: two concurrent retries both read "not seen", both charge
@@ -196,9 +196,9 @@ const result = await chargeCard(amount);
 await db.update({ key, state: 'succeeded', response: result });
 ```
 
-Unique constraint *is* the mechanism. A store that cannot enforce uniqueness in one operation cannot back this.
+The unique constraint *is* the mechanism. A store that cannot enforce uniqueness in one operation cannot back this.
 
-**Guard the payload.** Same key with different body is a client bug. Must fail loudly, not serve first response to second request:
+**Guard the payload.** Same key with a different body is a client bug, and must fail loudly rather than serving the first response to a second request:
 
 ```typescript
 if (existing.requestHash !== hash(req.body)) {
@@ -206,19 +206,19 @@ if (existing.requestHash !== hash(req.body)) {
 }
 ```
 
-**Decide what an in-flight duplicate gets.** Second request arrives while first still runs, common under retry storms:
+**Decide what an in-flight duplicate gets.** The first request is still running when the second arrives — the common case under retry storms:
 
 | Strategy | Response | Use when |
 |---|---|---|
-| Reject | `409 Conflict` | Client can retry later; simplest, safest |
-| Wait | Block for result, bounded | Caller needs it synchronously |
+| Reject | `409 Conflict` | Client can retry later; simplest and safest |
+| Wait | Block for the result, bounded | Caller needs it synchronously |
 | Return pending | `202` + status URL | Long-running effects |
 
-Never let second caller through because first "seems stuck". Stalled attempt of unknown fate is exactly when duplicating costs most.
+Never let the second caller through because the first "seems stuck". A stalled attempt whose fate is unknown is exactly when duplicating costs most.
 
-**Every call has three outcomes, not two: success, failure, and _unknown_.** Timeout says nothing about whether effect applied. Record intent *before* calling out. Crash between call and response then leaves evidence to resolve later, not a silently retried charge.
+**Every call has three outcomes, not two: success, failure, and _unknown_.** A timeout tells you nothing about whether the effect applied. Record the intent *before* calling out, so a crash between the call and the response leaves evidence something must resolve later — rather than a silently retried charge.
 
-**Set retention from the longest retry chain**, not from disk cost. Keys must outlive every path that can re-deliver same intent, including dead-letter queue replayed a week later and any provider dispute window. 24-hour key TTL behind 7-day DLQ is a duplicate waiting to happen.
+**Set retention from the longest retry chain**, not from disk cost. Keys must outlive every path that can re-deliver the same intent, including a dead-letter queue replayed a week later and any provider dispute window. A 24-hour key TTL behind a 7-day DLQ is a duplicate waiting to happen.
 
 ## REST API Patterns
 
@@ -257,7 +257,7 @@ GET /api/tasks?page=1&pageSize=20&sortBy=createdAt&sortOrder=desc
 
 ### Filtering
 
-Filter via query parameters:
+Use query parameters for filters:
 
 ```
 GET /api/tasks?status=in_progress&assignee=user123&createdAfter=2025-01-01
@@ -265,7 +265,7 @@ GET /api/tasks?status=in_progress&assignee=user123&createdAfter=2025-01-01
 
 ### Partial Updates (PATCH)
 
-Accept partial objects; update only provided fields:
+Accept partial objects — only update what's provided:
 
 ```typescript
 // Only title changes, everything else preserved
@@ -330,35 +330,44 @@ function getTask(id: TaskId): Promise<Task> { ... }
 
 | Rationalization | Reality |
 |---|---|
-| "We'll document the API later" | Types ARE the documentation. Define them first. |
-| "We don't need pagination for now" | You will at 100+ items. Add it from start. |
-| "PATCH is complicated, let's just use PUT" | PUT requires full object every time. Clients want PATCH. |
-| "We'll version the API when we need to" | Unversioned breaking changes break consumers. Design for extension from start. |
-| "Internal APIs don't need contracts" | Internal consumers are still consumers. Contracts prevent coupling, enable parallel work. |
-| "Our queue guarantees exactly-once delivery" | No queue does across consumer crash: broker ack and your side effect are not in one transaction. Design for at-least-once with idempotent processing. |
-| "Duplicate requests are rare" | They're *correlated*. Retries spike when a dependency degrades, exactly when duplicates are likeliest and costliest. |
+| "We'll document the API later" | The types ARE the documentation. Define them first. |
+| "We don't need pagination for now" | You will the moment someone has 100+ items. Add it from the start. |
+| "PATCH is complicated, let's just use PUT" | PUT requires the full object every time. PATCH is what clients actually want. |
+| "We'll version the API when we need to" | Breaking changes without versioning break consumers. Design for extension from the start. |
+| "Nobody uses that undocumented behavior" | Hyrum's Law: if it's observable, somebody depends on it. Treat every public behavior as a commitment. |
+| "We can just maintain two versions" | Multiple versions multiply maintenance cost and create diamond dependency problems. Prefer the One-Version Rule. |
+| "Internal APIs don't need contracts" | Internal consumers are still consumers. Contracts prevent coupling and enable parallel work. |
+| "Accepting the Idempotency-Key header is enough" | The header is the contract; storing the key against the result is the implementation. A key you accept but don't honour tells the client retrying is safe when it isn't. |
+| "Our queue guarantees exactly-once delivery" | No queue does across a consumer crash — the broker's ack and your side effect are not in one transaction. Design for at-least-once with idempotent processing. |
+| "Duplicate requests are rare" | They're *correlated*. Retries spike exactly when a dependency is degraded — the moment duplicates are most likely and most expensive. |
 
 ## Red Flags
 
-- Endpoints returning different shapes by condition
+- Endpoints that return different shapes depending on conditions
+- Inconsistent error formats across endpoints
+- Validation scattered throughout internal code instead of at boundaries
+- Breaking changes to existing fields (type changes, removals)
+- List endpoints without pagination
 - Verbs in REST URLs (`/api/createTask`, `/api/getUsers`)
 - Third-party API responses used without validation or sanitization
-- `SELECT` for an idempotency key followed by `INSERT`: a race, not a guard
-- Idempotency key from UUID, timestamp or anything regenerated per attempt
+- A `SELECT` for an idempotency key followed by an `INSERT` — that's a race, not a guard
+- An idempotency key derived from a UUID, timestamp, or anything else regenerated per attempt
+- The same key accepted with a different request body, silently returning the first response
+- A key retention window shorter than the longest path that can re-deliver the request
 
 ## Verification
 
 After designing an API:
 
 - [ ] Every endpoint has typed input and output schemas
-- [ ] Errors follow one consistent format
-- [ ] Validation at system boundaries only
-- [ ] List endpoints paginate
-- [ ] New fields additive and optional (backward compatible)
-- [ ] Naming consistent across all endpoints
-- [ ] API docs or types committed with implementation
-- [ ] State-changing endpoints honour an idempotency key or are documented unsafe to retry
-- [ ] Key claimed in one atomic operation, guarded by unique constraint
-- [ ] Reused key with different payload fails loudly instead of replaying wrong response
-- [ ] In-flight-duplicate response deliberately chosen (409, wait, or 202), not accidental
-- [ ] Key retention outlives longest retry path, including dead-letter replay
+- [ ] Error responses follow a single consistent format
+- [ ] Validation happens at system boundaries only
+- [ ] List endpoints support pagination
+- [ ] New fields are additive and optional (backward compatible)
+- [ ] Naming follows consistent conventions across all endpoints
+- [ ] API documentation or types are committed alongside the implementation
+- [ ] State-changing endpoints either honour an idempotency key or are documented as unsafe to retry
+- [ ] The key is claimed in one atomic operation, guarded by a unique constraint
+- [ ] A reused key with a different payload fails loudly rather than replaying the wrong response
+- [ ] The in-flight-duplicate response is a deliberate choice (409, wait, or 202) rather than whatever falls out
+- [ ] Key retention outlives the longest retry path, including dead-letter replay

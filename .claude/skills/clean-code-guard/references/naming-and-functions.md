@@ -1,6 +1,6 @@
 # Naming and Functions — Clean Code Chapters 2 and 3
 
-Source: Robert C. Martin, *Clean Code*. Sample chapters: Pearson PDF. Summaries: Vivek Khatri's Ch. 2 notes, Herberto Graça's Ch. 3 summary.
+Source: Robert C. Martin, *Clean Code*. Sample chapters online at the Pearson PDF; chapter summaries at Vivek Khatri's Ch. 2 notes and Herberto Graça's Ch. 3 summary.
 
 ## Contents
 
@@ -28,7 +28,7 @@ Source: Robert C. Martin, *Clean Code*. Sample chapters: Pearson PDF. Summaries:
 
 ### N1. Intention-revealing
 
-Name tells *why it exists, what it does, and how it's used*. If name needs explanatory comment, it is wrong.
+A name should tell you *why it exists, what it does, and how it's used*. If you need a comment to explain a name, the name is wrong.
 
 **Bad:**
 ```text
@@ -46,29 +46,29 @@ filterOverdueInvoices(invoices)
 
 ### N2. No disinformation, no encodings
 
-No Hungarian notation (`strName`, `iCount`). No interface-prefix `I` (`IUserService`). No member prefix `m_`. No "List" suffix unless type is actually list (`accountList` for a `set` is disinformation).
+No Hungarian notation (`strName`, `iCount`). No interface-prefix `I` (`IUserService`). No member prefix `m_`. No "List" suffix unless the type is actually a list (`accountList` for a `set` is disinformation).
 
-**Bad:** `strFirstName`, `IUserRepo`, `m_count`, `userArray` (when not an array).
+**Bad:** `strFirstName`, `IUserRepo`, `m_count`, `userArray` (when it is not an array).
 
 **Good:** `first_name`, `UserRepo`, `count`, `users_by_id`.
 
 ### N3. Meaningful distinctions
 
-No noise-word distinctions. `ProductInfo`, `ProductData`, `Product`: what's the difference? Same for `getActiveAccount` vs. `getActiveAccountInfo`. If distinction is real, name it.
+Do not differentiate names by adding noise words. `ProductInfo`, `ProductData`, `Product` — what's the difference? Same with `getActiveAccount` vs. `getActiveAccountInfo`. If the distinction is real, name the distinction.
 
 ### N4. Searchable, pronounceable
 
-Single-letter names acceptable in short loop scope (`for i in range(...)`); elsewhere they hurt grep. `MAX_RETRIES` is searchable; `7` is not.
+Single-letter names are acceptable inside short loop scope (`for i in range(...)`). Anywhere else they hurt grep. `MAX_RETRIES` is searchable; `7` is not.
 
-Name unreadable aloud in code review is bad. Book's real-world example `genymdhms`; fix: `generation_timestamp`.
+If you can't read the name aloud in a code review, it's a bad name. `genymdhms` is a real-world example from the book — `generation_timestamp` is the fix.
 
 ### N5. Class names are nouns, method names are verbs
 
-`User`, `Invoice`, `Account`: classes are things. `saveInvoice`, `computeTotal`, `notifyUser`: methods are actions. Class `ProcessInvoice` and method `Invoice` are both wrong.
+`User`, `Invoice`, `Account` — classes are things. `saveInvoice`, `computeTotal`, `notifyUser` — methods are actions. A class named `ProcessInvoice` and a method named `Invoice` are both wrong.
 
 ### N6. Banned generic names
 
-Unqualified, these names always violate intention-revealing:
+Without a qualifier, these names always violate intention-revealing:
 
 - `data`, `data2`, `data_final`
 - `result`, `result_final`
@@ -76,7 +76,7 @@ Unqualified, these names always violate intention-revealing:
 - `helper`, `manager`, `utils`, `common`
 - `handle_*`, `process_*`, `do_*` (when `*` is also generic)
 
-Qualified versions fine: `raw_csv_bytes`, `parsed_invoice`, `dedup_by_email`.
+Qualified versions are fine: `raw_csv_bytes`, `parsed_invoice`, `dedup_by_email`.
 
 ---
 
@@ -84,15 +84,15 @@ Qualified versions fine: `raw_csv_bytes`, `parsed_invoice`, `dedup_by_email`.
 
 ### F1. Small. Then smaller.
 
-Target ≤20 lines. Uncle Bob's harder pass: goal is 2–4 lines. Function that does not fit on screen does too much. Extract.
+Target ≤20 lines. Uncle Bob's harder pass says 2–4 lines is the goal. If a function does not fit on a screen, it does too much. Extract.
 
 ### F2. Do one thing
 
-Function does one thing when you cannot extract another function from it whose name is not restatement of its body. If `compute_invoice` holds 10-line block you could meaningfully call `apply_discount`, original did more than one thing.
+A function does one thing when you cannot extract another function from it with a name that is not a restatement of its body. If `compute_invoice` contains a 10-line block that you could meaningfully call `apply_discount`, the original was doing more than one thing.
 
 ### F3. One level of abstraction per function
 
-Mixing levels: most common subtle defect. Do not put HTTP call, SQL query, regex parse, and business rule in one function: four levels.
+Mixing levels is the most common subtle defect. Do not put an HTTP call, a SQL query, a regex parse, and a business rule in the same function — those are four levels.
 
 **Bad:**
 ```text
@@ -114,17 +114,17 @@ renderUserReport(userId):
 
 ### F4. Step-down rule
 
-Read file top-to-bottom; each function followed by functions one abstraction level below. Callers above callees.
+Read a file top-to-bottom; each function is followed by functions one level of abstraction below. Callers above callees. Confirmed by Uncle Bob himself on X.
 
 ### F5. Few arguments
 
-Zero best. One fine. Two OK. Three "should be avoided." Four or more "requires very special justification", usually meaning pass config object.
+Zero is best. One is fine. Two is OK. Three "should be avoided." Four or more "requires very special justification" — usually means you should pass a config object.
 
-At five parameters, stop and extract request/config object: record, struct, DTO, or equivalent.
+At five parameters, stop and extract a request/config object: record, struct, DTO, or equivalent.
 
 ### F6. No flag arguments
 
-Boolean parameter that switches behavior is always wrong. Split into two functions.
+A boolean parameter that switches behavior is always wrong. Split into two functions.
 
 **Bad:**
 ```text
@@ -141,18 +141,18 @@ renderInvoiceHtml(invoice)
 renderInvoicePdf(invoice)
 ```
 
-Same for `mode="x"` string enums that change behavior. If `mode` parameterizes data (locale, currency), fine. If it parameterizes *which function runs*, split.
+The same applies to `mode="x"` string enums when the mode changes behavior. If `mode` parameterizes data (locale, currency), it's fine. If it parameterizes *which function runs*, split.
 
 ### F7. No output arguments / Command-Query Separation
 
-Function returns value (query) or has side effect (command). Never both.
+A function either returns a value (query) or has a side effect (command). Never both.
 
 **Bad:**
 ```text
 save(record) -> boolean
 // Returns true if saved, false if record was not found.
 ```
-What does bool mean? Success? Found-ness? Caller cannot tell.
+What does the bool mean? Success? Found-ness? The caller can't tell.
 
 **Good:**
 ```text
@@ -162,26 +162,26 @@ recordExists(recordId) -> boolean
 
 ### F8. No side effects in queries
 
-Getter-, finder-, or predicate-style function must not mutate state. Caching? Log cache write at debug level; do not change observable behavior.
+A getter-style, finder-style, or predicate-style function must not mutate state. If it caches, log the cache write at debug level; do not change observable behavior.
 
 ### F9. Prefer exceptions to return codes
 
-`if save(x):` is code smell. Save either succeeds (returns nothing) or raises (`InvoiceSaveError`). Return codes spread up call stack, get forgotten; exceptions cannot be silently ignored.
+`if save(x):` is a code smell. Either save succeeds (returns nothing) or it raises (`InvoiceSaveError`). Return codes proliferate up the call stack and get forgotten; exceptions can't be ignored silently.
 
 ### F10. Duplication is the root evil
 
-If two functions share non-trivial block, extract it. See [dry-kiss-yagni.md](dry-kiss-yagni.md) for when this is wrong (Sandi Metz's "wrong abstraction" caveat).
+If two functions share a non-trivial block, extract it. But — see [dry-kiss-yagni.md](dry-kiss-yagni.md) for when this is wrong (Sandi Metz's "wrong abstraction" caveat).
 
 ---
 
 ## Self-check for naming and functions
 
-Before shipping code:
+Before you ship code:
 
-1. Every name answers "what does this represent" without comment?
-2. Functions ≤20 lines?
-3. Functions doing one thing? (Can you extract another function with non-restating name? If yes, it does more than one.)
-4. Mixed abstraction levels eliminated?
-5. Any function with >4 parameters? Extract config object.
-6. Boolean flag arguments? Split.
-7. Any function returning value *and* mutating state callers depend on? Split.
+1. Do all names answer "what does this represent" without a comment?
+2. Are functions ≤20 lines?
+3. Are functions doing one thing? (Can you extract another function with a non-restating name? If yes, you're doing more than one.)
+4. Are mixed abstraction levels eliminated?
+5. Are there any functions with >4 parameters? Extract a config object.
+6. Are there boolean flag arguments? Split.
+7. Do any functions both return a value *and* mutate state in a way callers depend on? Split.

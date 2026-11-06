@@ -1,8 +1,23 @@
 # Mobile Typography Reference
 
+> Type scale, system fonts, Dynamic Type, accessibility, and dark mode typography.
+> **Typography failures are the #1 cause of unreadable mobile apps.**
+
 ---
 
 ## 1. Mobile Typography Fundamentals
+
+### Why Mobile Type is Different
+
+```
+DESKTOP:                        MOBILE:
+├── 20-30" viewing distance     ├── 12-15" viewing distance
+├── Large viewport              ├── Small viewport, narrow
+├── Hover for details           ├── Tap/scroll for details
+├── Controlled lighting         ├── Variable (outdoor, etc.)
+├── Fixed font size             ├── User-controlled sizing
+└── Long reading sessions       └── Quick scanning
+```
 
 ### Mobile Type Rules
 
@@ -287,7 +302,11 @@ Consider:
 
 | Mistake | Problem | Fix |
 |---------|---------|-----|
+| **Fixed font sizes** | Ignores accessibility | Use dynamic sizing |
+| **Too small text** | Unreadable | Min 14pt/sp |
 | **Low contrast** | Invisible in sunlight | Min 4.5:1 |
+| **Long lines** | Hard to track | Max 60 chars |
+| **Tight line height** | Cramped, hard to read | Min 1.4× |
 | **Too many sizes** | Visual chaos | Max 5-7 sizes |
 | **All caps body** | Hard to read | Headlines only |
 | **Light gray on white** | Impossible in bright light | Higher contrast |
@@ -362,9 +381,9 @@ Recommendations:
 - [ ] Font scaling tested at 200% (Android)?
 - [ ] Dark mode contrast checked?
 - [ ] Sunlight readability tested?
-- [ ] Proper text hierarchy?
+- [ ] All text has proper hierarchy?
 - [ ] Custom fonts have fallbacks?
-- [ ] Long text scrolls?
+- [ ] Long text scrolls properly?
 
 ---
 
@@ -392,6 +411,15 @@ bodyLarge      // 16sp
 labelLarge     // 14sp
 ```
 
+### Minimum Sizes
+
+```
+Body:       14-16pt/sp (16 preferred)
+Secondary:  12-13pt/sp
+Caption:    11-12pt/sp
+Nothing:    < 11pt/sp
+```
+
 ### Line Height
 
 ```
@@ -399,3 +427,7 @@ Headings:  1.1-1.3
 Body:      1.4-1.6
 Long text: 1.5-1.75
 ```
+
+---
+
+> **Remember:** If users can't read your text, your app is broken. Typography isn't decoration—it's the primary interface. Test on real devices, in real conditions, with accessibility settings enabled.

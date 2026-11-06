@@ -6,9 +6,9 @@ tags: flow, single-responsibility, cohesion, blocks, functions
 
 ## Each Code Block Should Do One Thing
 
-Block (function, loop, conditional branch) doing several things is harder to name, test and modify. Give each block one clear purpose. If you cannot describe it without "and", split it.
+When a code block (function, loop, conditional branch) tries to do multiple things, it becomes harder to name, test, and modify. Each block should have one clear purpose. If you can't describe what a block does without using "and", split it up.
 
-**Incorrect (loop does many things):**
+**Incorrect (loop doing multiple things):**
 
 ```typescript
 function processOrders(orders: Order[]) {
@@ -49,7 +49,7 @@ function processOrders(orders: Order[]) {
 }
 ```
 
-**Correct (single-purpose functions):**
+**Correct (separate single-purpose functions):**
 
 ```typescript
 function processOrders(orders: Order[]): ProcessingResult {
@@ -99,7 +99,7 @@ function updateInventory(orders: Order[]): void {
 }
 ```
 
-**Incorrect (function with many responsibilities):**
+**Incorrect (function with multiple responsibilities):**
 
 ```typescript
 async function handleUserSignup(data: SignupData) {
@@ -202,8 +202,16 @@ async function hashPassword(password: string): Promise<string> {
 
 ### Signs a Block Does Too Much
 
-- Name includes "and" or lists several actions
-- Several unrelated variables modified
-- Comments split code into "sections"
-- Focused unit test hard to write
-- Change in one part risks breaking another
+- Name includes "and" or describes multiple actions
+- Multiple unrelated variables being modified
+- Comments separating different "sections"
+- Difficult to write a focused unit test
+- Changes to one part risk breaking another
+
+### Benefits
+
+- Each piece can be tested in isolation
+- Functions can be reused in different contexts
+- Changes are localized - modify one thing without risking others
+- Names become self-documenting
+- Easier to parallelize independent operations

@@ -1,10 +1,12 @@
 # Hardening Patterns
 
-Threat modeling, headers/CORS rules and supply-chain gate are stated in `../SKILL.md` (sections "Process: Threat Model First", "Headers, CORS, and responses", "Dependencies and supply chain"). Pre-deployment checklist is in `predeploy-and-supabase.md`.
+Code patterns and decision aids for the `security-and-hardening` skill. The skill states each rule; this file shows one concrete implementation of it. Open the section you need when you reach that code — it is not meant to be read top to bottom.
+
+Threat modeling, headers/CORS rules and the supply-chain gate are stated in `../SKILL.md` (sections "Process: Threat Model First", "Headers, CORS, and responses", "Dependencies and supply chain"); the pre-deployment checklist is in `predeploy-and-supabase.md`.
 
 ## OWASP Top 10 Prevention Patterns
 
-Prevention patterns, not a ranking. OWASP Top 10 (2021) order, for reference: A01 Broken Access Control, A02 Cryptographic Failures, A03 Injection, A04 Insecure Design, A05 Security Misconfiguration, A06 Vulnerable and Outdated Components, A07 Identification and Authentication Failures, A08 Software and Data Integrity Failures, A09 Security Logging and Monitoring Failures, A10 Server-Side Request Forgery.
+These are prevention patterns, not a ranking. For reference, the OWASP Top 10 (2021) order is: A01 Broken Access Control, A02 Cryptographic Failures, A03 Injection, A04 Insecure Design, A05 Security Misconfiguration, A06 Vulnerable and Outdated Components, A07 Identification and Authentication Failures, A08 Software and Data Integrity Failures, A09 Security Logging and Monitoring Failures, A10 Server-Side Request Forgery.
 
 ### Injection
 
@@ -118,7 +120,7 @@ if (!API_KEY) throw new Error('STRIPE_API_KEY not configured');
 
 ### Server-Side Request Forgery (SSRF)
 
-Whenever server fetches a user-influenced URL (webhooks, "import from URL", image proxies, link previews), an attacker can aim it at internal services (cloud metadata, `localhost`, private IPs).
+Any time the server fetches a URL the user influenced — webhooks, "import from URL", image proxies, link previews — an attacker can aim it at internal services (cloud metadata, `localhost`, private IPs).
 
 ```typescript
 // BAD: fetch whatever the user gives you
@@ -145,9 +147,9 @@ async function assertSafeUrl(raw: string): Promise<URL> {
 await fetch(await assertSafeUrl(req.body.webhookUrl), { redirect: 'error' });
 ```
 
-`range() !== 'unicast'` check covers loopback, link-local `169.254.169.254` (cloud metadata, #1 SSRF target), private and unique-local ranges across IPv4 and IPv6.
+The `range() !== 'unicast'` check covers loopback, link-local `169.254.169.254` (cloud metadata, the #1 SSRF target), private, and unique-local ranges across IPv4 and IPv6.
 
-**Caveat: still has a TOCTOU gap.** `fetch` resolves DNS again after the check. Attacker with a short-TTL record can rebind to an internal IP between validation and connection. For high-risk surfaces, resolve once and connect to pinned IP, or put a filtering agent in front (`request-filtering-agent` / `ssrf-req-filter`).
+**Caveat — this still has a TOCTOU gap.** `fetch` resolves DNS again after the check, so an attacker using a short-TTL record can rebind to an internal IP between validation and connection. For high-risk surfaces, resolve once and connect to the pinned IP, or put a filtering agent in front (`request-filtering-agent` / `ssrf-req-filter`).
 
 ## Input Validation Patterns
 
@@ -201,9 +203,9 @@ function validateUpload(file: UploadedFile) {
 
 ### Destructive Operations on Derived Paths
 
-Delete, move or overwrite is only as safe as the value naming its target. Reading that value from the kernel, a job payload or a sibling service proves where it *arrived from*, not who *wrote* it. Another process's command line is as attacker-controlled as a form field. Shape check ("absolute path, at least one directory deep") proves well-formedness and gets mistaken for authorization. That is how a cleanup routine deletes the root instead of the leaf.
+A delete, move, or overwrite is only as safe as the value that names its target. Reading that value from the kernel, a job payload, or a sibling service proves where it *arrived from*, not who *wrote* it — another process's command line is as attacker-controlled as a form field. A shape check ("absolute path, at least one directory deep") proves well-formedness and gets mistaken for authorization; that is how a cleanup routine deletes the root instead of the leaf.
 
-Before a destructive call, require all three: resolved target sits under an **allowlisted root** (compare after resolving symlinks, never on the raw string); it is at least one level **below** that root, so a root is never itself the target; it carries **evidence that it is yours**, read *before* the operation and before any teardown removing it. Otherwise "absent" and "not mine" are indistinguishable. On refusal, log rejected target and stop. Cleanup falling back to a broader default path is the failure this guards against. Worked example:
+Before a destructive call, require all three: the resolved target sits under an **allowlisted root** (compare after resolving symlinks, never on the raw string); it is at least one level **below** that root, so a root is never itself the target; and it carries **evidence that it is yours**, read *before* the operation and before any teardown that removes it — otherwise "absent" and "not mine" are indistinguishable. On refusal, log the rejected target and stop: a cleanup that falls back to a broader default path is the failure this guards against. Worked example:
 
 ```python
 import shutil
@@ -223,11 +225,11 @@ def safe_remove_tree(raw: str, expected_owner_id: str) -> None:
     shutil.rmtree(target)                             # on refusal above: log and stop, no fallback path
 ```
 
-Two limits, because the check reads stronger than it is. Marker inside the tree is self-attestation: anything that can write there can write the marker. So expected owner must come from authenticated state. Marker needs integrity protection (restrictive ownership, or a MAC) before it counts as authorization. Resolving a path then operating on the *name* is a check/use race wherever an untrusted process can swap an ancestor. On a shared volume, hold target by descriptor and use no-follow, beneath-the-root operations, or ensure the hierarchy cannot change for the duration.
+Two limits, because the check reads stronger than it is. A marker inside the tree is self-attestation — anything that can write there can write the marker — so the expected owner has to come from authenticated state, and the marker needs integrity protection (restrictive ownership, or a MAC) before it counts as authorization. And resolving a path and then operating on the *name* is a check/use race wherever an untrusted process can swap an ancestor: on a shared volume, hold the target by descriptor and use no-follow, beneath-the-root operations, or make sure the hierarchy cannot change for the duration.
 
 ## Dependency Audit Triage
 
-Package-manager audits report known advisories. They do not prove a package is trustworthy or that vulnerable code is reachable. Use this decision tree:
+Package-manager audits report known advisories; they do not prove a package is trustworthy or that vulnerable code is reachable. Use this decision tree:
 
 ```
 The native package-manager audit reports a vulnerability
@@ -246,9 +248,11 @@ The native package-manager audit reports a vulnerability
 ```
 
 **Key questions:**
-- Is vulnerable function called in your code path?
-- Is dependency runtime or dev-only?
-- Is vulnerability exploitable in your deployment context (e.g., a server-side vulnerability in a client-only app)?
+- Is the vulnerable function actually called in your code path?
+- Is the dependency a runtime dependency or dev-only?
+- Is the vulnerability exploitable given your deployment context (e.g., a server-side vulnerability in a client-only app)?
+
+When you defer a fix, document the reason and set a review date.
 
 ## Rate Limiting
 
@@ -270,7 +274,7 @@ app.use('/api/auth/', rateLimit({
 }));
 ```
 
-**Count in a shared store once there is more than one process.** `express-rate-limit` keeps counters in process memory by default. Behind a load balancer each instance holds its own count, so effective limit is `max × instances`. On serverless or edge runtimes a fresh invocation starts from zero, so auth limit above may never fire. Pass a shared `store` (Redis via `rate-limit-redis`), or use an HTTP-based limiter that works where a long-lived TCP connection does not (for example `@upstash/ratelimit`):
+**Count in a shared store once there is more than one process.** `express-rate-limit` keeps its counters in process memory by default. Behind a load balancer each instance holds its own count, so the effective limit is `max × instances`; on serverless or edge runtimes a fresh invocation starts from zero, so the auth limit above may never fire. Pass a shared `store` (Redis via `rate-limit-redis`), or use an HTTP-based limiter that works where a long-lived TCP connection does not (for example `@upstash/ratelimit`):
 
 ```typescript
 import { Ratelimit } from '@upstash/ratelimit';
@@ -302,15 +306,15 @@ if (!success) return res.status(429).end();
 
 **Always check before committing:**
 ```bash
-# Check for accidentally staged secrets; lists file names only, so matched values never reach terminal or logs
-git diff --cached --name-only -i -G 'password|secret|api_key|token'
+# Check for accidentally staged secrets
+git diff --cached | grep -i "password\|secret\|api_key\|token"
 ```
 
-**If a secret is ever committed, rotate it.** Deleting the line or rewriting history is not enough. Assume it is compromised the moment it reaches a remote. Revoke and reissue the key first, then purge it from history.
+**If a secret is ever committed, rotate it.** Deleting the line or rewriting history is not enough — assume it's compromised the moment it reaches a remote. Revoke and reissue the key first, then purge it from history.
 
 ## Data Classification
 
-Classify personal data when adding fields, so export and deletion requests can find it later:
+Classify personal data as you add fields, so export and deletion requests can find it later:
 
 | Class | Examples | Handling |
 |---|---|---|

@@ -6,7 +6,7 @@ tags: dead, comments, todo, fixme, issues, tracking
 
 ## Remove Stale TODO/FIXME Comments
 
-Convert TODOs to tracked issues with owners and deadlines, or delete them. Anything that matters belongs in the issue tracker.
+TODO and FIXME comments are promises that rarely get kept. They accumulate over months and years until codebases have hundreds of stale reminders that everyone ignores. Either convert TODOs to tracked issues with owners and deadlines, or delete them. If something matters, it belongs in your issue tracker.
 
 **Incorrect (accumulated stale TODOs):**
 
@@ -118,10 +118,10 @@ const result = workaroundFunction();
 
 ### TODO Triage Process
 
-For each TODO found, decide:
-1. **Fix it now** - If it takes < 5 minutes, do it
-2. **Create issue** - If real work, track it properly
-3. **Delete it** - If vague, stale or no longer relevant
+When you find a TODO, decide:
+1. **Fix it now** - If it takes < 5 minutes, just do it
+2. **Create issue** - If it's real work, track it properly
+3. **Delete it** - If it's vague, stale, or no longer relevant
 
 ### Signs a TODO is Stale
 
@@ -130,6 +130,14 @@ For each TODO found, decide:
 - References completed work or old versions
 - Vague ("make better", "fix this", "???")
 - No one knows why it's there
+
+### Benefits
+
+- Issue tracker becomes single source of truth
+- TODO count stays near zero (easy to spot new ones)
+- Urgent FIXMEs don't get lost in noise
+- Code review can focus on real issues
+- New developers don't inherit archaeological debt
 
 ### References
 

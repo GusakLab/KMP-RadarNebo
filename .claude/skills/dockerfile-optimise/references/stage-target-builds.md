@@ -7,7 +7,7 @@ tags: stage, target, development, production, debug
 
 ## Use Target Builds for Development and Production
 
-Per-environment Dockerfiles drift, duplicate setup and diverge between dev and prod. One Dockerfile with named stages builds to specific target, keeping all environments in one place.
+Maintaining separate Dockerfiles for each environment leads to drift, duplication, and inconsistent behaviour between dev and prod. A single Dockerfile with named stages lets you build to a specific target, keeping all environments defined in one place.
 
 **Incorrect (separate Dockerfiles diverge over time):**
 

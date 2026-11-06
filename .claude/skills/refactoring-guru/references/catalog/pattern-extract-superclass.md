@@ -6,7 +6,7 @@ tags: pattern, extract-superclass, inheritance, duplication
 
 ## Extract Superclass for Common Behavior
 
-If two classes share features, move common behavior into superclass. Fits when both are variations of same concept.
+When two classes have similar features, extract common behavior into a superclass. This is appropriate when the classes represent variations of the same concept.
 
 **Incorrect (duplicated behavior across classes):**
 
@@ -106,8 +106,8 @@ function calculateTotalMonthlyCost(workers: Worker[]): number {
 ```
 
 **When NOT to use:**
-- Classes aren't same conceptual category
+- Classes don't represent the same conceptual category
 - Would violate Liskov Substitution Principle
-- Composition more flexible
+- Composition would be more flexible
 
 Reference: [Extract Superclass](https://refactoring.com/catalog/extractSuperclass.html)

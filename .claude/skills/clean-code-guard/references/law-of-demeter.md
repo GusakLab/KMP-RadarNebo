@@ -1,9 +1,9 @@
-<!-- When to read: code under review chains through object internals (a.getB().getC().doX()), or method needs structure of objects it was not given. Fluent builders, streams, and plain data/DTO traversal are not violations. Examples are TypeScript. -->
+<!-- When to read: the code under review chains through object internals (a.getB().getC().doX()), or a method needs to know the structure of objects it was not given. Fluent builders, streams, and plain data/DTO traversal are not violations. Examples are TypeScript. -->
 
 
 # Law of Demeter
 
-Method talks only to immediate friends, not strangers. Do not reach through objects into their internal structure. Reduces coupling, improves maintainability.
+A method should only talk to its immediate friends, not to strangers. Don't reach through objects to access their internal structure. This reduces coupling and makes code more maintainable.
 
 ## Bad Example
 
@@ -300,12 +300,16 @@ describe('Order', () => {
 
 ## Why
 
-1. **Reduced Coupling**: Order knows only Customer. Address, Country, or Wallet changes do not affect Order.
+1. **Reduced Coupling**: Order only knows about Customer. Changes to Address, Country, or Wallet don't affect Order.
 
-2. **Encapsulation**: Internal structure hidden. Customer can change address storage without affecting clients.
+2. **Encapsulation**: Internal structure is hidden. Customer can change how it stores address without affecting clients.
 
-3. **Easier Testing**: Mock only immediate friend. No deep object graphs to build.
+3. **Easier Testing**: Mock only the immediate friend. No need to construct deep object graphs.
 
-4. **Better Abstraction**: Customer owns customer concerns. Order does not need to know about wallets.
+4. **Better Abstraction**: Customer is responsible for customer things. Order doesn't need to know about wallets.
 
-5. **Readability**: `customer.calculateTaxFor(amount)` is clearer than `customer.address.country.taxRules.calculateTax(amount)`.
+5. **Maintainability**: When requirements change, changes are localized to the responsible class.
+
+6. **Readability**: `customer.calculateTaxFor(amount)` is clearer than `customer.address.country.taxRules.calculateTax(amount)`.
+
+7. **Flexibility**: Can change internal implementations without affecting clients. Customer could switch from wallet to payment service.

@@ -1,6 +1,13 @@
 # Sources
 
-Central bibliography for `clean-code-guard`. Other reference files use source names, not inline URLs.
+Central bibliography for `clean-code-guard`. Other reference files use source
+names instead of inline URLs so rule guidance stays readable.
+
+## Contents
+
+- Classic clean code and design references
+- LLM code-generation research and field reports
+- Metrics and verification references
 
 ## Classic Clean Code And Design
 

@@ -6,7 +6,7 @@ tags: dup, abstraction, coupling, maintainability
 
 ## Prefer Duplication Over Premature Abstraction
 
-Three similar lines often beat a premature abstraction. Wrong abstraction couples unrelated concepts, so future changes ripple across the codebase.
+Three similar lines of code are often better than a premature abstraction. The wrong abstraction creates coupling between unrelated concepts, making future changes ripple across the codebase. Duplication is cheap to fix later when you understand the true pattern; bad abstractions are expensive to unwind because other code depends on them.
 
 **Incorrect (premature abstraction couples unrelated concepts):**
 
@@ -152,16 +152,23 @@ function validateCompanyPhone(phone) {
 
 ### The Sandi Metz Rule
 
-"Duplication is far cheaper than the wrong abstraction." If unsure whether code should be shared:
+"Duplication is far cheaper than the wrong abstraction." If you're unsure whether code should be shared:
 
 1. Duplicate it
-2. Wait for third occurrence
-3. Find the true underlying pattern
+2. Wait for the third occurrence
+3. Look for the true underlying pattern
 4. Then extract with confidence
 
 ### When Abstraction IS Appropriate
 
 - Business rule that must be consistent (tax calculation, authentication)
-- Complex algorithm needing isolated testing
-- Pattern seen 3+ times with identical structure
+- Algorithm that is complex and needs isolated testing
+- Pattern that has appeared 3+ times with identical structure
 - Domain concept with a clear name in the ubiquitous language
+
+### Benefits
+
+- Code changes are localized to one area
+- New requirements don't break unrelated features
+- Easier to understand - each module is self-contained
+- Refactoring is straightforward when patterns emerge

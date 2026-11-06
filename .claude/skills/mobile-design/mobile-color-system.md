@@ -1,6 +1,22 @@
 # Mobile Color System Reference
 
+> OLED optimization, dark mode, battery-aware colors, and outdoor visibility.
+> **Color on mobile isn't just aesthetics—it's battery life and usability.**
+
+---
+
 ## 1. Mobile Color Fundamentals
+
+### Why Mobile Color is Different
+
+```
+DESKTOP:                           MOBILE:
+├── LCD screens (backlit)          ├── OLED common (self-emissive)
+├── Controlled lighting            ├── Outdoor, bright sun
+├── Stable power                   ├── Battery matters
+├── Personal preference            ├── System-wide dark mode
+└── Static viewing                 └── Variable angles, motion
+```
 
 ### Mobile Color Priorities
 
@@ -71,6 +87,17 @@ RECOMMENDATION: #000000 for backgrounds, #0D0D0D-#1A1A1A for surfaces
 ---
 
 ## 3. Dark Mode Design
+
+### Dark Mode Benefits
+
+```
+Users enable dark mode for:
+├── Battery savings (OLED)
+├── Reduced eye strain (low light)
+├── Personal preference
+├── AMOLED aesthetic
+└── Accessibility (light sensitivity)
+```
 
 ### Dark Mode Color Strategy
 
@@ -315,10 +342,10 @@ Mobile recommendation: Meet AA, aim for AAA
 |---------|---------|-----|
 | **Light gray on white** | Invisible outdoors | Min 4.5:1 contrast |
 | **Pure white in dark mode** | Eye strain | Use #E0E0E0-#F0F0F0 |
-| **Same saturation dark mode** | Garish, glowing | Desaturate |
+| **Same saturation dark mode** | Garish, glowing | Desaturate colors |
 | **Red/green only indicator** | Colorblind users can't see | Add icons |
-| **Semantic colors for brand** | Confuses meaning | Neutral for brand |
-| **Ignoring system dark mode** | Jarring | Support both modes |
+| **Semantic colors for brand** | Confusing meaning | Use neutral for brand |
+| **Ignoring system dark mode** | Jarring experience | Support both modes |
 
 ### ❌ AI Color Mistakes
 
@@ -342,16 +369,16 @@ Test in bright sunlight, with colorblindness simulation.
 
 ### Before Choosing Colors
 
-- [ ] Light and dark variants defined?
+- [ ] Light and dark mode variants defined?
 - [ ] Contrast ratios checked (4.5:1+)?
 - [ ] OLED battery considered (dark mode)?
 - [ ] Semantic colors follow conventions?
-- [ ] Colorblind-safe (no color-only indicators)?
+- [ ] Colorblind-safe (not color-only indicators)?
 
 ### Before Release
 
 - [ ] Tested in bright sunlight?
-- [ ] Dark mode tested on OLED device?
+- [ ] Tested dark mode on OLED device?
 - [ ] System dark mode respected?
 - [ ] Dynamic color supported (Android)?
 - [ ] Error/success/warning consistent?
@@ -378,3 +405,16 @@ Primary:   #E0E0E0 to #ECECEC
 Secondary: #A0A0A0 to #B0B0B0
 Disabled:  #606060 to #707070
 ```
+
+### Contrast Ratios
+
+```
+Small text:  4.5:1 (minimum)
+Large text:  3:1 (minimum)
+UI elements: 3:1 (minimum)
+Ideal:       7:1 (AAA)
+```
+
+---
+
+> **Remember:** Color on mobile must work in the worst conditions—bright sun, tired eyes, colorblindness, low battery. Pretty colors that fail these tests are useless colors.

@@ -6,7 +6,7 @@ tags: data, encapsulation, collection, immutability
 
 ## Encapsulate Collection
 
-Never expose raw collections directly. Provide controlled access methods that maintain invariants and block external modification.
+Never expose raw collections directly. Provide controlled access methods that maintain invariants and prevent external modification.
 
 **Incorrect (exposed mutable collection):**
 
@@ -72,5 +72,10 @@ const course = new Course()
 course.addStudent(student)  // Validates max size
 course.students.push(another)  // No effect - it's a copy
 ```
+
+**Benefits:**
+- Invariants enforced (max size, no duplicates)
+- Clear API for collection operations
+- Internal representation can change without affecting clients
 
 Reference: [Encapsulate Collection](https://refactoring.com/catalog/encapsulateCollection.html)

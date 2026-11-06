@@ -7,7 +7,7 @@ tags: cache, ci-cd, registry-cache, github-actions
 
 ## Use External Cache for CI/CD Builds
 
-CI/CD runners are typically ephemeral: each job starts with no local Docker cache and rebuilds every layer from scratch. Export build cache to external backend (like container registry), import it on later builds, and unchanged layers get reused across runners and pipelines.
+CI/CD runners are typically ephemeral -- each job starts with no local Docker cache, forcing a full rebuild of every layer from scratch. By exporting the build cache to an external backend (like a container registry) and importing it on subsequent builds, layers that have not changed are reused across different runners and pipeline runs.
 
 **Incorrect (no cache sharing in CI):**
 
@@ -26,15 +26,14 @@ jobs:
         run: docker build -t myapp:${{ github.sha }} .
 ```
 
+(Every CI run starts cold. A 5-minute build runs in full on every push, even when only a README changed.)
+
 **Correct (registry-backed cache with GitHub Actions):**
 
 ```yaml
 # .github/workflows/build.yml
 name: Build
 on: push
-permissions:
-  contents: read
-  packages: write   # push image + cache to ghcr.io only
 
 jobs:
   build:
@@ -62,7 +61,7 @@ jobs:
           cache-to: type=registry,ref=ghcr.io/${{ github.repository }}:buildcache,mode=max
 ```
 
-(`mode=max` exports cache for all intermediate layers, not just final image. Any runner then pulls cached layers from registry: 5-minute build drops under 30 seconds when only source code changed.)
+(The `mode=max` flag exports cache for all intermediate layers, not just the final image. Subsequent builds on any runner pull cached layers from the registry, reducing a 5-minute build to under 30 seconds when only source code changed.)
 
 **Direct docker build equivalent:**
 
@@ -75,6 +74,6 @@ docker buildx build \
   --push .
 ```
 
-(Same `--cache-from` and `--cache-to` flags work with any CI system, e.g. GitLab CI, CircleCI, Jenkins, pointed at accessible registry.)
+(The same `--cache-from` and `--cache-to` flags work with any CI system -- GitLab CI, CircleCI, Jenkins -- by pointing to an accessible registry.)
 
 Reference: [Docker Build Cache - Optimize](https://docs.docker.com/build/cache/optimize/)

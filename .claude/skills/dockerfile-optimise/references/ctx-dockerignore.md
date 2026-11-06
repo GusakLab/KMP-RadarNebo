@@ -7,9 +7,9 @@ tags: ctx, dockerignore, context, build-time
 
 ## Use .dockerignore to Exclude Unnecessary Files
 
-Without `.dockerignore`, Docker sends whole build context directory to builder daemon before build starts: version control history, installed dependencies, test suites, editor configuration, every other file, even ones Dockerfile never references. Extra transfer slows every build. Any change to excluded-but-transferred file invalidates cache for `COPY . .` instructions.
+Without a `.dockerignore` file, Docker sends the entire build context directory to the builder daemon before the build starts. This includes version control history, installed dependencies, test suites, editor configuration, and any other files in the directory -- even if the Dockerfile never references them. The extra transfer time slows every build, and any change to an excluded-but-transferred file invalidates the cache for `COPY . .` instructions.
 
-**Incorrect (no .dockerignore, entire project directory sent as context):**
+**Incorrect (no .dockerignore -- entire project directory sent as context):**
 
 ```dockerfile
 # Project structure:
@@ -30,7 +30,7 @@ RUN npm run build
 CMD ["node", "dist/server.js"]
 ```
 
-(Docker transfers ~570 MB of context to builder every build. Editing README, switching git branch or running tests locally changes files in `.git/` or `coverage/`, invalidating `COPY . .` layer and forcing full rebuild of everything after.)
+(Docker transfers ~570 MB of context to the builder on every build. Editing a README, switching a git branch, or running tests locally changes files in `.git/` or `coverage/`, invalidating the `COPY . .` layer and forcing a full rebuild of everything after it.)
 
 **Correct (comprehensive .dockerignore excludes irrelevant files):**
 
@@ -87,6 +87,16 @@ docker-compose*
 .dockerignore
 ```
 
-(Dockerfile unchanged. Docker now transfers only source and configuration files build needs, typically a few MB instead of hundreds. Git history, test result or documentation changes no longer invalidate any build cache layers.)
+```dockerfile
+FROM node:22-slim
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --production
+COPY . .
+RUN npm run build
+CMD ["node", "dist/server.js"]
+```
+
+(Docker now transfers only the source code and configuration files needed for the build -- typically a few MB instead of hundreds. Changes to git history, test results, or documentation no longer invalidate any build cache layers.)
 
 Reference: [Building best practices](https://docs.docker.com/build/building/best-practices/)

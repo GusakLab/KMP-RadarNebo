@@ -72,5 +72,5 @@ All three start from the distributable:
 - The packages go to GitHub releases only, not to Flathub or the Snap Store, so they don't update by themselves.
   Publishing the snap to the Store would need the name `radarnebo` registered and a `SNAPCRAFT_STORE_CREDENTIALS`
   secret.
-- `project_license` in the AppStream metadata and `license` in `snapcraft.yaml` say proprietary, because the
-  repository has no license file. Change both if you add one.
+- `project_license` in the AppStream metadata and `license` in `snapcraft.yaml` are `MIT`, as in
+  [LICENSE](../LICENSE). Change all three together.

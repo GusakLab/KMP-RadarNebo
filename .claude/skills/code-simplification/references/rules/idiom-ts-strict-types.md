@@ -1,0 +1,60 @@
+---
+title: Use Strict Types Over any
+impact: LOW-MEDIUM
+tags: idiom, typescript, type-safety, strict-mode
+---
+
+## Use Strict Types Over any
+
+`any` defeats TypeScript's purpose and hides bugs the compiler would catch. When type is truly uncertain, prefer `unknown` with narrowing. Forces explicit checks before use.
+
+**Incorrect (any bypasses type checking):**
+
+```typescript
+function parseUserPayload(payload: any) {
+  // No type safety - runtime errors possible
+  return payload.items.map((item: any) => item.name.toUpperCase());
+}
+
+function parseApiResponse(response: any): any {
+  return JSON.parse(response.body);
+}
+```
+
+**Correct (unknown with narrowing):**
+
+```typescript
+interface UserPayload {
+  items: Array<{ name: string }>;
+}
+
+function isUserPayload(data: unknown): data is UserPayload {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'items' in data &&
+    Array.isArray((data as UserPayload).items)
+  );
+}
+
+function parseUserPayload(data: unknown): string[] {
+  if (!isUserPayload(data)) {
+    throw new Error('Invalid user payload structure');
+  }
+  return data.items.map(item => item.name.toUpperCase());
+}
+
+interface ApiResponse {
+  body: string;
+}
+
+function parseApiResponse(response: ApiResponse): unknown {
+  return JSON.parse(response.body);
+}
+```
+
+### When to Allow any
+
+- Legacy migration where full typing isn't feasible yet
+- Third-party libraries without type definitions (prefer `@types/*` packages)
+- Explicit `// eslint-disable-next-line @typescript-eslint/no-explicit-any` with justification

@@ -12,9 +12,11 @@ description: |
 
   Tracks and predictions are estimated from public alerts and warnings. They are not official warnings: always
   follow the air-raid alerts of your region.
-website: https://github.com/TreeDev-Innovation/KMP-RadarNebo
-issues: https://github.com/TreeDev-Innovation/KMP-RadarNebo/issues
-license: proprietary
+website: https://github.com/GusakLab/KMP-RadarNebo
+issues: https://github.com/GusakLab/KMP-RadarNebo/issues
+# snap pack only takes SPDX ids and "Proprietary" (capitalized). Snapcraft calls it deprecated and suggests
+# "proprietary", which snap pack then rejects.
+license: Proprietary
 icon: app/desktop/icons/radarnebo.png
 
 base: core24

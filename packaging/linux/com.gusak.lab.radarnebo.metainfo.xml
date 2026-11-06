@@ -24,17 +24,17 @@
     <binary>radarnebo</binary>
   </provides>
 
-  <url type="homepage">https://github.com/TreeDev-Innovation/KMP-RadarNebo</url>
-  <url type="bugtracker">https://github.com/TreeDev-Innovation/KMP-RadarNebo/issues</url>
+  <url type="homepage">https://github.com/GusakLab/KMP-RadarNebo</url>
+  <url type="bugtracker">https://github.com/GusakLab/KMP-RadarNebo/issues</url>
 
   <screenshots>
     <screenshot type="default">
       <caption>Active threats on the map</caption>
-      <image>https://raw.githubusercontent.com/TreeDev-Innovation/KMP-RadarNebo/main/docs/screenshots/map-overview-tablet.png</image>
+      <image>https://raw.githubusercontent.com/GusakLab/KMP-RadarNebo/main/docs/screenshots/map-overview-tablet.png</image>
     </screenshot>
     <screenshot>
       <caption>A cruise missile's track and predicted route</caption>
-      <image>https://raw.githubusercontent.com/TreeDev-Innovation/KMP-RadarNebo/main/docs/screenshots/missile-selected-tablet.png</image>
+      <image>https://raw.githubusercontent.com/GusakLab/KMP-RadarNebo/main/docs/screenshots/missile-selected-tablet.png</image>
     </screenshot>
   </screenshots>
 

@@ -1,3 +1,4 @@
+import com.gusak.lab.radarnebo.buildlogic.launchAs
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -63,5 +64,6 @@ tasks.named<JavaExec>("run") {
     }
 }
 
-// The process is called "RadarNebo Server" rather than "java" (buildSrc/src/main/kotlin/LaunchAs.kt).
+// The process is called "RadarNebo Server" rather than "java"
+// (buildSrc/src/main/kotlin/com/gusak/lab/radarnebo/buildlogic/LaunchAs.kt).
 launchAs("RadarNebo Server")

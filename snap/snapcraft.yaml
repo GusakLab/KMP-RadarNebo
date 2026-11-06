@@ -14,9 +14,7 @@ description: |
   follow the air-raid alerts of your region.
 website: https://github.com/GusakLab/KMP-RadarNebo
 issues: https://github.com/GusakLab/KMP-RadarNebo/issues
-# snap pack only takes SPDX ids and "Proprietary" (capitalized). Snapcraft calls it deprecated and suggests
-# "proprietary", which snap pack then rejects.
-license: Proprietary
+license: MIT
 icon: app/desktop/icons/radarnebo.png
 
 base: core24

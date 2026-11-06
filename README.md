@@ -60,3 +60,8 @@ From a terminal:
 ---
 
 Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)…
+
+## License
+
+MIT, see [LICENSE](LICENSE). The agent skills in `.claude/skills/` keep their upstream licenses, listed
+in [`.claude/THIRD_PARTY_SKILLS.md`](.claude/THIRD_PARTY_SKILLS.md).

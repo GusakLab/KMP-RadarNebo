@@ -38,6 +38,29 @@ val generateClientConfig = tasks.register("generateClientConfig") {
     }
 }
 
+// Compose Multiplatform's iOS libraries depend both on Google's androidx annotation, collection, savedstate and
+// navigationevent and on JetBrains' copies of them. Each pair shares a klib name, so the iOS metadata compilation
+// warned about duplicates, and warnings fail the build. The Google artifacts replace the copies on those classpaths;
+// the JVM and Android variants of the copies already resolve to Google's.
+val googleAndroidx = mapOf(
+    "org.jetbrains.compose.annotation-internal:annotation" to libs.androidx.annotation,
+    "org.jetbrains.compose.collection-internal:collection" to libs.androidx.collection,
+    "org.jetbrains.androidx.navigationevent:navigationevent-compose" to libs.androidx.navigationevent.compose,
+    "org.jetbrains.androidx.savedstate:savedstate" to libs.androidx.savedstate.asProvider(),
+    "org.jetbrains.androidx.savedstate:savedstate-compose" to libs.androidx.savedstate.compose,
+)
+configurations
+    .matching { it.name.contains("ios", ignoreCase = true) || it.name.contains("Metadata") }
+    .configureEach {
+        resolutionStrategy.dependencySubstitution {
+            googleAndroidx.forEach { (copy, google) ->
+                val target = google.get()
+                val coordinates = "${target.module}:${target.versionConstraint.requiredVersion}"
+                substitute(module(copy)).using(module(coordinates)).because("same klib as Google's")
+            }
+        }
+    }
+
 kotlin {
     // Every compilation of this module (main and test, on every target) fails on a compiler warning.
     compilerOptions {

@@ -5,6 +5,14 @@ FROM eclipse-temurin:21-jre@sha256:0b99b3376fbb50dbf9c0af8535fdd5b8eb0d3fdfc8b1e
 # The deploy prunes old images by this label, leaving other apps on the VM alone.
 LABEL org.opencontainers.image.title=radarnebo-server
 
+# Ubuntu publishes security fixes long before the base image is rebuilt with them, and the deploy's Trivy scan fails
+# on any HIGH or CRITICAL that has a fix (apt 3.2.0's CVE-2026-109518 did). Upgrading here takes the fixes as soon
+# as they ship. Any new UPGRADE_ID reruns this instead of reusing the build cache: the deploy passes its run id.
+ARG UPGRADE_ID
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get upgrade -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
 # State (the SQLite archive, and the single-instance lock under $HOME/.radarnebo) lives in the /data volume.
 ENV HOME=/data \
     ARCHIVE_JDBC_URL=jdbc:sqlite:/data/radarnebo-archive.db \

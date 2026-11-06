@@ -12,7 +12,8 @@ from `main` only: on pushes to `main` that change the server or what it's built 
 `buildSrc`, `gradle`, the root build files or the workflow), or by hand from the Actions tab on `main`. Pull requests
 never deploy, and a manual run started on any other branch skips every job. It tests the server, builds the fat jar,
 builds and pushes `<DOCKERHUB_USERNAME>/radarnebo-server:<commit sha>` for amd64 and arm64 from
-`mission-control/server/Dockerfile`, scans both pushed architectures with Trivy (fails on fixable HIGH/CRITICAL), moves
+`mission-control/server/Dockerfile`, which applies Ubuntu's pending updates on top of the base image on every deploy,
+scans both pushed architectures with Trivy (fails on fixable HIGH/CRITICAL), moves
 `:latest` to that image, copies
 `mission-control/server/docker-compose.yaml` to `~/docker-deployments/apps/radarnebo/radarnebo-server` on the VM over
 SSH, writes the image and secrets to `.env` beside it, and runs `docker compose up -d --wait`, so a container that
@@ -34,7 +35,8 @@ prefers ECDSA over RSA and ed25519 and can't be told otherwise, so an ed25519 fi
 refuse any other host key, so the deploy fails until it is set.
 
 `.github/dependabot.yml` opens one weekly pull request per ecosystem: the workflow actions, the Gradle dependencies,
-the server's base image (pinned by digest in the Dockerfile) and the compose file's images.
+the server's base image (pinned by digest in the Dockerfile) and the compose file's images. A security fix Ubuntu
+ships before the base image is rebuilt reaches the next deploy anyway, through the Dockerfile's `apt-get upgrade`.
 
 Caddy (`mission-control/server/Caddyfile`) runs as a second container in the same compose project, in front of the
 server, and is the only thing with a published port (443). On first start it gets a Let's Encrypt certificate for `DOMAIN` (`radar-nebo.worxbend.com`; a repository variable `DOMAIN`

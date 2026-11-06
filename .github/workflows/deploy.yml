@@ -122,6 +122,9 @@ jobs:
           context: mission-control/server
           push: true
           tags: ${{ env.IMAGE }}:${{ github.sha }}
+          # A new value each run, so the Dockerfile's apt upgrade takes today's Ubuntu security fixes instead of
+          # coming from the cache. A rerun of the same run reuses it.
+          build-args: UPGRADE_ID=${{ github.run_id }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Scan arm64 image (Trivy)

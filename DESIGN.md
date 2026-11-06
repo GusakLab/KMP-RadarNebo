@@ -329,11 +329,11 @@ move to versioned migrations when the first column is renamed or dropped (deferr
 Single JVM: `./gradlew :mission-control:ui:run` (with console) or `:mission-control:server:run` (headless).
 `SingleInstance` keeps one server per machine.
 
-Public deployment (ADR-6): `ci.yml` runs the JVM tests on pushes to `main` and on pull requests. `deploy.yml` tests,
-builds the fat jar, pushes a multi-arch image to Docker Hub tagged with the commit sha, scans it with Trivy, and runs
+Public deployment (ADR-6): `ci.yml` runs the JVM tests on pushes to `main` and on pull requests. `deploy.yml`, from `main` only (pull
+requests never deploy; the secrets live in a `production` environment only `main` may use), tests, builds the fat jar, pushes a multi-arch image to Docker Hub tagged with the commit sha, scans it with Trivy, and runs
 `docker compose up --wait` on an OCI VM, then checks `https://<DOMAIN>/health` from outside. Caddy in the same compose
 project terminates TLS (Let's Encrypt over TLS-ALPN on 443). Rollback = rerun the deploy workflow with `image_tag` set to
-a previous commit's sha.
+a previous `main` commit's sha.
 
 Backups: the archive is derived history (45 days of alerts and tracks), not live data. SQLite runs in WAL mode, so
 committed rows can sit in the `-wal` file: take a consistent snapshot with SQLite's online backup (`sqlite3 .backup`),

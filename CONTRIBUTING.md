@@ -190,7 +190,8 @@ CI runs on every pull request and on every push to `main`:
 
 ## Dependencies
 
-- Versions live in `gradle/libs.versions.toml` only.
+- Versions live in `gradle/libs.versions.toml` only. Settings plugins, which load before Gradle can read the catalog,
+  state theirs in the `plugins {}` block of `settings.gradle.kts`.
 - Dependabot opens one grouped PR per ecosystem each week: Gradle, GitHub Actions, Docker and Docker Compose. Review
   it like any other PR: read the changelogs of major bumps, and run the tests.
 - JDK base images stay on LTS releases. A major JDK move is done by hand (Dependabot ignores those).

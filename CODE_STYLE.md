@@ -777,7 +777,8 @@ Do not document private functions unless they encode a subtle algorithm or bound
 Build scripts are Kotlin code and follow this guide.
 
 - Versions live only in `gradle/libs.versions.toml`. Apply plugins with `alias(libs.plugins.x)`. Never put a version
-  in a module script.
+  in a module script. Gradle cannot read the catalog in the `plugins {}` block of `settings.gradle.kts`, so a settings
+  plugin states its version there. That block is the only other place a version may appear.
 - Module dependencies follow the module table above. A new dependency between modules needs a reason in the PR.
 - Configuration repeated across three or more modules moves to `buildSrc`.
 - Do not change a module's `jvmTarget`, Android SDK levels or Kotlin opt-ins in passing. Each is its own change, with

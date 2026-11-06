@@ -13,7 +13,7 @@ import org.koin.dsl.module
  * Android storage: SharedPreferences. Needs `androidContext(...)` in the Koin setup. The server defaults to
  * the deployed one.
  */
-val androidModule: Module = module {
+fun androidModule(): Module = module {
     single<KeyValueStorage> { SharedPrefsStorage(androidContext()) }
     single { ServerDefaults() }
     single { MapTiles(HttpClient()) }

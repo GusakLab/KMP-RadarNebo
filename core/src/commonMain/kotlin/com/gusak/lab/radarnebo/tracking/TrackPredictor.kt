@@ -10,20 +10,6 @@ import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.sin
 
-/** A settlement or user favorite that a drone may be heading towards. */
-data class Place(val name: String, val point: GeoPoint, val isFavorite: Boolean = false)
-
-/** Where a tracked drone group is predicted to arrive next, and roughly when. */
-data class ArrivalPrediction(
-    val trackId: String,
-    val place: Place,
-    /** Estimated current position the prediction starts from. */
-    val from: GeoPoint,
-    val distanceKm: Double,
-    val speedKmh: Double,
-    val etaMinutes: Int,
-)
-
 /**
  * Dead-reckoning prediction: the drone keeps its current heading and speed. The first place inside
  * a corridor ahead of it, and within [DEFAULT_RANGE_KM], is the predicted next settlement.
@@ -31,17 +17,21 @@ data class ArrivalPrediction(
  * Headings and speeds come from area alerts, not radar, so this is a rough indication only.
  */
 object TrackPredictor {
-    const val DEFAULT_RANGE_KM = 50.0
+    const val DEFAULT_RANGE_KM: Double = 50.0
+
+    /** A corridor ahead of the drone: its minimum half-width, in km, and how much it grows per km travelled. */
+    private data class Corridor(val minHalfWidth: Double, val slope: Double)
+
     /**
      * Corridors ahead of the drone, as minimum half-width and growth per km travelled. Places the
      * path runs through (narrow, ~15°) win; the wide one (~27°) allows for coarse headings, since
      * positions come from settlement/raion centres, and is only used when the narrow one is empty.
      */
-    private val corridors = listOf(8.0 to 0.27, 15.0 to 0.5)
+    private val corridors = listOf(Corridor(8.0, 0.27), Corridor(15.0, 0.5))
     /** A place this close is where the drone already is, not where it is going. */
     private const val ARRIVED_KM = 3.0
     /** Alert timing can make a group look slow; Shahed-type drones rarely fly under this. */
-    const val MIN_SPEED_KMH = 90.0
+    internal const val MIN_SPEED_KMH: Double = 90.0
     private const val KM_PER_DEGREE = 111.2
 
     val cityPlaces: List<Place> by lazy { Regions.cities.map { Place(it.name, it.point) } }
@@ -82,7 +72,7 @@ object TrackPredictor {
     }
 
     /** Like [route], from a known position, heading and speed; the server uses it with its [TrackEstimate]. */
-    fun routeFrom(
+    internal fun routeFrom(
         trackId: String,
         from: GeoPoint,
         headingDeg: Double,
@@ -112,14 +102,14 @@ object TrackPredictor {
         )
     }
 
-    const val ROUTE_HORIZON_KM = 150.0
+    const val ROUTE_HORIZON_KM: Double = 150.0
 
     private class Candidate(val place: Place, val along: Double, val cross: Double, val distance: Double) {
-        fun inCorridor(minHalfWidth: Double, slope: Double) = cross <= max(minHalfWidth, along * slope)
+        fun inCorridor(minHalfWidth: Double, slope: Double): Boolean = cross <= max(minHalfWidth, along * slope)
     }
 
     private class Ahead(val trackId: String, val from: GeoPoint, val speed: Double, val candidates: List<Candidate>) {
-        fun arrival(c: Candidate) = ArrivalPrediction(
+        fun arrival(c: Candidate): ArrivalPrediction = ArrivalPrediction(
             trackId = trackId,
             place = c.place,
             from = from,
@@ -137,12 +127,19 @@ object TrackPredictor {
         val heading = position.headingDeg ?: return null
         // The server's estimate already holds the speed to what the target can fly.
         val rawSpeed = track.estimate?.speedKmh
-            ?: (TrackInterpolator.trend(s) ?: TrackInterpolator.motion(s[s.lastIndex - 1], s.last())).second
+            ?: (TrackInterpolator.trend(s) ?: TrackInterpolator.motion(s[s.lastIndex - 1], s.last())).speedKmh
         val speed = rawSpeed.coerceIn(MIN_SPEED_KMH, TrackKinematics.of(track).maxSpeedKmh)
         return ahead(track.id, position.point, heading, speed, places, rangeKm)
     }
 
-    private fun ahead(trackId: String, from: GeoPoint, heading: Double, speed: Double, places: List<Place>, rangeKm: Double): Ahead {
+    private fun ahead(
+        trackId: String,
+        from: GeoPoint,
+        heading: Double,
+        speed: Double,
+        places: List<Place>,
+        rangeKm: Double,
+    ): Ahead {
         val position = from
         val h = heading * PI / 180.0
         val hx = sin(h)
@@ -153,7 +150,11 @@ object TrackPredictor {
             val dy = (place.point.lat - position.lat) * KM_PER_DEGREE
             val along = dx * hx + dy * hy
             val distance = GeoMath.distanceKm(position, place.point)
-            if (along > 0 && distance in ARRIVED_KM..rangeKm) Candidate(place, along, abs(dx * hy - dy * hx), distance) else null
+            if (along > 0 && distance in ARRIVED_KM..rangeKm) {
+                Candidate(place, along, abs(dx * hy - dy * hx), distance)
+            } else {
+                null
+            }
         }
         return Ahead(trackId, position, speed, candidates)
     }

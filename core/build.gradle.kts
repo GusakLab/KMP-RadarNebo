@@ -9,6 +9,11 @@ plugins {
 // Platform-independent alerts.in.ua models, geography, threat mapping and drone tracking.
 // Shared by the mobile/desktop UI (:shared) and the caching proxy (:server).
 kotlin {
+    // Every compilation of every target: a warning fails the build, so warnings are fixed rather than collected.
+    compilerOptions {
+        allWarningsAsErrors.set(true)
+    }
+
     iosArm64()
     iosSimulatorArm64()
     jvm {

@@ -38,9 +38,19 @@ class TrajectoryTest {
         level: ThreatLevel = ThreatLevel.Red,
         oblastUid: Int? = Regions.oblastAt(point),
     ) = ThreatMarker(
-        id = id, type = ThreatType.Drones, level = level, title = id, oblastUid = oblastUid, oblastName = "oblast $oblastUid",
-        locationType = location, point = point, startedAt = Instant.fromEpochMilliseconds(t), message = null, precision = precision,
+        id = id, type = ThreatType.Drones, level = level, title = id, oblastUid = oblastUid,
+        oblastName = "oblast $oblastUid", locationType = location, point = point,
+        startedAt = Instant.fromEpochMilliseconds(t), message = null, precision = precision,
     )
+
+    private fun oblastMarker(id: String, uid: Int, t: Long, oblastUid: Int? = null): ThreatMarker {
+        val center = assertNotNull(Regions.center(uid))
+        return if (oblastUid == null) {
+            marker(id, center, t, location = "oblast", precision = SamplePrecision.Oblast)
+        } else {
+            marker(id, center, t, location = "oblast", precision = SamplePrecision.Oblast, oblastUid = oblastUid)
+        }
+    }
 
     private fun track(samples: List<TrackSample>, active: Boolean = true) = DroneTrack(
         id = "t", level = ThreatLevel.Red, oblastUid = null, active = active, firstSeen = samples.first().t,
@@ -48,23 +58,28 @@ class TrajectoryTest {
     )
 
     /** Raion-centre reports of a group flying west at 180 km/h, off its course by up to [jitterKm] either side. */
-    private fun westbound(count: Int, jitterKm: Double = 15.0, everyMin: Long = 10): List<TrackSample> = (0 until count).map { i ->
-        val t = i * everyMin * minute
-        val along = GeoMath.destination(GeoPoint(50.0, 34.0), 270.0, 180.0 * t / 3_600_000.0)
-        val p = GeoMath.destination(along, if (i % 2 == 0) 0.0 else 180.0, jitterKm)
-        TrackSample(t, p.lat, p.lon, "r$i", precision = SamplePrecision.Raion)
-    }
+    private fun westbound(count: Int, jitterKm: Double = 15.0, everyMin: Long = 10): List<TrackSample> =
+        (0 until count).map { i ->
+            val t = i * everyMin * minute
+            val along = GeoMath.destination(GeoPoint(50.0, 34.0), 270.0, 180.0 * t / 3_600_000.0)
+            val p = GeoMath.destination(along, if (i % 2 == 0) 0.0 else 180.0, jitterKm)
+            TrackSample(t, p.lat, p.lon, "r$i", precision = SamplePrecision.Raion)
+        }
 
     @Test
     fun raionAlertsSitAtTheRaionCentre() {
-        val alert = Alert(id = 1, locationTitle = "Баштанський район", locationType = "raion", locationUid = "96", locationOblast = "Миколаївська область")
+        val alert = Alert(
+            id = 1, locationTitle = "Баштанський район", locationType = "raion", locationUid = "96",
+            locationOblast = "Миколаївська область",
+        )
         val location = assertNotNull(ThreatMapper.locateWithPrecision(alert))
-        val raion = Regions.raionForTitle("Баштанський район")!!
+        val raion = assertNotNull(Regions.raionForTitle("Баштанський район"))
         assertEquals(raion.point, location.point)
         assertEquals(SamplePrecision.Raion, location.precision)
         assertEquals(raion.radiusKm / 2, location.errorKm)
         val unknown = alert.copy(locationTitle = "Невідома громада", locationType = "hromada")
-        assertEquals(SamplePrecision.Oblast, ThreatMapper.locateWithPrecision(unknown)!!.precision, "placed anywhere in the oblast")
+        val placed = assertNotNull(ThreatMapper.locateWithPrecision(unknown))
+        assertEquals(SamplePrecision.Oblast, placed.precision, "placed anywhere in the oblast")
     }
 
     @Test
@@ -77,7 +92,7 @@ class TrajectoryTest {
         val location = assertNotNull(ThreatMapper.locateWithPrecision(alert))
         assertEquals(SamplePrecision.Hromada, location.precision)
         assertEquals(9, Regions.oblastAt(location.point))
-        assertTrue(location.errorKm!! < 20.0, "a hromada is small: ${location.errorKm}")
+        assertTrue(assertNotNull(location.errorKm) < 20.0, "a hromada is small: ${location.errorKm}")
     }
 
     @Test
@@ -87,13 +102,13 @@ class TrajectoryTest {
         filter.update(0, kyiv, 25.0)
         // 100 km in 10 minutes would be 600 km/h, far beyond a Shahed.
         filter.update(10 * minute, GeoMath.destination(kyiv, 90.0, 100.0), 25.0)
-        assertTrue(filter.speedKmh!! <= k.maxSpeedKmh + 1e-6, "speed ${filter.speedKmh}")
-        val heading = filter.headingDeg!!
+        assertTrue(assertNotNull(filter.speedKmh) <= k.maxSpeedKmh + 1e-6, "speed ${filter.speedKmh}")
+        val heading = assertNotNull(filter.headingDeg)
         // A report straight behind it 5 minutes later: it cannot turn around that fast.
         filter.update(15 * minute, GeoMath.destination(filter.position, (heading + 180) % 360, 10.0), 25.0)
-        val turn = abs(TrackFilter.angleDiff(heading, filter.headingDeg!!))
+        val turn = abs(TrackFilter.angleDiff(heading, assertNotNull(filter.headingDeg)))
         assertTrue(turn <= k.maxTurnDegPerHour * 5 / 60 + 1e-6, "turned $turn°")
-        assertTrue(filter.speedKmh!! >= k.minSpeedKmh - 1e-6)
+        assertTrue(assertNotNull(filter.speedKmh) >= k.minSpeedKmh - 1e-6)
     }
 
     @Test
@@ -116,8 +131,9 @@ class TrajectoryTest {
         val inner = path.filter { it.t in samples[1].t..samples[samples.lastIndex - 1].t }
         assertTrue(inner.maxOf { it.lat } - inner.minOf { it.lat } < acrossReports * 0.6)
         val estimate = assertNotNull(enriched.estimate)
-        assertTrue(abs(TrackFilter.angleDiff(270.0, estimate.headingDeg!!)) < 25, "westward, got ${estimate.headingDeg}")
-        assertTrue(estimate.speedKmh!! in 120.0..220.0)
+        val heading = assertNotNull(estimate.headingDeg)
+        assertTrue(abs(TrackFilter.angleDiff(270.0, heading)) < 25, "westward, got ${estimate.headingDeg}")
+        assertTrue(assertNotNull(estimate.speedKmh) in 120.0..220.0)
     }
 
     @Test
@@ -135,11 +151,11 @@ class TrajectoryTest {
     fun clientPositionsFollowTheServerEstimate() {
         val samples = westbound(6)
         val enriched = TrajectoryEstimator.enrich(track(samples), samples.last().t)
-        val e = enriched.estimate!!
-        val later = TrackInterpolator.positionAt(enriched, e.t + 6 * minute)!!
+        val e = assertNotNull(enriched.estimate)
+        val later = assertNotNull(TrackInterpolator.positionAt(enriched, e.t + 6 * minute))
         assertEquals(PositionMode.Extrapolated, later.mode)
-        assertEquals(e.speedKmh!! / 10, GeoMath.distanceKm(e.point, later.point), 0.5)
-        val past = TrackInterpolator.positionAt(enriched, samples[2].t + minute)!!
+        assertEquals(assertNotNull(e.speedKmh) / 10, GeoMath.distanceKm(e.point, later.point), 0.5)
+        val past = assertNotNull(TrackInterpolator.positionAt(enriched, samples[2].t + minute))
         assertEquals(PositionMode.Interpolated, past.mode)
         assertTrue(enriched.path.minOf { GeoMath.distanceKm(it.point, past.point) } < 3.0, "on the smoothed path")
     }
@@ -154,7 +170,10 @@ class TrajectoryTest {
             f.update(20 * minute, GeoMath.destination(kyiv, 270.0, 60.0), 7.0, k.leadMs(level))
             return f.position
         }
-        assertTrue(after(ThreatLevel.Yellow).lon > after(ThreatLevel.Red).lon, "a yellow report pulls the estimate less far west")
+        assertTrue(
+            after(ThreatLevel.Yellow).lon > after(ThreatLevel.Red).lon,
+            "a yellow report pulls the estimate less far west",
+        )
     }
 
     @Test
@@ -164,13 +183,13 @@ class TrajectoryTest {
         val b = GeoMath.destination(a, 270.0, 30.0)
         tracker.update(listOf(marker("a", a, 0)), 0)
         tracker.update(listOf(marker("b", b, 10 * minute)), 10 * minute)
-        val uid = Regions.oblastAt(b)!!
-        val region = marker("oblast", Regions.center(uid)!!, 50 * minute, location = "oblast", precision = SamplePrecision.Oblast)
-        tracker.update(listOf(region), 50 * minute)
+        val uid = assertNotNull(Regions.oblastAt(b))
+        val center = assertNotNull(Regions.center(uid))
+        tracker.update(listOf(oblastMarker("oblast", uid, 50 * minute)), 50 * minute)
         val track = tracker.snapshot().single()
         assertEquals(50 * minute, track.lastSeen, "kept alive by the oblast report")
         assertTrue(track.active)
-        assertTrue(track.samples.none { GeoMath.distanceKm(it.point, Regions.center(uid)!!) < 1.0 }, "no point at the oblast centre")
+        assertTrue(track.samples.none { GeoMath.distanceKm(it.point, center) < 1.0 }, "no point at the oblast centre")
     }
 
     @Test
@@ -181,9 +200,9 @@ class TrajectoryTest {
         val b = GeoMath.destination(a, 300.0, 30.0)
         tracker.update(listOf(marker("a", a, 0)), 0)
         tracker.update(listOf(marker("b", b, 10 * minute)), 10 * minute)
-        val kyivOblast = Regions.oblastAt(GeoPoint(50.1, 31.0))!!
+        val kyivOblast = assertNotNull(Regions.oblastAt(GeoPoint(50.1, 31.0)))
         val before = tracker.snapshot().single().samples.size
-        tracker.update(listOf(marker("kyiv-oblast", Regions.center(kyivOblast)!!, 40 * minute, location = "oblast", precision = SamplePrecision.Oblast)), 40 * minute)
+        tracker.update(listOf(oblastMarker("kyiv-oblast", kyivOblast, 40 * minute)), 40 * minute)
         val track = tracker.snapshot().single()
         assertEquals(before + 1, track.samples.size)
         val entry = track.samples.last()
@@ -194,10 +213,10 @@ class TrajectoryTest {
     @Test
     fun unexplainedOblastReportDatesTheTrackThatStartsThere() {
         val tracker = DroneTracker()
-        val uid = Regions.oblastAt(kyiv)!!
-        tracker.update(listOf(marker("oblast", Regions.center(uid)!!, 0, location = "oblast", precision = SamplePrecision.Oblast, oblastUid = uid)), 0)
+        val uid = assertNotNull(Regions.oblastAt(kyiv))
+        tracker.update(listOf(oblastMarker("oblast", uid, 0, oblastUid = uid)), 0)
         assertTrue(tracker.snapshot().isEmpty(), "no icon for an oblast-only report")
-        val region = marker("oblast", Regions.center(uid)!!, 0, location = "oblast", precision = SamplePrecision.Oblast, oblastUid = uid)
+        val region = oblastMarker("oblast", uid, 0, oblastUid = uid)
         tracker.update(listOf(region, marker("r", GeoPoint(50.6, 30.9), 15 * minute)), 15 * minute)
         val track = tracker.snapshot().single()
         assertEquals(0, track.firstSeen, "seen since the oblast report")
@@ -219,7 +238,8 @@ class TrajectoryTest {
     @Test
     fun aHromadaAndItsRaionReportedTogetherAreOneTarget() {
         val tracker = DroneTracker()
-        val hromada = marker("hromada", GeoPoint(50.5, 31.0), 0, location = "hromada", precision = SamplePrecision.Hromada)
+        val hromada =
+            marker("hromada", GeoPoint(50.5, 31.0), 0, location = "hromada", precision = SamplePrecision.Hromada)
         val raion = marker("raion", GeoPoint(50.55, 31.1), minute)
         tracker.update(listOf(hromada, raion), minute)
         val track = tracker.snapshot().single()
@@ -264,10 +284,19 @@ class TrajectoryTest {
     fun aNamedCourseTurnsTheEstimate() {
         val samples = westbound(3, jitterKm = 0.0)
         val kyiv = GeoPoint(50.45, 30.52)
-        val plain = TrajectoryEstimator.enrich(track(samples), samples.last().t).estimate!!.headingDeg!!
-        val hinted = samples.mapIndexed { i, s -> if (i == samples.lastIndex) s.copy(message = "Група ударних БпЛА курсом на Київ") else s }
+        fun estimatedHeading(of: List<TrackSample>): Double {
+            val estimate = assertNotNull(TrajectoryEstimator.enrich(track(of), samples.last().t).estimate)
+            return assertNotNull(estimate.headingDeg)
+        }
+        val plain = estimatedHeading(samples)
+        val hinted = samples.mapIndexed { i, s ->
+            if (i == samples.lastIndex) s.copy(message = "Група ударних БпЛА курсом на Київ") else s
+        }
         val towards = GeoMath.bearingDeg(samples.last().point, kyiv)
-        val heading = TrajectoryEstimator.enrich(track(hinted), samples.last().t).estimate!!.headingDeg!!
-        assertTrue(abs(TrackFilter.angleDiff(heading, towards)) < abs(TrackFilter.angleDiff(plain, towards)), "turned towards Kyiv: $plain -> $heading")
+        val heading = estimatedHeading(hinted)
+        assertTrue(
+            abs(TrackFilter.angleDiff(heading, towards)) < abs(TrackFilter.angleDiff(plain, towards)),
+            "turned towards Kyiv: $plain -> $heading",
+        )
     }
 }

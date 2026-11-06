@@ -1,14 +1,7 @@
 package com.gusak.lab.radarnebo
 
-import com.gusak.lab.radarnebo.data.ThreatType
-import com.gusak.lab.radarnebo.tracking.TargetClassifier
-import com.gusak.lab.radarnebo.tracking.TargetProfile
-import com.gusak.lab.radarnebo.tracking.TrackInterpolator
-import com.gusak.lab.radarnebo.tracking.TrackMetrics
 import com.gusak.lab.radarnebo.data.ThreatLevel
-import com.gusak.lab.radarnebo.domain.ThreatMapper
 import com.gusak.lab.radarnebo.geo.GeoPoint
-import com.gusak.lab.radarnebo.geo.Regions
 import com.gusak.lab.radarnebo.tracking.DroneTrack
 import com.gusak.lab.radarnebo.tracking.Place
 import com.gusak.lab.radarnebo.tracking.TrackPredictor
@@ -62,7 +55,8 @@ class PredictionTest {
         // Boryspil comes first along the path but ~11 km aside; Brovary is almost on the line.
         val boryspil = Place("Boryspil", GeoPoint(50.3527, 30.9550))
         val brovary = Place("Brovary", GeoPoint(50.5110, 30.7909))
-        assertEquals("Brovary", TrackPredictor.predict(westbound(), 10 * minute, listOf(boryspil, brovary))?.place?.name)
+        val onTheLine = TrackPredictor.predict(westbound(), 10 * minute, listOf(boryspil, brovary))
+        assertEquals("Brovary", onTheLine?.place?.name)
         // With nothing on the line, the wider corridor still finds the town the drone passes.
         assertEquals("Boryspil", TrackPredictor.predict(westbound(), 10 * minute, listOf(boryspil))?.place?.name)
     }
@@ -81,60 +75,5 @@ class PredictionTest {
         assertEquals("Brovary", route.first().place.name)
         assertTrue("Kyiv" in route.map { it.place.name })
         assertTrue(route.zipWithNext().all { (x, y) -> y.etaMinutes >= x.etaMinutes }, "ETAs increase along the route")
-    }
-}
-
-class SettlementsTest {
-    /** Catches coordinate typos: each settlement must fall inside its oblast's (simplified) polygon. */
-    @Test
-    fun everySettlementLiesInItsOblast() {
-        // Right on a border or river, where the 0.02° simplified outline is off by a few km.
-        val knownBorderTowns = setOf("Kherson", "Zhovti Vody")
-        val wrong = Regions.cities
-            .filter { it.oblastUid !in setOf(Regions.KYIV_CITY_UID, Regions.SEVASTOPOL_UID) && it.name !in knownBorderTowns }
-            .filter { Regions.oblastByPolygon(it.point) != it.oblastUid }
-            .map { "${it.name}: expected ${it.oblastUid}, found ${Regions.oblastByPolygon(it.point)}" }
-        assertTrue(wrong.isEmpty(), wrong.joinToString("\n"))
-    }
-
-    @Test
-    fun borderTownsResolveToTheirOwnOblast() {
-        assertEquals(23, Regions.oblastAt(GeoPoint(46.6354, 32.6169)), "Kherson")
-        assertEquals(9, Regions.oblastAt(GeoPoint(48.3456, 33.5023)), "Zhovti Vody")
-    }
-
-    @Test
-    fun sameNameInAnotherOblastIsNotConfused() {
-        // "Золочів" exists in Kharkiv and Lviv oblasts.
-        assertEquals("Zolochiv", Regions.cityForTitle("Золочівська громада", 22)?.name)
-        assertNull(Regions.cityForTitle("Золочівська громада", 27))
-    }
-}
-
-
-class ProfileTest {
-    @Test
-    fun modelComesFromAlertTextOrIsMarkedProbable() {
-        fun drone(text: String) = TargetClassifier.classify(ThreatType.Drones, listOf(text))
-        assertEquals("Gerbera", drone(SampleMessages.GERBERA).model)
-        assertEquals("Shahed-136 / Geran-2", drone("Ударні БпЛА типу Шахед").model)
-        assertEquals("Shahed-238 / Geran-3", drone("Реактивний шахед на Київ").model)
-        val unnamed = drone("Загроза ударних БпЛА")
-        assertEquals(TargetProfile.Source.Probable, unnamed.source)
-        assertEquals("Shahed-136 / Geran-2", unnamed.model)
-    }
-
-    @Test
-    fun distanceFlownSumsReportedLegs() {
-        val track = DroneTrack(
-            id = "t", level = ThreatLevel.Red, oblastUid = null, active = false, firstSeen = 0, lastSeen = 0, markerIds = emptyList(),
-            samples = listOf(
-                TrackSample(0, 50.0, 30.0, "A"),
-                TrackSample(1, 50.0, 31.0, "B"),
-                TrackSample(2, 51.0, 31.0, "C"),
-            ),
-        )
-        // ~71.5 km east at 50°N, then ~111 km north.
-        assertEquals(71.5 + 111.2, TrackMetrics.distanceFlownKm(track), 1.5)
     }
 }

@@ -60,7 +60,7 @@ object GeoMath {
      * Places a sub-oblast location (raion/hromada) that has no coordinates in the API at a stable
      * pseudo-random spot inside its oblast, so markers spread out instead of stacking on the centroid.
      */
-    fun scatterInOblast(oblastUid: Int, seed: String): GeoPoint? {
+    internal fun scatterInOblast(oblastUid: Int, seed: String): GeoPoint? {
         val center = Regions.center(oblastUid) ?: return null
         val shape = UkraineGeometry.oblasts.firstOrNull { it.uid == oblastUid } ?: return center
         var state = seed.hashCode().toLong() and 0xffffffffL

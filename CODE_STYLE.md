@@ -48,14 +48,16 @@ The build is the authority. Editor settings help only when they match it.
 Run Gradle from the repository root. The CI gate is:
 
 ```bash
-./gradlew --continue :core:jvmTest :shared:jvmTest :mission-control:server:test :mission-control:ui:test :app:desktop:test
+./gradlew --continue :core:jvmTest :shared:jvmTest :shared:testAndroidHostTest \
+    :mission-control:server:test :mission-control:ui:test :app:desktop:test
 ./gradlew --continue :app:android:assembleDebug :mission-control:android:assembleDebug \
     :core:compileKotlinIosArm64 :core:compileKotlinIosSimulatorArm64 \
-    :shared:compileKotlinIosArm64 :shared:compileKotlinIosSimulatorArm64
+    :shared:compileKotlinIosArm64 :shared:compileKotlinIosSimulatorArm64 :shared:compileIosMainKotlinMetadata
 ```
 
-The first line runs every test, including the Compose screenshot and contrast tests in `:shared:jvmTest`. The second
-builds the Android apps and the iOS klibs; linking the iOS app needs macOS and Xcode. The README lists the run
+The first command runs every test: the Compose screenshot and contrast tests are in `:shared:jvmTest`, and
+`:shared:testAndroidHostTest` runs shared's common tests on the Android host. The second builds the Android apps,
+the iOS klibs and the iOS metadata; linking the iOS app needs macOS and Xcode. The README lists the run
 commands for each app.
 
 ### Formatting

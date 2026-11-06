@@ -176,10 +176,11 @@ adapted for text that others read later.
 CI runs on every pull request and on every push to `main`:
 
 ```bash
-./gradlew --continue :core:jvmTest :shared:jvmTest :mission-control:server:test :mission-control:ui:test :app:desktop:test
+./gradlew --continue :core:jvmTest :shared:jvmTest :shared:testAndroidHostTest \
+    :mission-control:server:test :mission-control:ui:test :app:desktop:test
 ./gradlew --continue :app:android:assembleDebug :mission-control:android:assembleDebug \
     :core:compileKotlinIosArm64 :core:compileKotlinIosSimulatorArm64 \
-    :shared:compileKotlinIosArm64 :shared:compileKotlinIosSimulatorArm64
+    :shared:compileKotlinIosArm64 :shared:compileKotlinIosSimulatorArm64 :shared:compileIosMainKotlinMetadata
 ```
 
 - New non-trivial logic gets a test: a branch, a parser, tracking math, security, or a data write.

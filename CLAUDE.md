@@ -41,8 +41,8 @@ then a skill's own defaults. When a skill disagrees with the repo docs, the repo
 
 | Purpose | Command |
 | --- | --- |
-| CI tests | `./gradlew --continue :core:jvmTest :shared:jvmTest :mission-control:server:test :mission-control:ui:test :app:desktop:test` |
-| CI builds | `./gradlew --continue :app:android:assembleDebug :mission-control:android:assembleDebug` plus `compileKotlinIosArm64` and `compileKotlinIosSimulatorArm64` for `:core` and `:shared` |
+| CI tests | `./gradlew --continue :core:jvmTest :shared:jvmTest :shared:testAndroidHostTest :mission-control:server:test :mission-control:ui:test :app:desktop:test` |
+| CI builds | `./gradlew --continue :app:android:assembleDebug :mission-control:android:assembleDebug` plus `compileKotlinIosArm64` and `compileKotlinIosSimulatorArm64` for `:core` and `:shared`, and `:shared:compileIosMainKotlinMetadata` |
 | Android app | `./gradlew :app:android:assembleDebug` |
 | Desktop app | `./gradlew :app:desktop:run` |
 | Server / server console | `./gradlew :mission-control:server:run` / `./gradlew :mission-control:ui:run` |

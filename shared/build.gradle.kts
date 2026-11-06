@@ -62,7 +62,10 @@ kotlin {
 
     android {
         namespace = "com.gusak.lab.radarnebo.shared"
-        compileSdk = libs.versions.android.compileSdk.get().toInt()
+        // Compose 1.13 (from material3 1.13.0-beta01) needs API 37.1 or later to compile against.
+        compileSdk {
+            version = release(libs.versions.android.compileSdk.get().toInt()) { minorApiLevel = 2 }
+        }
         minSdk = libs.versions.android.minSdk.get().toInt()
 
         compilerOptions {

@@ -25,7 +25,9 @@ import java.nio.file.Files
 fun Project.launchAs(appName: String) {
     if (System.getProperty("os.name").startsWith("Windows")) return
     val toolchains = extensions.getByType(JavaToolchainService::class.java)
-    val current = toolchains.launcherFor { languageVersion.set(JavaLanguageVersion.of(JavaVersion.current().majorVersion)) }
+    val current = toolchains.launcherFor {
+        languageVersion.set(JavaLanguageVersion.of(JavaVersion.current().majorVersion))
+    }
     val hotReload = toolchains.launcherFor {
         languageVersion.set(JavaLanguageVersion.of(25))
         vendor.set(JvmVendorSpec.JETBRAINS)
@@ -39,9 +41,12 @@ fun Project.launchAs(appName: String) {
 }
 
 /** A JDK ([metadata]) started through [link]. */
-private class NamedLauncher(private val metadata: JavaInstallationMetadata, private val link: RegularFile) : JavaLauncher {
-    override fun getMetadata() = metadata
-    override fun getExecutablePath() = link
+private class NamedLauncher(
+    private val metadata: JavaInstallationMetadata,
+    private val link: RegularFile,
+) : JavaLauncher {
+    override fun getMetadata(): JavaInstallationMetadata = metadata
+    override fun getExecutablePath(): RegularFile = link
 }
 
 private class CreateLink(private val link: File, private val java: Provider<File>) : Action<Task> {

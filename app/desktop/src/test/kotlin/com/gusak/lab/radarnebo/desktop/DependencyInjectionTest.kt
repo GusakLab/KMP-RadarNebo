@@ -4,15 +4,16 @@ import com.gusak.lab.radarnebo.data.TargetFilter
 import com.gusak.lab.radarnebo.tracking.TargetKind
 import com.gusak.lab.radarnebo.data.AlertsRepository
 import com.gusak.lab.radarnebo.data.AlertsUpdate
+import com.gusak.lab.radarnebo.data.FavoriteLocation
 import com.gusak.lab.radarnebo.data.FavoritesRepository
 import com.gusak.lab.radarnebo.data.InMemoryStorage
 import com.gusak.lab.radarnebo.data.KeyValueStorage
 import com.gusak.lab.radarnebo.data.RadarNeboApi
+import com.gusak.lab.radarnebo.data.ServerDefaults
 import com.gusak.lab.radarnebo.data.SettingsRepository
 import com.gusak.lab.radarnebo.data.ThreatType
 import com.gusak.lab.radarnebo.di.appModules
 import com.gusak.lab.radarnebo.di.inMemoryStorageModule
-import com.gusak.lab.radarnebo.di.isolatedKoin
 import com.gusak.lab.radarnebo.domain.usecase.AddFavoriteUseCase
 import com.gusak.lab.radarnebo.domain.usecase.BuildThreatPictureUseCase
 import com.gusak.lab.radarnebo.domain.usecase.RefreshAlertsUseCase
@@ -34,6 +35,7 @@ import org.koin.core.annotation.KoinExperimentalAPI
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertNotSame
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
@@ -48,7 +50,8 @@ class DependencyInjectionTest {
         val body = when (request.url.encodedPath) {
             RadarNeboApi.ACTIVE_ALERTS_PATH -> ALERTS
             RadarNeboApi.TRACKS_PATH -> TRACKS
-            RadarNeboApi.HEALTH_PATH -> """{"status":"degraded","source":"AlertsInUa","lastError":"Upstream returned 500","extra":1}"""
+            RadarNeboApi.HEALTH_PATH ->
+                """{"status":"degraded","source":"AlertsInUa","lastError":"Upstream returned 500","extra":1}"""
             else -> error("unexpected ${request.url}")
         }
         respond(body, headers = headersOf(HttpHeaders.ContentType, "application/json"))
@@ -59,7 +62,7 @@ class DependencyInjectionTest {
         modules(
             appModules(inMemoryStorageModule(storage)) + module {
                 single { RadarNeboApi(RadarNeboApi.client(server)) }
-            }
+            },
         )
     }
 
@@ -94,14 +97,20 @@ class DependencyInjectionTest {
         // The app only talks to its server: alerts, the server's tracks, then how the server is doing.
         val update = runBlocking { k.get<RefreshAlertsUseCase>()() }
         assertTrue(update is AlertsUpdate.Updated && update.snapshot.alerts.isNotEmpty() && update.snapshot.simulated)
-        assertEquals(listOf(RadarNeboApi.ACTIVE_ALERTS_PATH, RadarNeboApi.TRACKS_PATH, RadarNeboApi.HEALTH_PATH), requested)
-        val health = update.snapshot.health!!
-        assertTrue(!health.isOk && health.lastError == "Upstream returned 500", "a failing data source shows as degraded")
+        assertEquals(
+            listOf(RadarNeboApi.ACTIVE_ALERTS_PATH, RadarNeboApi.TRACKS_PATH, RadarNeboApi.HEALTH_PATH),
+            requested,
+        )
+        val health = assertNotNull(update.snapshot.health)
+        assertTrue(
+            !health.isOk && health.lastError == "Upstream returned 500",
+            "a failing data source shows as degraded",
+        )
         assertEquals(RadarNeboApi.DEFAULT_SERVER_URL, k.get<SettingsRepository>().settings.value.serverUrl)
 
         val favorite = k.get<AddFavoriteUseCase>()("  ", GeoPoint(50.4501, 30.5234))
         assertEquals("Point 50.45, 30.52", favorite.name)
-        assertTrue("Point 50.45" in storage.getString("favorites")!!, "saved to the injected storage")
+        assertTrue("Point 50.45" in assertNotNull(storage.getString("favorites")), "saved to the injected storage")
         k.get<RemoveFavoriteUseCase>()(favorite.id)
         assertTrue(k.get<FavoritesRepository>().favorites.value.isEmpty())
 
@@ -126,10 +135,20 @@ class DependencyInjectionTest {
         assertTrue(all.threats.size >= dronesOnly.threats.size)
 
         val missiles = all.tracks.count { it.type != ThreatType.Drones }
-        val noProbable = build(snapshot.alerts, snapshot.tracks, settings.copy(dronesOnly = false, targetFilter = TargetFilter(hideProbable = true)), emptyList())
+        val noProbable = build(
+            snapshot.alerts,
+            snapshot.tracks,
+            settings.copy(dronesOnly = false, targetFilter = TargetFilter(hideProbable = true)),
+            emptyList(),
+        )
         assertTrue(noProbable.tracks.isEmpty(), "the fixture names no types, so every target is probable")
         assertEquals(all.tracks, noProbable.unfilteredTracks, "the list still sees what the filter hides")
-        val noDrones = build(snapshot.alerts, snapshot.tracks, settings.copy(dronesOnly = false, targetFilter = TargetFilter(hiddenKinds = setOf(TargetKind.AttackDrone))), emptyList())
+        val noDrones = build(
+            snapshot.alerts,
+            snapshot.tracks,
+            settings.copy(dronesOnly = false, targetFilter = TargetFilter(hiddenKinds = setOf(TargetKind.AttackDrone))),
+            emptyList(),
+        )
         assertEquals(missiles, noDrones.tracks.size)
         assertEquals(all.threats, noDrones.threats, "alerts are never filtered away")
     }
@@ -137,15 +156,16 @@ class DependencyInjectionTest {
     @Test
     fun theTargetFilterIsSaved() {
         val storage = InMemoryStorage()
-        SettingsRepository(storage).update { it.copy(targetFilter = TargetFilter(setOf(TargetKind.DecoyDrone, TargetKind.GuidedBomb), hideProbable = true)) }
-        assertEquals(TargetFilter(setOf(TargetKind.DecoyDrone, TargetKind.GuidedBomb), hideProbable = true), SettingsRepository(storage).settings.value.targetFilter)
+        val filter = TargetFilter(setOf(TargetKind.DecoyDrone, TargetKind.GuidedBomb), hideProbable = true)
+        SettingsRepository(storage).update { it.copy(targetFilter = filter) }
+        assertEquals(filter, SettingsRepository(storage).settings.value.targetFilter)
     }
 
     @Test
     fun separateContainersDoNotShareState() {
         val other = koinApplication { modules(appModules(inMemoryStorageModule())) }
         try {
-            koin.koin.get<FavoritesRepository>().add(com.gusak.lab.radarnebo.data.FavoriteLocation("x", "X", 50.0, 30.0))
+            koin.koin.get<FavoritesRepository>().add(FavoriteLocation("x", "X", 50.0, 30.0))
             assertTrue(other.koin.get<FavoritesRepository>().favorites.value.isEmpty())
         } finally {
             other.close()
@@ -159,7 +179,7 @@ class DependencyInjectionTest {
             putString("api_base_url", "https://api.alerts.in.ua")
         }
         // No baked-in key: a developer's client.properties may set one, which the default would pick up.
-        val settings = SettingsRepository(old, com.gusak.lab.radarnebo.data.ServerDefaults("http://10.0.2.2:8080", accessKey = ""))
+        val settings = SettingsRepository(old, ServerDefaults("http://10.0.2.2:8080", accessKey = ""))
         assertEquals("http://10.0.2.2:8080", settings.settings.value.serverUrl)
         assertEquals("", settings.settings.value.accessKey, "an alerts.in.ua token is not a server key")
         settings.update { it.copy(pollSeconds = 60) }
@@ -174,14 +194,21 @@ class DependencyInjectionTest {
     }
 
     private companion object {
-        const val ALERTS = """{"alerts":[{"id":1,"location_title":"Броварська територіальна громада","location_type":"hromada",
+        const val ALERTS = """{"alerts":[{"id":""" +
+            """1,"location_title":"Броварська територіальна громада","location_type":"hromada",
             "location_uid":"1100","location_oblast":"Київська область","location_oblast_uid":"14","alert_level":"red",
-            "started_at":"2026-10-19T10:00:00.000Z","threats":[{"threat_type":"drones","level":"red","started_at":"2026-10-19T10:00:00.000Z"}]}]}"""
+            "started_at":"2026-10-19T10:00:00.000Z","threats":""" +
+            """[{"threat_type":"drones","level":"red","started_at":"2026-10-19T10:00:00.000Z"}]}]}"""
 
-        const val TRACKS = """{"serverTime":1800000000000,"pollIntervalMs":10000,"lastUpstreamFetch":1800000000000,"simulated":true,"tracks":[
-            {"id":"S1-D01","type":"Drones","level":"Red","oblastUid":14,"active":true,"firstSeen":1799999000000,"lastSeen":1800000000000,
-             "markerIds":["1:drones"],"samples":[{"t":1799999000000,"lat":50.6,"lon":31.2,"title":"Nizhyn"},{"t":1800000000000,"lat":50.51,"lon":30.79,"title":"Brovary"}]},
-            {"id":"S1-KH01","type":"CruiseMissiles","level":"Red","oblastUid":10,"active":true,"firstSeen":1799999500000,"lastSeen":1800000000000,
-             "markerIds":[],"samples":[{"t":1799999500000,"lat":49.9,"lon":28.6,"title":"Berdychiv"},{"t":1800000000000,"lat":50.25,"lon":28.67,"title":"Zhytomyr"}]}]}"""
+        const val TRACKS = """{"serverTime":1800000000000,"pollIntervalMs":10000,"lastUpstreamFetch":""" +
+            """1800000000000,"simulated":true,"tracks":[
+            {"id":"S1-D01","type":"Drones","level":"Red","oblastUid":14,"active":true,"firstSeen":""" +
+            """1799999000000,"lastSeen":1800000000000,
+             "markerIds":["1:drones"],"samples":[{"t":1799999000000,"lat":50.6,"lon":31.2,"title":"Nizhyn"},{"t":""" +
+            """1800000000000,"lat":50.51,"lon":30.79,"title":"Brovary"}]},
+            {"id":"S1-KH01","type":"CruiseMissiles","level":"Red","oblastUid":10,"active":true,"firstSeen":""" +
+            """1799999500000,"lastSeen":1800000000000,
+             "markerIds":[],"samples":[{"t":1799999500000,"lat":49.9,"lon":28.6,"title":"Berdychiv"},{"t":""" +
+            """1800000000000,"lat":50.25,"lon":28.67,"title":"Zhytomyr"}]}]}"""
     }
 }

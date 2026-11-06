@@ -3,7 +3,7 @@ package com.gusak.lab.radarnebo.console
 import com.gusak.lab.radarnebo.debug.HttpExchange
 
 /** A client seen since the console started, from the requests it made. */
-data class ClientInfo(
+internal data class ClientInfo(
     val address: String,
     val requests: Int,
     val errors: Int,

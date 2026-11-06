@@ -35,14 +35,18 @@ class ReconnectTest {
     private val server = MockEngine { request ->
         if (!serverUp) throw IOException("Failed to connect to localhost:8080")
         when (request.url.encodedPath) {
-            RadarNeboApi.ACTIVE_ALERTS_PATH -> respond("""{"alerts":[]}""", headers = headersOf(HttpHeaders.ContentType, "application/json"))
+            RadarNeboApi.ACTIVE_ALERTS_PATH ->
+                respond("""{"alerts":[]}""", headers = headersOf(HttpHeaders.ContentType, "application/json"))
             else -> respond("", HttpStatusCode.NotFound)
         }
     }
 
     private val koin: KoinApplication = koinApplication {
         allowOverride(true)
-        modules(appModules(inMemoryStorageModule(InMemoryStorage())) + module { single { RadarNeboApi(RadarNeboApi.client(server)) } })
+        modules(
+            appModules(inMemoryStorageModule(InMemoryStorage())) +
+                module { single { RadarNeboApi(RadarNeboApi.client(server)) } },
+        )
     }
 
     @AfterTest

@@ -10,6 +10,7 @@ plugins {
 kotlin {
     compilerOptions {
         jvmTarget = JvmTarget.JVM_17
+        allWarningsAsErrors.set(true)
     }
 }
 
@@ -37,11 +38,12 @@ dependencies {
     implementation(project(":shared"))
     implementation(compose.desktop.currentOs)
     implementation(libs.kotlinx.coroutines.swing)
+    implementation(libs.androidx.lifecycle.runtimeCompose)
     implementation(libs.logback.classic)
 
     testImplementation(libs.kotlin.test)
     testImplementation(libs.androidx.lifecycle.viewmodelCompose)
-    testImplementation(compose.desktop.uiTestJUnit4)
+    testImplementation(libs.compose.uiTestJunit4)
     testImplementation(libs.koin.test)
     testImplementation(libs.ktor.client.mock)
 }

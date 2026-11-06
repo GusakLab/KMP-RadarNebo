@@ -17,7 +17,8 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class ConsoleServerTest {
-    private val simulation = ServerConfig(archive = ArchiveConfig(jdbcUrl = "memory"), dataSourceOverride = DataSourceKind.Simulation)
+    private val simulation =
+        ServerConfig(archive = ArchiveConfig(jdbcUrl = "memory"), dataSourceOverride = DataSourceKind.Simulation)
 
     private fun freePort() = ServerSocket(0).use { it.localPort }
 

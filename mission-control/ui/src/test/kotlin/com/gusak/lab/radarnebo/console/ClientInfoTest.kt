@@ -4,6 +4,7 @@ import com.gusak.lab.radarnebo.debug.HttpExchange
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class ClientInfoTest {
@@ -29,11 +30,12 @@ class ClientInfoTest {
     )
 
     private fun seen(vararg exchanges: HttpExchange): ClientInfo =
-        exchanges.fold(null as ClientInfo?) { client, exchange -> client.after(exchange, address) }!!
+        assertNotNull(exchanges.fold(null as ClientInfo?) { client, exchange -> client.after(exchange, address) })
 
     @Test
     fun countsRequestsAndErrors() {
-        val client = seen(exchange(status = 200), exchange(status = null), exchange(status = 404), exchange(status = 399))
+        val client =
+            seen(exchange(status = 200), exchange(status = null), exchange(status = 404), exchange(status = 399))
         assertEquals(4, client.requests)
         assertEquals(2, client.errors, "no status and 400+ are errors")
         assertEquals(399, client.lastStatus)
@@ -64,6 +66,10 @@ class ClientInfoTest {
     fun keepsThePreviousUserAgentWhenARequestHasNone() {
         val client = seen(exchange(headers = listOf("User-Agent" to "RadarNebo/1.0")), exchange())
         assertEquals("RadarNebo/1.0", client.userAgent)
-        assertEquals("curl/8", seen(exchange(headers = listOf("User-Agent" to "RadarNebo/1.0")), exchange(headers = listOf("User-Agent" to "curl/8"))).userAgent)
+        val switched = seen(
+            exchange(headers = listOf("User-Agent" to "RadarNebo/1.0")),
+            exchange(headers = listOf("User-Agent" to "curl/8")),
+        )
+        assertEquals("curl/8", switched.userAgent)
     }
 }

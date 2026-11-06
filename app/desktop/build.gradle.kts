@@ -37,7 +37,8 @@ tasks.withType<JavaExec>().configureEach {
 
 dependencies {
     implementation(project(":shared"))
-    implementation(compose.desktop.currentOs)
+    implementation(libs.compose.ui)
+    implementation(libs.compose.foundation)
     implementation(libs.kotlinx.coroutines.swing)
     implementation(libs.androidx.lifecycle.runtimeCompose)
     implementation(libs.logback.classic)

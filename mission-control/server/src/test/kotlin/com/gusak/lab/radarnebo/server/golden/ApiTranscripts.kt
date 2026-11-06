@@ -7,7 +7,7 @@ internal object ApiTranscripts {
         GET /health
         200
         Content-Type: application/json
-        {"status":"warming_up","source":"AlertsInUa","simulated":false,"upstreamBudgetPerMinute":6,"upstreamRequestsLastMinute":0,"upstreamRequestsTotal":0,"upstreamRateLimitedTotal":0,"upstreamRejectedTotal":0,"upstreamOtherFailuresTotal":0,"upstreamLastSuccessAt":null,"pollIntervalSeconds":15,"lastAttemptAt":null,"nextPollAt":null,"dataVersion":null,"dataConfirmedAt":null,"dataAgeSeconds":null,"alerts":0,"tracks":0,"activeTracks":0,"lastError":null}
+        ${WARMING_UP_HEALTH}
 
         GET /v1/alerts/active.json
         503
@@ -63,7 +63,7 @@ internal object ApiTranscripts {
         GET /health
         200
         Content-Type: application/json
-        {"status":"ok","source":"AlertsInUa","simulated":false,"upstreamBudgetPerMinute":6,"upstreamRequestsLastMinute":0,"upstreamRequestsTotal":0,"upstreamRateLimitedTotal":0,"upstreamRejectedTotal":0,"upstreamOtherFailuresTotal":0,"upstreamLastSuccessAt":null,"pollIntervalSeconds":15,"lastAttemptAt":1792405200000,"nextPollAt":null,"dataVersion":2,"dataConfirmedAt":1792405200000,"dataAgeSeconds":45,"alerts":3,"tracks":2,"activeTracks":1,"lastError":null}
+        ${SERVING_HEALTH}
 
         GET /v1/alerts/active.json [Origin: https://example.org]
         200
@@ -71,19 +71,19 @@ internal object ApiTranscripts {
         X-Data-Age-Seconds: 45
         Access-Control-Allow-Origin: *
         Access-Control-Expose-Headers: X-Data-Age-Seconds
-        {"alerts":[{"id":1,"location_title":"Харківська область","location_type":"oblast","started_at":"2026-10-19T10:00:00.000Z","finished_at":null,"updated_at":"2026-10-19T10:00:00.000Z","alert_type":"air_raid","location_oblast":"Харківська область","location_uid":"22","notes":null,"country":null,"alert_level":"red","location_title_en":"Kharkiv Oblast","threats":[{"threat_type":"drones","level":"red","started_at":"2026-10-19T10:00:00.000Z","source_message":"Ударні БпЛА типу «Шахед»"}],"location_oblast_uid":22},{"id":3,"location_title":"м. Харків та Харківська територіальна громада","location_type":"hromada","started_at":"2026-10-19T10:00:00.000Z","finished_at":null,"updated_at":"2026-10-19T10:00:00.000Z","alert_type":"air_raid","location_oblast":"Харківська область","location_uid":"1293","notes":null,"country":null,"alert_level":"red","location_title_en":"Kharkiv","threats":[{"threat_type":"cruise_missiles","level":"red","started_at":"2026-10-19T10:00:00.000Z","source_message":"Крилаті ракети"}],"location_oblast_uid":22},{"id":4,"location_title":"м. Київ","location_type":"city","started_at":"2026-10-19T10:20:00.000Z","finished_at":null,"updated_at":"2026-10-19T10:20:00.000Z","alert_type":"air_raid","location_oblast":"м. Київ","location_uid":"31","notes":null,"country":null,"alert_level":"red","location_title_en":"Kyiv City","threats":[{"threat_type":"drones","level":"red","started_at":"2026-10-19T10:20:00.000Z","source_message":"Ударні БпЛА типу «Шахед»"}],"location_oblast_uid":31}],"meta":{"last_updated_at":"2026/10/19 10:20:00 +0000","type":"full"}}
+        ${SERVING_V1_ALERTS_ACTIVE}
 
         GET /v1/alerts/active.json [If-None-Match: "v2"]
         200
         Content-Type: application/json
         X-Data-Age-Seconds: 45
-        {"alerts":[{"id":1,"location_title":"Харківська область","location_type":"oblast","started_at":"2026-10-19T10:00:00.000Z","finished_at":null,"updated_at":"2026-10-19T10:00:00.000Z","alert_type":"air_raid","location_oblast":"Харківська область","location_uid":"22","notes":null,"country":null,"alert_level":"red","location_title_en":"Kharkiv Oblast","threats":[{"threat_type":"drones","level":"red","started_at":"2026-10-19T10:00:00.000Z","source_message":"Ударні БпЛА типу «Шахед»"}],"location_oblast_uid":22},{"id":3,"location_title":"м. Харків та Харківська територіальна громада","location_type":"hromada","started_at":"2026-10-19T10:00:00.000Z","finished_at":null,"updated_at":"2026-10-19T10:00:00.000Z","alert_type":"air_raid","location_oblast":"Харківська область","location_uid":"1293","notes":null,"country":null,"alert_level":"red","location_title_en":"Kharkiv","threats":[{"threat_type":"cruise_missiles","level":"red","started_at":"2026-10-19T10:00:00.000Z","source_message":"Крилаті ракети"}],"location_oblast_uid":22},{"id":4,"location_title":"м. Київ","location_type":"city","started_at":"2026-10-19T10:20:00.000Z","finished_at":null,"updated_at":"2026-10-19T10:20:00.000Z","alert_type":"air_raid","location_oblast":"м. Київ","location_uid":"31","notes":null,"country":null,"alert_level":"red","location_title_en":"Kyiv City","threats":[{"threat_type":"drones","level":"red","started_at":"2026-10-19T10:20:00.000Z","source_message":"Ударні БпЛА типу «Шахед»"}],"location_oblast_uid":31}],"meta":{"last_updated_at":"2026/10/19 10:20:00 +0000","type":"full"}}
+        ${SERVING_V1_ALERTS_ACTIVE_2}
 
         GET /v1/alerts/active.json [If-Modified-Since: Mon, 19 Oct 2026 10:20:00 GMT]
         200
         Content-Type: application/json
         X-Data-Age-Seconds: 45
-        {"alerts":[{"id":1,"location_title":"Харківська область","location_type":"oblast","started_at":"2026-10-19T10:00:00.000Z","finished_at":null,"updated_at":"2026-10-19T10:00:00.000Z","alert_type":"air_raid","location_oblast":"Харківська область","location_uid":"22","notes":null,"country":null,"alert_level":"red","location_title_en":"Kharkiv Oblast","threats":[{"threat_type":"drones","level":"red","started_at":"2026-10-19T10:00:00.000Z","source_message":"Ударні БпЛА типу «Шахед»"}],"location_oblast_uid":22},{"id":3,"location_title":"м. Харків та Харківська територіальна громада","location_type":"hromada","started_at":"2026-10-19T10:00:00.000Z","finished_at":null,"updated_at":"2026-10-19T10:00:00.000Z","alert_type":"air_raid","location_oblast":"Харківська область","location_uid":"1293","notes":null,"country":null,"alert_level":"red","location_title_en":"Kharkiv","threats":[{"threat_type":"cruise_missiles","level":"red","started_at":"2026-10-19T10:00:00.000Z","source_message":"Крилаті ракети"}],"location_oblast_uid":22},{"id":4,"location_title":"м. Київ","location_type":"city","started_at":"2026-10-19T10:20:00.000Z","finished_at":null,"updated_at":"2026-10-19T10:20:00.000Z","alert_type":"air_raid","location_oblast":"м. Київ","location_uid":"31","notes":null,"country":null,"alert_level":"red","location_title_en":"Kyiv City","threats":[{"threat_type":"drones","level":"red","started_at":"2026-10-19T10:20:00.000Z","source_message":"Ударні БпЛА типу «Шахед»"}],"location_oblast_uid":31}],"meta":{"last_updated_at":"2026/10/19 10:20:00 +0000","type":"full"}}
+        ${SERVING_V1_ALERTS_ACTIVE_3}
 
         GET /v1/iot/active_air_raid_alerts_by_oblast.json
         200
@@ -184,79 +184,79 @@ internal object ApiTranscripts {
         GET /v1/regions/14/alerts/month_ago.json
         200
         Content-Type: application/json
-        {"alerts":[{"id":2,"location_title":"Броварська територіальна громада","location_type":"hromada","started_at":"2026-10-19T10:00:00.000Z","finished_at":"2026-10-19T10:20:00.000Z","updated_at":"2026-10-19T10:20:00.000Z","alert_type":"air_raid","location_oblast":"Київська область","location_uid":"1100","notes":null,"country":null,"alert_level":"yellow","location_title_en":"Brovary","threats":[{"threat_type":"drones","level":"yellow","started_at":"2026-10-19T10:00:00.000Z","source_message":"Ударні БпЛА типу «Шахед»"}],"location_oblast_uid":14}]}
+        ${SERVING_V1_REGIONS_14_ALERTS_MONTH_AGO}
 
         GET /v1/regions/22/alerts/week_ago.json
         200
         Content-Type: application/json
-        {"alerts":[{"id":1,"location_title":"Харківська область","location_type":"oblast","started_at":"2026-10-19T10:00:00.000Z","finished_at":null,"updated_at":"2026-10-19T10:00:00.000Z","alert_type":"air_raid","location_oblast":"Харківська область","location_uid":"22","notes":null,"country":null,"alert_level":"red","location_title_en":"Kharkiv Oblast","threats":[{"threat_type":"drones","level":"red","started_at":"2026-10-19T10:00:00.000Z","source_message":"Ударні БпЛА типу «Шахед»"}],"location_oblast_uid":22},{"id":3,"location_title":"м. Харків та Харківська територіальна громада","location_type":"hromada","started_at":"2026-10-19T10:00:00.000Z","finished_at":null,"updated_at":"2026-10-19T10:00:00.000Z","alert_type":"air_raid","location_oblast":"Харківська область","location_uid":"1293","notes":null,"country":null,"alert_level":"red","location_title_en":"Kharkiv","threats":[{"threat_type":"cruise_missiles","level":"red","started_at":"2026-10-19T10:00:00.000Z","source_message":"Крилаті ракети"}],"location_oblast_uid":22}]}
+        ${SERVING_V1_REGIONS_22_ALERTS_WEEK_AGO}
 
         GET /v1/regions/1293/alerts/day_ago.json
         200
         Content-Type: application/json
-        {"alerts":[{"id":3,"location_title":"м. Харків та Харківська територіальна громада","location_type":"hromada","started_at":"2026-10-19T10:00:00.000Z","finished_at":null,"updated_at":"2026-10-19T10:00:00.000Z","alert_type":"air_raid","location_oblast":"Харківська область","location_uid":"1293","notes":null,"country":null,"alert_level":"red","location_title_en":"Kharkiv","threats":[{"threat_type":"cruise_missiles","level":"red","started_at":"2026-10-19T10:00:00.000Z","source_message":"Крилаті ракети"}],"location_oblast_uid":22}]}
+        ${SERVING_V1_REGIONS_1293_ALERTS_DAY_AGO}
 
         GET /v1/drones/tracks.json
         200
         Content-Type: application/json
-        {"serverTime":1792405245000,"pollIntervalMs":15000,"lastUpstreamFetch":1792405200000,"tracks":[{"id":"trk-tn5fs0-1","type":"CruiseMissiles","level":"Red","oblastUid":22,"active":false,"firstSeen":1792404000000,"lastSeen":1792404000000,"markerIds":["3:cruise_missiles"],"samples":[{"t":1792404000000,"lat":49.9935,"lon":36.2304,"title":"Kharkiv","oblastUid":22,"message":"Крилаті ракети","precision":"Hromada","level":"Red","errorKm":null}],"outcome":null,"kind":"CruiseMissile","estimate":{"t":1792404000000,"lat":49.9935,"lon":36.2304,"headingDeg":null,"speedKmh":null,"sigmaKm":12.0},"path":[{"t":1792404000000,"lat":49.9935,"lon":36.2304}],"forecast":[],"arrivals":[]},{"id":"trk-tn5fs0-2","type":"Drones","level":"Red","oblastUid":31,"active":true,"firstSeen":1792404000000,"lastSeen":1792405200000,"markerIds":["4:drones"],"samples":[{"t":1792404000000,"lat":50.511,"lon":30.7909,"title":"Brovary","oblastUid":14,"message":"Ударні БпЛА типу «Шахед»","precision":"Hromada","level":"Yellow","errorKm":null},{"t":1792405200000,"lat":50.4501,"lon":30.5234,"title":"Kyiv City","oblastUid":31,"message":"Ударні БпЛА типу «Шахед»","precision":"Hromada","level":"Red","errorKm":null}],"outcome":null,"kind":"AttackDrone","estimate":{"t":1792405200000,"lat":50.455276,"lon":30.546137,"headingDeg":250.302586,"speedKmh":120.000000,"sigmaKm":11.478693},"path":[{"t":1792404000000,"lat":50.552863,"lon":30.974782},{"t":1792404075000,"lat":50.546764,"lon":30.947992},{"t":1792404150000,"lat":50.540665,"lon":30.921201},{"t":1792404225000,"lat":50.534566,"lon":30.894411},{"t":1792404300000,"lat":50.528466,"lon":30.867621},{"t":1792404375000,"lat":50.522367,"lon":30.840830},{"t":1792404450000,"lat":50.516268,"lon":30.814040},{"t":1792404525000,"lat":50.510169,"lon":30.787250},{"t":1792404600000,"lat":50.504070,"lon":30.760459},{"t":1792404675000,"lat":50.497971,"lon":30.733669},{"t":1792404750000,"lat":50.491871,"lon":30.706879},{"t":1792404825000,"lat":50.485772,"lon":30.680088},{"t":1792404900000,"lat":50.479673,"lon":30.653298},{"t":1792404975000,"lat":50.473574,"lon":30.626508},{"t":1792405050000,"lat":50.467475,"lon":30.599717},{"t":1792405125000,"lat":50.461376,"lon":30.572927},{"t":1792405200000,"lat":50.455276,"lon":30.546137}],"forecast":[{"t":1792405200000,"lat":50.455276,"lon":30.546137,"sigmaKm":11.478693},{"t":1792405500000,"lat":50.424889,"lon":30.413236,"sigmaKm":12.295496},{"t":1792405800000,"lat":50.394350,"lon":30.280505,"sigmaKm":14.471893},{"t":1792406100000,"lat":50.363660,"lon":30.147946,"sigmaKm":17.507993},{"t":1792406400000,"lat":50.332820,"lon":30.015559,"sigmaKm":21.034771},{"t":1792406700000,"lat":50.301830,"lon":29.883344,"sigmaKm":24.844134},{"t":1792407000000,"lat":50.270690,"lon":29.751302,"sigmaKm":28.824262}],"arrivals":[{"place":"Zhytomyr","lat":50.2547,"lon":28.6587,"distanceKm":135.746107,"at":1792409280000},{"place":"Koziatyn","lat":49.716,"lon":28.836,"distanceKm":147.115797,"at":1792409640000}]}],"simulated":false}
+        ${SERVING_V1_DRONES_TRACKS}
 
         GET /v1/drones/tracks.json?active=true
         200
         Content-Type: application/json
-        {"serverTime":1792405245000,"pollIntervalMs":15000,"lastUpstreamFetch":1792405200000,"tracks":[{"id":"trk-tn5fs0-2","type":"Drones","level":"Red","oblastUid":31,"active":true,"firstSeen":1792404000000,"lastSeen":1792405200000,"markerIds":["4:drones"],"samples":[{"t":1792404000000,"lat":50.511,"lon":30.7909,"title":"Brovary","oblastUid":14,"message":"Ударні БпЛА типу «Шахед»","precision":"Hromada","level":"Yellow","errorKm":null},{"t":1792405200000,"lat":50.4501,"lon":30.5234,"title":"Kyiv City","oblastUid":31,"message":"Ударні БпЛА типу «Шахед»","precision":"Hromada","level":"Red","errorKm":null}],"outcome":null,"kind":"AttackDrone","estimate":{"t":1792405200000,"lat":50.455276,"lon":30.546137,"headingDeg":250.302586,"speedKmh":120.000000,"sigmaKm":11.478693},"path":[{"t":1792404000000,"lat":50.552863,"lon":30.974782},{"t":1792404075000,"lat":50.546764,"lon":30.947992},{"t":1792404150000,"lat":50.540665,"lon":30.921201},{"t":1792404225000,"lat":50.534566,"lon":30.894411},{"t":1792404300000,"lat":50.528466,"lon":30.867621},{"t":1792404375000,"lat":50.522367,"lon":30.840830},{"t":1792404450000,"lat":50.516268,"lon":30.814040},{"t":1792404525000,"lat":50.510169,"lon":30.787250},{"t":1792404600000,"lat":50.504070,"lon":30.760459},{"t":1792404675000,"lat":50.497971,"lon":30.733669},{"t":1792404750000,"lat":50.491871,"lon":30.706879},{"t":1792404825000,"lat":50.485772,"lon":30.680088},{"t":1792404900000,"lat":50.479673,"lon":30.653298},{"t":1792404975000,"lat":50.473574,"lon":30.626508},{"t":1792405050000,"lat":50.467475,"lon":30.599717},{"t":1792405125000,"lat":50.461376,"lon":30.572927},{"t":1792405200000,"lat":50.455276,"lon":30.546137}],"forecast":[{"t":1792405200000,"lat":50.455276,"lon":30.546137,"sigmaKm":11.478693},{"t":1792405500000,"lat":50.424889,"lon":30.413236,"sigmaKm":12.295496},{"t":1792405800000,"lat":50.394350,"lon":30.280505,"sigmaKm":14.471893},{"t":1792406100000,"lat":50.363660,"lon":30.147946,"sigmaKm":17.507993},{"t":1792406400000,"lat":50.332820,"lon":30.015559,"sigmaKm":21.034771},{"t":1792406700000,"lat":50.301830,"lon":29.883344,"sigmaKm":24.844134},{"t":1792407000000,"lat":50.270690,"lon":29.751302,"sigmaKm":28.824262}],"arrivals":[{"place":"Zhytomyr","lat":50.2547,"lon":28.6587,"distanceKm":135.746107,"at":1792409280000},{"place":"Koziatyn","lat":49.716,"lon":28.836,"distanceKm":147.115797,"at":1792409640000}]}],"simulated":false}
+        ${SERVING_V1_DRONES_TRACKS_2}
 
         GET /v1/drones/positions.json
         200
         Content-Type: application/json
-        {"at":1792405245000,"positions":[{"trackId":"trk-tn5fs0-2","lat":50.450728,"lon":30.526191,"headingDeg":250.302586,"speedKmh":120.000000,"mode":"Extrapolated","level":"Red"}]}
+        ${SERVING_V1_DRONES_POSITIONS}
 
         GET /v1/drones/positions.json?at=2026-10-19T10:10:00Z
         200
         Content-Type: application/json
-        {"at":1792404600000,"positions":[{"trackId":"trk-tn5fs0-2","lat":50.504070,"lon":30.760459,"headingDeg":250.305254,"speedKmh":96.600868,"mode":"Interpolated","level":"Red"}]}
+        ${SERVING_V1_DRONES_POSITIONS_2}
 
         GET /v1/drones/tracks.json
         200
         Content-Type: application/json
-        {"serverTime":1792407645000,"pollIntervalMs":15000,"lastUpstreamFetch":1792407645000,"tracks":[{"id":"trk-tn5fs0-1","type":"CruiseMissiles","level":"Red","oblastUid":22,"active":false,"firstSeen":1792404000000,"lastSeen":1792404000000,"markerIds":[],"samples":[{"t":1792404000000,"lat":49.9935,"lon":36.2304,"title":"Kharkiv","oblastUid":22,"message":"Крилаті ракети","precision":"Hromada","level":"Red","errorKm":null}],"outcome":null,"kind":"CruiseMissile","estimate":{"t":1792404000000,"lat":49.9935,"lon":36.2304,"headingDeg":null,"speedKmh":null,"sigmaKm":12.0},"path":[{"t":1792404000000,"lat":49.9935,"lon":36.2304}],"forecast":[],"arrivals":[]},{"id":"trk-tn5fs0-2","type":"Drones","level":"Red","oblastUid":31,"active":false,"firstSeen":1792404000000,"lastSeen":1792405200000,"markerIds":[],"samples":[{"t":1792404000000,"lat":50.511,"lon":30.7909,"title":"Brovary","oblastUid":14,"message":"Ударні БпЛА типу «Шахед»","precision":"Hromada","level":"Yellow","errorKm":null},{"t":1792405200000,"lat":50.4501,"lon":30.5234,"title":"Kyiv City","oblastUid":31,"message":"Ударні БпЛА типу «Шахед»","precision":"Hromada","level":"Red","errorKm":null}],"outcome":null,"kind":"AttackDrone","estimate":{"t":1792405200000,"lat":50.455276,"lon":30.546137,"headingDeg":250.302586,"speedKmh":120.000000,"sigmaKm":11.478693},"path":[{"t":1792404000000,"lat":50.552863,"lon":30.974782},{"t":1792404075000,"lat":50.546764,"lon":30.947992},{"t":1792404150000,"lat":50.540665,"lon":30.921201},{"t":1792404225000,"lat":50.534566,"lon":30.894411},{"t":1792404300000,"lat":50.528466,"lon":30.867621},{"t":1792404375000,"lat":50.522367,"lon":30.840830},{"t":1792404450000,"lat":50.516268,"lon":30.814040},{"t":1792404525000,"lat":50.510169,"lon":30.787250},{"t":1792404600000,"lat":50.504070,"lon":30.760459},{"t":1792404675000,"lat":50.497971,"lon":30.733669},{"t":1792404750000,"lat":50.491871,"lon":30.706879},{"t":1792404825000,"lat":50.485772,"lon":30.680088},{"t":1792404900000,"lat":50.479673,"lon":30.653298},{"t":1792404975000,"lat":50.473574,"lon":30.626508},{"t":1792405050000,"lat":50.467475,"lon":30.599717},{"t":1792405125000,"lat":50.461376,"lon":30.572927},{"t":1792405200000,"lat":50.455276,"lon":30.546137}],"forecast":[],"arrivals":[]}],"simulated":false}
+        ${SERVING_V1_DRONES_TRACKS_3}
 
         GET /v1/drones/archive.json?from=1792404000000
         200
         Content-Type: application/json
-        {"from":1792404000000,"to":1792407645000,"tracks":[{"id":"trk-tn5fs0-2","type":"Drones","level":"Red","oblastUid":31,"active":false,"firstSeen":1792404000000,"lastSeen":1792405200000,"markerIds":[],"samples":[{"t":1792404000000,"lat":50.511,"lon":30.7909,"title":"Brovary","oblastUid":14,"message":"Ударні БпЛА типу «Шахед»","precision":"Hromada","level":"Yellow","errorKm":null},{"t":1792405200000,"lat":50.4501,"lon":30.5234,"title":"Kyiv City","oblastUid":31,"message":"Ударні БпЛА типу «Шахед»","precision":"Hromada","level":"Red","errorKm":null}],"outcome":null,"kind":"AttackDrone","estimate":{"t":1792405200000,"lat":50.455276,"lon":30.546137,"headingDeg":250.302586,"speedKmh":120.000000,"sigmaKm":11.478693},"path":[{"t":1792404000000,"lat":50.552863,"lon":30.974782},{"t":1792404075000,"lat":50.546764,"lon":30.947992},{"t":1792404150000,"lat":50.540665,"lon":30.921201},{"t":1792404225000,"lat":50.534566,"lon":30.894411},{"t":1792404300000,"lat":50.528466,"lon":30.867621},{"t":1792404375000,"lat":50.522367,"lon":30.840830},{"t":1792404450000,"lat":50.516268,"lon":30.814040},{"t":1792404525000,"lat":50.510169,"lon":30.787250},{"t":1792404600000,"lat":50.504070,"lon":30.760459},{"t":1792404675000,"lat":50.497971,"lon":30.733669},{"t":1792404750000,"lat":50.491871,"lon":30.706879},{"t":1792404825000,"lat":50.485772,"lon":30.680088},{"t":1792404900000,"lat":50.479673,"lon":30.653298},{"t":1792404975000,"lat":50.473574,"lon":30.626508},{"t":1792405050000,"lat":50.467475,"lon":30.599717},{"t":1792405125000,"lat":50.461376,"lon":30.572927},{"t":1792405200000,"lat":50.455276,"lon":30.546137}],"forecast":[],"arrivals":[]},{"id":"trk-tn5fs0-1","type":"CruiseMissiles","level":"Red","oblastUid":22,"active":false,"firstSeen":1792404000000,"lastSeen":1792404000000,"markerIds":[],"samples":[{"t":1792404000000,"lat":49.9935,"lon":36.2304,"title":"Kharkiv","oblastUid":22,"message":"Крилаті ракети","precision":"Hromada","level":"Red","errorKm":null}],"outcome":null,"kind":"CruiseMissile","estimate":{"t":1792404000000,"lat":49.9935,"lon":36.2304,"headingDeg":null,"speedKmh":null,"sigmaKm":12.0},"path":[{"t":1792404000000,"lat":49.9935,"lon":36.2304}],"forecast":[],"arrivals":[]}],"simulated":false}
+        ${SERVING_V1_DRONES_ARCHIVE}
 
         GET /v1/drones/archive.json?from=2026-10-19T09:00:00Z&to=2026-10-19T12:00:00Z&type=drones&limit=5
         200
         Content-Type: application/json
-        {"from":1792400400000,"to":1792411200000,"tracks":[{"id":"trk-tn5fs0-2","type":"Drones","level":"Red","oblastUid":31,"active":false,"firstSeen":1792404000000,"lastSeen":1792405200000,"markerIds":[],"samples":[{"t":1792404000000,"lat":50.511,"lon":30.7909,"title":"Brovary","oblastUid":14,"message":"Ударні БпЛА типу «Шахед»","precision":"Hromada","level":"Yellow","errorKm":null},{"t":1792405200000,"lat":50.4501,"lon":30.5234,"title":"Kyiv City","oblastUid":31,"message":"Ударні БпЛА типу «Шахед»","precision":"Hromada","level":"Red","errorKm":null}],"outcome":null,"kind":"AttackDrone","estimate":{"t":1792405200000,"lat":50.455276,"lon":30.546137,"headingDeg":250.302586,"speedKmh":120.000000,"sigmaKm":11.478693},"path":[{"t":1792404000000,"lat":50.552863,"lon":30.974782},{"t":1792404075000,"lat":50.546764,"lon":30.947992},{"t":1792404150000,"lat":50.540665,"lon":30.921201},{"t":1792404225000,"lat":50.534566,"lon":30.894411},{"t":1792404300000,"lat":50.528466,"lon":30.867621},{"t":1792404375000,"lat":50.522367,"lon":30.840830},{"t":1792404450000,"lat":50.516268,"lon":30.814040},{"t":1792404525000,"lat":50.510169,"lon":30.787250},{"t":1792404600000,"lat":50.504070,"lon":30.760459},{"t":1792404675000,"lat":50.497971,"lon":30.733669},{"t":1792404750000,"lat":50.491871,"lon":30.706879},{"t":1792404825000,"lat":50.485772,"lon":30.680088},{"t":1792404900000,"lat":50.479673,"lon":30.653298},{"t":1792404975000,"lat":50.473574,"lon":30.626508},{"t":1792405050000,"lat":50.467475,"lon":30.599717},{"t":1792405125000,"lat":50.461376,"lon":30.572927},{"t":1792405200000,"lat":50.455276,"lon":30.546137}],"forecast":[],"arrivals":[]}],"simulated":false}
+        ${SERVING_V1_DRONES_ARCHIVE_2}
 
         GET /v1/drones/archive.json?type=cruise_missiles
         200
         Content-Type: application/json
-        {"from":1792321245000,"to":1792407645000,"tracks":[{"id":"trk-tn5fs0-1","type":"CruiseMissiles","level":"Red","oblastUid":22,"active":false,"firstSeen":1792404000000,"lastSeen":1792404000000,"markerIds":[],"samples":[{"t":1792404000000,"lat":49.9935,"lon":36.2304,"title":"Kharkiv","oblastUid":22,"message":"Крилаті ракети","precision":"Hromada","level":"Red","errorKm":null}],"outcome":null,"kind":"CruiseMissile","estimate":{"t":1792404000000,"lat":49.9935,"lon":36.2304,"headingDeg":null,"speedKmh":null,"sigmaKm":12.0},"path":[{"t":1792404000000,"lat":49.9935,"lon":36.2304}],"forecast":[],"arrivals":[]}],"simulated":false}
+        ${SERVING_V1_DRONES_ARCHIVE_3}
 
         GET /v1/regions/31/alerts/day_ago.json
         200
         Content-Type: application/json
-        {"alerts":[{"id":4,"location_title":"м. Київ","location_type":"city","started_at":"2026-10-19T10:20:00.000Z","finished_at":"2026-10-19T11:00:45.000Z","updated_at":"2026-10-19T11:00:45.000Z","alert_type":"air_raid","location_oblast":"м. Київ","location_uid":"31","notes":null,"country":null,"alert_level":"red","location_title_en":"Kyiv City","threats":[{"threat_type":"drones","level":"red","started_at":"2026-10-19T10:20:00.000Z","source_message":"Ударні БпЛА типу «Шахед»"}],"location_oblast_uid":31}]}
+        ${SERVING_V1_REGIONS_31_ALERTS_DAY_AGO}
 
         GET /v1/alerts/active.json
         200
         Content-Type: application/json
         X-Data-Age-Seconds: 0
-        {"alerts":[{"id":1,"location_title":"Харківська область","location_type":"oblast","started_at":"2026-10-19T10:00:00.000Z","finished_at":null,"updated_at":"2026-10-19T10:00:00.000Z","alert_type":"air_raid","location_oblast":"Харківська область","location_uid":"22","notes":null,"country":null,"alert_level":"red","location_title_en":"Kharkiv Oblast","threats":[{"threat_type":"drones","level":"red","started_at":"2026-10-19T10:00:00.000Z","source_message":"Ударні БпЛА типу «Шахед»"}],"location_oblast_uid":22}],"meta":{"last_updated_at":"2026/10/19 11:00:45 +0000","type":"full"}}
+        ${SERVING_V1_ALERTS_ACTIVE_4}
 
         GET /health
         200
         Content-Type: application/json
-        {"status":"degraded","source":"AlertsInUa","simulated":false,"upstreamBudgetPerMinute":6,"upstreamRequestsLastMinute":0,"upstreamRequestsTotal":0,"upstreamRateLimitedTotal":0,"upstreamRejectedTotal":0,"upstreamOtherFailuresTotal":0,"upstreamLastSuccessAt":null,"pollIntervalSeconds":15,"lastAttemptAt":1792407660000,"nextPollAt":null,"dataVersion":3,"dataConfirmedAt":1792407645000,"dataAgeSeconds":15,"alerts":1,"tracks":2,"activeTracks":0,"lastError":"HTTP 502 from upstream"}
+        ${SERVING_HEALTH_2}
 
         GET /v1/alerts/active.json
         200
         Content-Type: application/json
         X-Data-Age-Seconds: 15
-        {"alerts":[{"id":1,"location_title":"Харківська область","location_type":"oblast","started_at":"2026-10-19T10:00:00.000Z","finished_at":null,"updated_at":"2026-10-19T10:00:00.000Z","alert_type":"air_raid","location_oblast":"Харківська область","location_uid":"22","notes":null,"country":null,"alert_level":"red","location_title_en":"Kharkiv Oblast","threats":[{"threat_type":"drones","level":"red","started_at":"2026-10-19T10:00:00.000Z","source_message":"Ударні БпЛА типу «Шахед»"}],"location_oblast_uid":22}],"meta":{"last_updated_at":"2026/10/19 11:00:45 +0000","type":"full"}}
+        ${SERVING_V1_ALERTS_ACTIVE_5}
     """.trimIndent()
 
     /** 400s for bad parameters and 404s for unknown paths, each with its `{"message": ...}` body. */
@@ -367,7 +367,7 @@ internal object ApiTranscripts {
         GET /v1/regions/14/alerts/day_ago.json?token=app-key
         200
         Content-Type: application/json
-        {"alerts":[{"id":1,"location_title":"Броварська територіальна громада","location_type":"hromada","started_at":"2026-10-19T10:00:00.000Z","finished_at":null,"updated_at":"2026-10-19T10:00:00.000Z","alert_type":"air_raid","location_oblast":"Київська область","location_uid":"1100","notes":null,"country":null,"alert_level":"red","location_title_en":"Brovary","threats":[{"threat_type":"drones","level":"red","started_at":"2026-10-19T10:00:00.000Z","source_message":"Ударні БпЛА типу «Шахед»"}],"location_oblast_uid":14}]}
+        ${AUTH_V1_REGIONS_14_ALERTS_DAY_AGO}
 
         GET /v1/regions/14/alerts/day_ago.json?token=app-key
         429
@@ -378,6 +378,310 @@ internal object ApiTranscripts {
         GET /health
         200
         Content-Type: application/json
-        {"status":"ok","source":"AlertsInUa","simulated":false,"upstreamBudgetPerMinute":6,"upstreamRequestsLastMinute":0,"upstreamRequestsTotal":0,"upstreamRateLimitedTotal":0,"upstreamRejectedTotal":0,"upstreamOtherFailuresTotal":0,"upstreamLastSuccessAt":null,"pollIntervalSeconds":15,"lastAttemptAt":1792404000000,"nextPollAt":null,"dataVersion":1,"dataConfirmedAt":1792404000000,"dataAgeSeconds":0,"alerts":1,"tracks":1,"activeTracks":1,"lastError":null}
+        ${AUTH_HEALTH}
     """.trimIndent()
+
+    private const val WARMING_UP_HEALTH: String =
+        """{"status":"warming_up","source":"AlertsInUa","simulated":false,"upstreamBudgetPerMinute":6,""" +
+        """"upstreamRequestsLastMinute":0,"upstreamRequestsTotal":0,"upstreamRateLimitedTotal":0,""" +
+        """"upstreamRejectedTotal":0,"upstreamOtherFailuresTotal":0,"upstreamLastSuccessAt":null,""" +
+        """"pollIntervalSeconds":15,"lastAttemptAt":null,"nextPollAt":null,"dataVersion":null,""" +
+        """"dataConfirmedAt":null,"dataAgeSeconds":null,"alerts":0,"tracks":0,"activeTracks":0,"lastError":null}"""
+
+    private const val SERVING_HEALTH: String =
+        """{"status":"ok","source":"AlertsInUa","simulated":false,"upstreamBudgetPerMinute":6,""" +
+        """"upstreamRequestsLastMinute":0,"upstreamRequestsTotal":0,"upstreamRateLimitedTotal":0,""" +
+        """"upstreamRejectedTotal":0,"upstreamOtherFailuresTotal":0,"upstreamLastSuccessAt":null,""" +
+        """"pollIntervalSeconds":15,"lastAttemptAt":1792405200000,"nextPollAt":null,"dataVersion":2,""" +
+        """"dataConfirmedAt":1792405200000,"dataAgeSeconds":45,"alerts":3,"tracks":2,"activeTracks":1,""" +
+        """"lastError":null}"""
+
+    private const val SERVING_V1_ALERTS_ACTIVE: String =
+        """{"alerts":[{"id":1,"location_title":"Харківська область","location_type":"oblast",""" +
+        """"started_at":"2026-10-19T10:00:00.000Z","finished_at":null,"updated_at":"2026-10-19T10:00:00.000Z",""" +
+        """"alert_type":"air_raid","location_oblast":"Харківська область","location_uid":"22","notes":null,""" +
+        """"country":null,"alert_level":"red","location_title_en":"Kharkiv Oblast",""" +
+        """"threats":[{"threat_type":"drones","level":"red","started_at":"2026-10-19T10:00:00.000Z",""" +
+        """"source_message":"Ударні БпЛА типу «Шахед»"}],"location_oblast_uid":22},{"id":3,""" +
+        """"location_title":"м. Харків та Харківська територіальна громада","location_type":"hromada",""" +
+        """"started_at":"2026-10-19T10:00:00.000Z","finished_at":null,"updated_at":"2026-10-19T10:00:00.000Z",""" +
+        """"alert_type":"air_raid","location_oblast":"Харківська область","location_uid":"1293","notes":null,""" +
+        """"country":null,"alert_level":"red","location_title_en":"Kharkiv",""" +
+        """"threats":[{"threat_type":"cruise_missiles","level":"red","started_at":"2026-10-19T10:00:00.000Z",""" +
+        """"source_message":"Крилаті ракети"}],"location_oblast_uid":22},{"id":4,"location_title":"м. Київ",""" +
+        """"location_type":"city","started_at":"2026-10-19T10:20:00.000Z","finished_at":null,""" +
+        """"updated_at":"2026-10-19T10:20:00.000Z","alert_type":"air_raid","location_oblast":"м. Київ",""" +
+        """"location_uid":"31","notes":null,"country":null,"alert_level":"red","location_title_en":"Kyiv City",""" +
+        """"threats":[{"threat_type":"drones","level":"red","started_at":"2026-10-19T10:20:00.000Z",""" +
+        """"source_message":"Ударні БпЛА типу «Шахед»"}],"location_oblast_uid":31}],""" +
+        """"meta":{"last_updated_at":"2026/10/19 10:20:00 +0000","type":"full"}}"""
+
+    private const val SERVING_V1_ALERTS_ACTIVE_2: String =
+        """{"alerts":[{"id":1,"location_title":"Харківська область","location_type":"oblast",""" +
+        """"started_at":"2026-10-19T10:00:00.000Z","finished_at":null,"updated_at":"2026-10-19T10:00:00.000Z",""" +
+        """"alert_type":"air_raid","location_oblast":"Харківська область","location_uid":"22","notes":null,""" +
+        """"country":null,"alert_level":"red","location_title_en":"Kharkiv Oblast",""" +
+        """"threats":[{"threat_type":"drones","level":"red","started_at":"2026-10-19T10:00:00.000Z",""" +
+        """"source_message":"Ударні БпЛА типу «Шахед»"}],"location_oblast_uid":22},{"id":3,""" +
+        """"location_title":"м. Харків та Харківська територіальна громада","location_type":"hromada",""" +
+        """"started_at":"2026-10-19T10:00:00.000Z","finished_at":null,"updated_at":"2026-10-19T10:00:00.000Z",""" +
+        """"alert_type":"air_raid","location_oblast":"Харківська область","location_uid":"1293","notes":null,""" +
+        """"country":null,"alert_level":"red","location_title_en":"Kharkiv",""" +
+        """"threats":[{"threat_type":"cruise_missiles","level":"red","started_at":"2026-10-19T10:00:00.000Z",""" +
+        """"source_message":"Крилаті ракети"}],"location_oblast_uid":22},{"id":4,"location_title":"м. Київ",""" +
+        """"location_type":"city","started_at":"2026-10-19T10:20:00.000Z","finished_at":null,""" +
+        """"updated_at":"2026-10-19T10:20:00.000Z","alert_type":"air_raid","location_oblast":"м. Київ",""" +
+        """"location_uid":"31","notes":null,"country":null,"alert_level":"red","location_title_en":"Kyiv City",""" +
+        """"threats":[{"threat_type":"drones","level":"red","started_at":"2026-10-19T10:20:00.000Z",""" +
+        """"source_message":"Ударні БпЛА типу «Шахед»"}],"location_oblast_uid":31}],""" +
+        """"meta":{"last_updated_at":"2026/10/19 10:20:00 +0000","type":"full"}}"""
+
+    private const val SERVING_V1_ALERTS_ACTIVE_3: String =
+        """{"alerts":[{"id":1,"location_title":"Харківська область","location_type":"oblast",""" +
+        """"started_at":"2026-10-19T10:00:00.000Z","finished_at":null,"updated_at":"2026-10-19T10:00:00.000Z",""" +
+        """"alert_type":"air_raid","location_oblast":"Харківська область","location_uid":"22","notes":null,""" +
+        """"country":null,"alert_level":"red","location_title_en":"Kharkiv Oblast",""" +
+        """"threats":[{"threat_type":"drones","level":"red","started_at":"2026-10-19T10:00:00.000Z",""" +
+        """"source_message":"Ударні БпЛА типу «Шахед»"}],"location_oblast_uid":22},{"id":3,""" +
+        """"location_title":"м. Харків та Харківська територіальна громада","location_type":"hromada",""" +
+        """"started_at":"2026-10-19T10:00:00.000Z","finished_at":null,"updated_at":"2026-10-19T10:00:00.000Z",""" +
+        """"alert_type":"air_raid","location_oblast":"Харківська область","location_uid":"1293","notes":null,""" +
+        """"country":null,"alert_level":"red","location_title_en":"Kharkiv",""" +
+        """"threats":[{"threat_type":"cruise_missiles","level":"red","started_at":"2026-10-19T10:00:00.000Z",""" +
+        """"source_message":"Крилаті ракети"}],"location_oblast_uid":22},{"id":4,"location_title":"м. Київ",""" +
+        """"location_type":"city","started_at":"2026-10-19T10:20:00.000Z","finished_at":null,""" +
+        """"updated_at":"2026-10-19T10:20:00.000Z","alert_type":"air_raid","location_oblast":"м. Київ",""" +
+        """"location_uid":"31","notes":null,"country":null,"alert_level":"red","location_title_en":"Kyiv City",""" +
+        """"threats":[{"threat_type":"drones","level":"red","started_at":"2026-10-19T10:20:00.000Z",""" +
+        """"source_message":"Ударні БпЛА типу «Шахед»"}],"location_oblast_uid":31}],""" +
+        """"meta":{"last_updated_at":"2026/10/19 10:20:00 +0000","type":"full"}}"""
+
+    private const val SERVING_V1_REGIONS_14_ALERTS_MONTH_AGO: String =
+        """{"alerts":[{"id":2,"location_title":"Броварська територіальна громада","location_type":"hromada",""" +
+        """"started_at":"2026-10-19T10:00:00.000Z","finished_at":"2026-10-19T10:20:00.000Z",""" +
+        """"updated_at":"2026-10-19T10:20:00.000Z","alert_type":"air_raid","location_oblast":"Київська область",""" +
+        """"location_uid":"1100","notes":null,"country":null,"alert_level":"yellow","location_title_en":"Brovary",""" +
+        """"threats":[{"threat_type":"drones","level":"yellow","started_at":"2026-10-19T10:00:00.000Z",""" +
+        """"source_message":"Ударні БпЛА типу «Шахед»"}],"location_oblast_uid":14}]}"""
+
+    private const val SERVING_V1_REGIONS_22_ALERTS_WEEK_AGO: String =
+        """{"alerts":[{"id":1,"location_title":"Харківська область","location_type":"oblast",""" +
+        """"started_at":"2026-10-19T10:00:00.000Z","finished_at":null,"updated_at":"2026-10-19T10:00:00.000Z",""" +
+        """"alert_type":"air_raid","location_oblast":"Харківська область","location_uid":"22","notes":null,""" +
+        """"country":null,"alert_level":"red","location_title_en":"Kharkiv Oblast",""" +
+        """"threats":[{"threat_type":"drones","level":"red","started_at":"2026-10-19T10:00:00.000Z",""" +
+        """"source_message":"Ударні БпЛА типу «Шахед»"}],"location_oblast_uid":22},{"id":3,""" +
+        """"location_title":"м. Харків та Харківська територіальна громада","location_type":"hromada",""" +
+        """"started_at":"2026-10-19T10:00:00.000Z","finished_at":null,"updated_at":"2026-10-19T10:00:00.000Z",""" +
+        """"alert_type":"air_raid","location_oblast":"Харківська область","location_uid":"1293","notes":null,""" +
+        """"country":null,"alert_level":"red","location_title_en":"Kharkiv",""" +
+        """"threats":[{"threat_type":"cruise_missiles","level":"red","started_at":"2026-10-19T10:00:00.000Z",""" +
+        """"source_message":"Крилаті ракети"}],"location_oblast_uid":22}]}"""
+
+    private const val SERVING_V1_REGIONS_1293_ALERTS_DAY_AGO: String =
+        """{"alerts":[{"id":3,"location_title":"м. Харків та Харківська територіальна громада",""" +
+        """"location_type":"hromada","started_at":"2026-10-19T10:00:00.000Z","finished_at":null,""" +
+        """"updated_at":"2026-10-19T10:00:00.000Z","alert_type":"air_raid","location_oblast":"Харківська область",""" +
+        """"location_uid":"1293","notes":null,"country":null,"alert_level":"red","location_title_en":"Kharkiv",""" +
+        """"threats":[{"threat_type":"cruise_missiles","level":"red","started_at":"2026-10-19T10:00:00.000Z",""" +
+        """"source_message":"Крилаті ракети"}],"location_oblast_uid":22}]}"""
+
+    private const val SERVING_V1_DRONES_TRACKS: String =
+        """{"serverTime":1792405245000,"pollIntervalMs":15000,"lastUpstreamFetch":1792405200000,""" +
+        """"tracks":[{"id":"trk-tn5fs0-1","type":"CruiseMissiles","level":"Red","oblastUid":22,"active":false,""" +
+        """"firstSeen":1792404000000,"lastSeen":1792404000000,"markerIds":["3:cruise_missiles"],""" +
+        """"samples":[{"t":1792404000000,"lat":49.9935,"lon":36.2304,"title":"Kharkiv","oblastUid":22,""" +
+        """"message":"Крилаті ракети","precision":"Hromada","level":"Red","errorKm":null}],"outcome":null,""" +
+        """"kind":"CruiseMissile","estimate":{"t":1792404000000,"lat":49.9935,"lon":36.2304,"headingDeg":null,""" +
+        """"speedKmh":null,"sigmaKm":12.0},"path":[{"t":1792404000000,"lat":49.9935,"lon":36.2304}],"forecast":[],""" +
+        """"arrivals":[]},{"id":"trk-tn5fs0-2","type":"Drones","level":"Red","oblastUid":31,"active":true,""" +
+        """"firstSeen":1792404000000,"lastSeen":1792405200000,"markerIds":["4:drones"],""" +
+        """"samples":[{"t":1792404000000,"lat":50.511,"lon":30.7909,"title":"Brovary","oblastUid":14,""" +
+        """"message":"Ударні БпЛА типу «Шахед»","precision":"Hromada","level":"Yellow","errorKm":null},""" +
+        """{"t":1792405200000,"lat":50.4501,"lon":30.5234,"title":"Kyiv City","oblastUid":31,""" +
+        """"message":"Ударні БпЛА типу «Шахед»","precision":"Hromada","level":"Red","errorKm":null}],""" +
+        """"outcome":null,"kind":"AttackDrone","estimate":{"t":1792405200000,"lat":50.455276,"lon":30.546137,""" +
+        """"headingDeg":250.302586,"speedKmh":120.000000,"sigmaKm":11.478693},"path":[{"t":1792404000000,""" +
+        """"lat":50.552863,"lon":30.974782},{"t":1792404075000,"lat":50.546764,"lon":30.947992},{"t":1792404150000,""" +
+        """"lat":50.540665,"lon":30.921201},{"t":1792404225000,"lat":50.534566,"lon":30.894411},{"t":1792404300000,""" +
+        """"lat":50.528466,"lon":30.867621},{"t":1792404375000,"lat":50.522367,"lon":30.840830},{"t":1792404450000,""" +
+        """"lat":50.516268,"lon":30.814040},{"t":1792404525000,"lat":50.510169,"lon":30.787250},{"t":1792404600000,""" +
+        """"lat":50.504070,"lon":30.760459},{"t":1792404675000,"lat":50.497971,"lon":30.733669},{"t":1792404750000,""" +
+        """"lat":50.491871,"lon":30.706879},{"t":1792404825000,"lat":50.485772,"lon":30.680088},{"t":1792404900000,""" +
+        """"lat":50.479673,"lon":30.653298},{"t":1792404975000,"lat":50.473574,"lon":30.626508},{"t":1792405050000,""" +
+        """"lat":50.467475,"lon":30.599717},{"t":1792405125000,"lat":50.461376,"lon":30.572927},{"t":1792405200000,""" +
+        """"lat":50.455276,"lon":30.546137}],"forecast":[{"t":1792405200000,"lat":50.455276,"lon":30.546137,""" +
+        """"sigmaKm":11.478693},{"t":1792405500000,"lat":50.424889,"lon":30.413236,"sigmaKm":12.295496},""" +
+        """{"t":1792405800000,"lat":50.394350,"lon":30.280505,"sigmaKm":14.471893},{"t":1792406100000,""" +
+        """"lat":50.363660,"lon":30.147946,"sigmaKm":17.507993},{"t":1792406400000,"lat":50.332820,"lon":30.015559,""" +
+        """"sigmaKm":21.034771},{"t":1792406700000,"lat":50.301830,"lon":29.883344,"sigmaKm":24.844134},""" +
+        """{"t":1792407000000,"lat":50.270690,"lon":29.751302,"sigmaKm":28.824262}],""" +
+        """"arrivals":[{"place":"Zhytomyr","lat":50.2547,"lon":28.6587,"distanceKm":135.746107,"at":1792409280000},""" +
+        """{"place":"Koziatyn","lat":49.716,"lon":28.836,"distanceKm":147.115797,"at":1792409640000}]}],""" +
+        """"simulated":false}"""
+
+    private const val SERVING_V1_DRONES_TRACKS_2: String =
+        """{"serverTime":1792405245000,"pollIntervalMs":15000,"lastUpstreamFetch":1792405200000,""" +
+        """"tracks":[{"id":"trk-tn5fs0-2","type":"Drones","level":"Red","oblastUid":31,"active":true,""" +
+        """"firstSeen":1792404000000,"lastSeen":1792405200000,"markerIds":["4:drones"],""" +
+        """"samples":[{"t":1792404000000,"lat":50.511,"lon":30.7909,"title":"Brovary","oblastUid":14,""" +
+        """"message":"Ударні БпЛА типу «Шахед»","precision":"Hromada","level":"Yellow","errorKm":null},""" +
+        """{"t":1792405200000,"lat":50.4501,"lon":30.5234,"title":"Kyiv City","oblastUid":31,""" +
+        """"message":"Ударні БпЛА типу «Шахед»","precision":"Hromada","level":"Red","errorKm":null}],""" +
+        """"outcome":null,"kind":"AttackDrone","estimate":{"t":1792405200000,"lat":50.455276,"lon":30.546137,""" +
+        """"headingDeg":250.302586,"speedKmh":120.000000,"sigmaKm":11.478693},"path":[{"t":1792404000000,""" +
+        """"lat":50.552863,"lon":30.974782},{"t":1792404075000,"lat":50.546764,"lon":30.947992},{"t":1792404150000,""" +
+        """"lat":50.540665,"lon":30.921201},{"t":1792404225000,"lat":50.534566,"lon":30.894411},{"t":1792404300000,""" +
+        """"lat":50.528466,"lon":30.867621},{"t":1792404375000,"lat":50.522367,"lon":30.840830},{"t":1792404450000,""" +
+        """"lat":50.516268,"lon":30.814040},{"t":1792404525000,"lat":50.510169,"lon":30.787250},{"t":1792404600000,""" +
+        """"lat":50.504070,"lon":30.760459},{"t":1792404675000,"lat":50.497971,"lon":30.733669},{"t":1792404750000,""" +
+        """"lat":50.491871,"lon":30.706879},{"t":1792404825000,"lat":50.485772,"lon":30.680088},{"t":1792404900000,""" +
+        """"lat":50.479673,"lon":30.653298},{"t":1792404975000,"lat":50.473574,"lon":30.626508},{"t":1792405050000,""" +
+        """"lat":50.467475,"lon":30.599717},{"t":1792405125000,"lat":50.461376,"lon":30.572927},{"t":1792405200000,""" +
+        """"lat":50.455276,"lon":30.546137}],"forecast":[{"t":1792405200000,"lat":50.455276,"lon":30.546137,""" +
+        """"sigmaKm":11.478693},{"t":1792405500000,"lat":50.424889,"lon":30.413236,"sigmaKm":12.295496},""" +
+        """{"t":1792405800000,"lat":50.394350,"lon":30.280505,"sigmaKm":14.471893},{"t":1792406100000,""" +
+        """"lat":50.363660,"lon":30.147946,"sigmaKm":17.507993},{"t":1792406400000,"lat":50.332820,"lon":30.015559,""" +
+        """"sigmaKm":21.034771},{"t":1792406700000,"lat":50.301830,"lon":29.883344,"sigmaKm":24.844134},""" +
+        """{"t":1792407000000,"lat":50.270690,"lon":29.751302,"sigmaKm":28.824262}],""" +
+        """"arrivals":[{"place":"Zhytomyr","lat":50.2547,"lon":28.6587,"distanceKm":135.746107,"at":1792409280000},""" +
+        """{"place":"Koziatyn","lat":49.716,"lon":28.836,"distanceKm":147.115797,"at":1792409640000}]}],""" +
+        """"simulated":false}"""
+
+    private const val SERVING_V1_DRONES_POSITIONS: String =
+        """{"at":1792405245000,"positions":[{"trackId":"trk-tn5fs0-2","lat":50.450728,"lon":30.526191,""" +
+        """"headingDeg":250.302586,"speedKmh":120.000000,"mode":"Extrapolated","level":"Red"}]}"""
+
+    private const val SERVING_V1_DRONES_POSITIONS_2: String =
+        """{"at":1792404600000,"positions":[{"trackId":"trk-tn5fs0-2","lat":50.504070,"lon":30.760459,""" +
+        """"headingDeg":250.305254,"speedKmh":96.600868,"mode":"Interpolated","level":"Red"}]}"""
+
+    private const val SERVING_V1_DRONES_TRACKS_3: String =
+        """{"serverTime":1792407645000,"pollIntervalMs":15000,"lastUpstreamFetch":1792407645000,""" +
+        """"tracks":[{"id":"trk-tn5fs0-1","type":"CruiseMissiles","level":"Red","oblastUid":22,"active":false,""" +
+        """"firstSeen":1792404000000,"lastSeen":1792404000000,"markerIds":[],"samples":[{"t":1792404000000,""" +
+        """"lat":49.9935,"lon":36.2304,"title":"Kharkiv","oblastUid":22,"message":"Крилаті ракети",""" +
+        """"precision":"Hromada","level":"Red","errorKm":null}],"outcome":null,"kind":"CruiseMissile",""" +
+        """"estimate":{"t":1792404000000,"lat":49.9935,"lon":36.2304,"headingDeg":null,"speedKmh":null,""" +
+        """"sigmaKm":12.0},"path":[{"t":1792404000000,"lat":49.9935,"lon":36.2304}],"forecast":[],"arrivals":[]},""" +
+        """{"id":"trk-tn5fs0-2","type":"Drones","level":"Red","oblastUid":31,"active":false,""" +
+        """"firstSeen":1792404000000,"lastSeen":1792405200000,"markerIds":[],"samples":[{"t":1792404000000,""" +
+        """"lat":50.511,"lon":30.7909,"title":"Brovary","oblastUid":14,"message":"Ударні БпЛА типу «Шахед»",""" +
+        """"precision":"Hromada","level":"Yellow","errorKm":null},{"t":1792405200000,"lat":50.4501,"lon":30.5234,""" +
+        """"title":"Kyiv City","oblastUid":31,"message":"Ударні БпЛА типу «Шахед»","precision":"Hromada",""" +
+        """"level":"Red","errorKm":null}],"outcome":null,"kind":"AttackDrone","estimate":{"t":1792405200000,""" +
+        """"lat":50.455276,"lon":30.546137,"headingDeg":250.302586,"speedKmh":120.000000,"sigmaKm":11.478693},""" +
+        """"path":[{"t":1792404000000,"lat":50.552863,"lon":30.974782},{"t":1792404075000,"lat":50.546764,""" +
+        """"lon":30.947992},{"t":1792404150000,"lat":50.540665,"lon":30.921201},{"t":1792404225000,"lat":50.534566,""" +
+        """"lon":30.894411},{"t":1792404300000,"lat":50.528466,"lon":30.867621},{"t":1792404375000,"lat":50.522367,""" +
+        """"lon":30.840830},{"t":1792404450000,"lat":50.516268,"lon":30.814040},{"t":1792404525000,"lat":50.510169,""" +
+        """"lon":30.787250},{"t":1792404600000,"lat":50.504070,"lon":30.760459},{"t":1792404675000,"lat":50.497971,""" +
+        """"lon":30.733669},{"t":1792404750000,"lat":50.491871,"lon":30.706879},{"t":1792404825000,"lat":50.485772,""" +
+        """"lon":30.680088},{"t":1792404900000,"lat":50.479673,"lon":30.653298},{"t":1792404975000,"lat":50.473574,""" +
+        """"lon":30.626508},{"t":1792405050000,"lat":50.467475,"lon":30.599717},{"t":1792405125000,"lat":50.461376,""" +
+        """"lon":30.572927},{"t":1792405200000,"lat":50.455276,"lon":30.546137}],"forecast":[],"arrivals":[]}],""" +
+        """"simulated":false}"""
+
+    private const val SERVING_V1_DRONES_ARCHIVE: String =
+        """{"from":1792404000000,"to":1792407645000,"tracks":[{"id":"trk-tn5fs0-2","type":"Drones","level":"Red",""" +
+        """"oblastUid":31,"active":false,"firstSeen":1792404000000,"lastSeen":1792405200000,"markerIds":[],""" +
+        """"samples":[{"t":1792404000000,"lat":50.511,"lon":30.7909,"title":"Brovary","oblastUid":14,""" +
+        """"message":"Ударні БпЛА типу «Шахед»","precision":"Hromada","level":"Yellow","errorKm":null},""" +
+        """{"t":1792405200000,"lat":50.4501,"lon":30.5234,"title":"Kyiv City","oblastUid":31,""" +
+        """"message":"Ударні БпЛА типу «Шахед»","precision":"Hromada","level":"Red","errorKm":null}],""" +
+        """"outcome":null,"kind":"AttackDrone","estimate":{"t":1792405200000,"lat":50.455276,"lon":30.546137,""" +
+        """"headingDeg":250.302586,"speedKmh":120.000000,"sigmaKm":11.478693},"path":[{"t":1792404000000,""" +
+        """"lat":50.552863,"lon":30.974782},{"t":1792404075000,"lat":50.546764,"lon":30.947992},{"t":1792404150000,""" +
+        """"lat":50.540665,"lon":30.921201},{"t":1792404225000,"lat":50.534566,"lon":30.894411},{"t":1792404300000,""" +
+        """"lat":50.528466,"lon":30.867621},{"t":1792404375000,"lat":50.522367,"lon":30.840830},{"t":1792404450000,""" +
+        """"lat":50.516268,"lon":30.814040},{"t":1792404525000,"lat":50.510169,"lon":30.787250},{"t":1792404600000,""" +
+        """"lat":50.504070,"lon":30.760459},{"t":1792404675000,"lat":50.497971,"lon":30.733669},{"t":1792404750000,""" +
+        """"lat":50.491871,"lon":30.706879},{"t":1792404825000,"lat":50.485772,"lon":30.680088},{"t":1792404900000,""" +
+        """"lat":50.479673,"lon":30.653298},{"t":1792404975000,"lat":50.473574,"lon":30.626508},{"t":1792405050000,""" +
+        """"lat":50.467475,"lon":30.599717},{"t":1792405125000,"lat":50.461376,"lon":30.572927},{"t":1792405200000,""" +
+        """"lat":50.455276,"lon":30.546137}],"forecast":[],"arrivals":[]},{"id":"trk-tn5fs0-1",""" +
+        """"type":"CruiseMissiles","level":"Red","oblastUid":22,"active":false,"firstSeen":1792404000000,""" +
+        """"lastSeen":1792404000000,"markerIds":[],"samples":[{"t":1792404000000,"lat":49.9935,"lon":36.2304,""" +
+        """"title":"Kharkiv","oblastUid":22,"message":"Крилаті ракети","precision":"Hromada","level":"Red",""" +
+        """"errorKm":null}],"outcome":null,"kind":"CruiseMissile","estimate":{"t":1792404000000,"lat":49.9935,""" +
+        """"lon":36.2304,"headingDeg":null,"speedKmh":null,"sigmaKm":12.0},"path":[{"t":1792404000000,""" +
+        """"lat":49.9935,"lon":36.2304}],"forecast":[],"arrivals":[]}],"simulated":false}"""
+
+    private const val SERVING_V1_DRONES_ARCHIVE_2: String =
+        """{"from":1792400400000,"to":1792411200000,"tracks":[{"id":"trk-tn5fs0-2","type":"Drones","level":"Red",""" +
+        """"oblastUid":31,"active":false,"firstSeen":1792404000000,"lastSeen":1792405200000,"markerIds":[],""" +
+        """"samples":[{"t":1792404000000,"lat":50.511,"lon":30.7909,"title":"Brovary","oblastUid":14,""" +
+        """"message":"Ударні БпЛА типу «Шахед»","precision":"Hromada","level":"Yellow","errorKm":null},""" +
+        """{"t":1792405200000,"lat":50.4501,"lon":30.5234,"title":"Kyiv City","oblastUid":31,""" +
+        """"message":"Ударні БпЛА типу «Шахед»","precision":"Hromada","level":"Red","errorKm":null}],""" +
+        """"outcome":null,"kind":"AttackDrone","estimate":{"t":1792405200000,"lat":50.455276,"lon":30.546137,""" +
+        """"headingDeg":250.302586,"speedKmh":120.000000,"sigmaKm":11.478693},"path":[{"t":1792404000000,""" +
+        """"lat":50.552863,"lon":30.974782},{"t":1792404075000,"lat":50.546764,"lon":30.947992},{"t":1792404150000,""" +
+        """"lat":50.540665,"lon":30.921201},{"t":1792404225000,"lat":50.534566,"lon":30.894411},{"t":1792404300000,""" +
+        """"lat":50.528466,"lon":30.867621},{"t":1792404375000,"lat":50.522367,"lon":30.840830},{"t":1792404450000,""" +
+        """"lat":50.516268,"lon":30.814040},{"t":1792404525000,"lat":50.510169,"lon":30.787250},{"t":1792404600000,""" +
+        """"lat":50.504070,"lon":30.760459},{"t":1792404675000,"lat":50.497971,"lon":30.733669},{"t":1792404750000,""" +
+        """"lat":50.491871,"lon":30.706879},{"t":1792404825000,"lat":50.485772,"lon":30.680088},{"t":1792404900000,""" +
+        """"lat":50.479673,"lon":30.653298},{"t":1792404975000,"lat":50.473574,"lon":30.626508},{"t":1792405050000,""" +
+        """"lat":50.467475,"lon":30.599717},{"t":1792405125000,"lat":50.461376,"lon":30.572927},{"t":1792405200000,""" +
+        """"lat":50.455276,"lon":30.546137}],"forecast":[],"arrivals":[]}],"simulated":false}"""
+
+    private const val SERVING_V1_DRONES_ARCHIVE_3: String =
+        """{"from":1792321245000,"to":1792407645000,"tracks":[{"id":"trk-tn5fs0-1","type":"CruiseMissiles",""" +
+        """"level":"Red","oblastUid":22,"active":false,"firstSeen":1792404000000,"lastSeen":1792404000000,""" +
+        """"markerIds":[],"samples":[{"t":1792404000000,"lat":49.9935,"lon":36.2304,"title":"Kharkiv",""" +
+        """"oblastUid":22,"message":"Крилаті ракети","precision":"Hromada","level":"Red","errorKm":null}],""" +
+        """"outcome":null,"kind":"CruiseMissile","estimate":{"t":1792404000000,"lat":49.9935,"lon":36.2304,""" +
+        """"headingDeg":null,"speedKmh":null,"sigmaKm":12.0},"path":[{"t":1792404000000,"lat":49.9935,""" +
+        """"lon":36.2304}],"forecast":[],"arrivals":[]}],"simulated":false}"""
+
+    private const val SERVING_V1_REGIONS_31_ALERTS_DAY_AGO: String =
+        """{"alerts":[{"id":4,"location_title":"м. Київ","location_type":"city",""" +
+        """"started_at":"2026-10-19T10:20:00.000Z","finished_at":"2026-10-19T11:00:45.000Z",""" +
+        """"updated_at":"2026-10-19T11:00:45.000Z","alert_type":"air_raid","location_oblast":"м. Київ",""" +
+        """"location_uid":"31","notes":null,"country":null,"alert_level":"red","location_title_en":"Kyiv City",""" +
+        """"threats":[{"threat_type":"drones","level":"red","started_at":"2026-10-19T10:20:00.000Z",""" +
+        """"source_message":"Ударні БпЛА типу «Шахед»"}],"location_oblast_uid":31}]}"""
+
+    private const val SERVING_V1_ALERTS_ACTIVE_4: String =
+        """{"alerts":[{"id":1,"location_title":"Харківська область","location_type":"oblast",""" +
+        """"started_at":"2026-10-19T10:00:00.000Z","finished_at":null,"updated_at":"2026-10-19T10:00:00.000Z",""" +
+        """"alert_type":"air_raid","location_oblast":"Харківська область","location_uid":"22","notes":null,""" +
+        """"country":null,"alert_level":"red","location_title_en":"Kharkiv Oblast",""" +
+        """"threats":[{"threat_type":"drones","level":"red","started_at":"2026-10-19T10:00:00.000Z",""" +
+        """"source_message":"Ударні БпЛА типу «Шахед»"}],"location_oblast_uid":22}],""" +
+        """"meta":{"last_updated_at":"2026/10/19 11:00:45 +0000","type":"full"}}"""
+
+    private const val SERVING_HEALTH_2: String =
+        """{"status":"degraded","source":"AlertsInUa","simulated":false,"upstreamBudgetPerMinute":6,""" +
+        """"upstreamRequestsLastMinute":0,"upstreamRequestsTotal":0,"upstreamRateLimitedTotal":0,""" +
+        """"upstreamRejectedTotal":0,"upstreamOtherFailuresTotal":0,"upstreamLastSuccessAt":null,""" +
+        """"pollIntervalSeconds":15,"lastAttemptAt":1792407660000,"nextPollAt":null,"dataVersion":3,""" +
+        """"dataConfirmedAt":1792407645000,"dataAgeSeconds":15,"alerts":1,"tracks":2,"activeTracks":0,""" +
+        """"lastError":"HTTP 502 from upstream"}"""
+
+    private const val SERVING_V1_ALERTS_ACTIVE_5: String =
+        """{"alerts":[{"id":1,"location_title":"Харківська область","location_type":"oblast",""" +
+        """"started_at":"2026-10-19T10:00:00.000Z","finished_at":null,"updated_at":"2026-10-19T10:00:00.000Z",""" +
+        """"alert_type":"air_raid","location_oblast":"Харківська область","location_uid":"22","notes":null,""" +
+        """"country":null,"alert_level":"red","location_title_en":"Kharkiv Oblast",""" +
+        """"threats":[{"threat_type":"drones","level":"red","started_at":"2026-10-19T10:00:00.000Z",""" +
+        """"source_message":"Ударні БпЛА типу «Шахед»"}],"location_oblast_uid":22}],""" +
+        """"meta":{"last_updated_at":"2026/10/19 11:00:45 +0000","type":"full"}}"""
+
+    private const val AUTH_V1_REGIONS_14_ALERTS_DAY_AGO: String =
+        """{"alerts":[{"id":1,"location_title":"Броварська територіальна громада","location_type":"hromada",""" +
+        """"started_at":"2026-10-19T10:00:00.000Z","finished_at":null,"updated_at":"2026-10-19T10:00:00.000Z",""" +
+        """"alert_type":"air_raid","location_oblast":"Київська область","location_uid":"1100","notes":null,""" +
+        """"country":null,"alert_level":"red","location_title_en":"Brovary","threats":[{"threat_type":"drones",""" +
+        """"level":"red","started_at":"2026-10-19T10:00:00.000Z","source_message":"Ударні БпЛА типу «Шахед»"}],""" +
+        """"location_oblast_uid":14}]}"""
+
+    private const val AUTH_HEALTH: String =
+        """{"status":"ok","source":"AlertsInUa","simulated":false,"upstreamBudgetPerMinute":6,""" +
+        """"upstreamRequestsLastMinute":0,"upstreamRequestsTotal":0,"upstreamRateLimitedTotal":0,""" +
+        """"upstreamRejectedTotal":0,"upstreamOtherFailuresTotal":0,"upstreamLastSuccessAt":null,""" +
+        """"pollIntervalSeconds":15,"lastAttemptAt":1792404000000,"nextPollAt":null,"dataVersion":1,""" +
+        """"dataConfirmedAt":1792404000000,"dataAgeSeconds":0,"alerts":1,"tracks":1,"activeTracks":1,""" +
+        """"lastError":null}"""
 }

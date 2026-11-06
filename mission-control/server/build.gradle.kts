@@ -15,6 +15,7 @@ kotlin {
     compilerOptions {
         jvmTarget = JvmTarget.JVM_17
         optIn.add("kotlin.time.ExperimentalTime")
+        allWarningsAsErrors.set(true)
     }
 }
 
@@ -48,8 +49,8 @@ dependencies {
     testImplementation(libs.ktor.client.mock)
 }
 
-// Local secrets for `./gradlew :mission-control:server:run`: KEY=value lines from mission-control/server/.env (git-ignored).
-// Variables already set in the environment win.
+// Local secrets for `./gradlew :mission-control:server:run`: KEY=value lines from mission-control/server/.env
+// (git-ignored). Variables already set in the environment win.
 tasks.named<JavaExec>("run") {
     val envFile = file(".env")
     if (envFile.exists()) {

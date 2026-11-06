@@ -22,10 +22,14 @@ internal class AlertRegistry(firstId: Long) {
         var updatedAt = startedAt
         val threats = LinkedHashMap<ThreatType, OpenThreat>()
 
-        fun toAirAlert() = AirAlert(
+        fun toAirAlert(): AirAlert = AirAlert(
             id = id,
             location = location,
-            level = if (threats.values.any { it.signal.level == ThreatLevel.Red }) ThreatLevel.Red else ThreatLevel.Yellow,
+            level = if (threats.values.any { it.signal.level == ThreatLevel.Red }) {
+                ThreatLevel.Red
+            } else {
+                ThreatLevel.Yellow
+            },
             startedAt = Instant.fromEpochMilliseconds(startedAt),
             updatedAt = Instant.fromEpochMilliseconds(updatedAt),
             threats = threats.values.map { it.signal },
@@ -42,7 +46,9 @@ internal class AlertRegistry(firstId: Long) {
                 val strongest = typeDemands.minBy { it.level }
                 val threat = alert.threats[type]
                 if (threat == null) {
-                    alert.threats[type] = OpenThreat(ThreatSignal(type, strongest.level, Instant.fromEpochMilliseconds(t), strongest.message), t)
+                    val openedAt = Instant.fromEpochMilliseconds(t)
+                    val signal = ThreatSignal(type, strongest.level, openedAt, strongest.message)
+                    alert.threats[type] = OpenThreat(signal, t)
                     alert.updatedAt = t
                 } else {
                     threat.lastDemandedAt = t
@@ -54,7 +60,8 @@ internal class AlertRegistry(firstId: Long) {
             }
         }
         open.values.forEach { alert ->
-            if (alert.threats.values.removeIf { t - it.lastDemandedAt > clearDelayMs(it.signal.type) }) alert.updatedAt = t
+            val cleared = alert.threats.values.removeIf { t - it.lastDemandedAt > clearDelayMs(it.signal.type) }
+            if (cleared) alert.updatedAt = t
         }
         open.values.removeIf { it.threats.isEmpty() }
         return open.values.map { it.toAirAlert() }

@@ -37,7 +37,7 @@ internal class AirSituationSimulator(config: SimulationConfig, firstAlertId: Lon
         val areas = plans.flatMap { it.areas }.filter { it.isActive(t) }
 
         val demands = warning.demands(t, flights, areas)
-        val alerts = registry.update(demands, t) + SimulatedLocations.permanentAlerts
+        val alerts = registry.update(demands, t) + SimulatedLocations.PERMANENT_ALERTS
 
         val markerIds = markerIdsByTarget(demands)
         val observations = flights.mapNotNull { observe(it, t, markerIds[it.id].orEmpty()) }
@@ -45,7 +45,7 @@ internal class AirSituationSimulator(config: SimulationConfig, firstAlertId: Lon
     }
 
     /** Every location the simulation alerts. */
-    val locations get() = SimulatedLocations.all
+    val locations: List<AlertLocation> get() = SimulatedLocations.ALL
 
     /**
      * The markers of the alerts each target is in right now, by target id, so clients draw the target instead
@@ -54,8 +54,10 @@ internal class AirSituationSimulator(config: SimulationConfig, firstAlertId: Lon
     private fun markerIdsByTarget(demands: Map<AlertLocation, List<ThreatDemand>>): Map<String, List<String>> =
         demands.flatMap { (location, locationDemands) ->
             val alertId = registry.alertId(location.uid) ?: return@flatMap emptyList<Pair<String, String>>()
-            locationDemands.mapNotNull { demand -> demand.targetId?.let { it to ThreatMapper.markerId(alertId, demand.type.apiValue) } }
-        }.groupBy({ it.first }, { it.second }).mapValues { it.value.distinct() }
+            locationDemands.mapNotNull { demand ->
+                demand.targetId?.let { it to ThreatMapper.markerId(alertId, demand.type.apiValue) }
+            }
+        }.groupBy({ (targetId, _) -> targetId }, { (_, markerId) -> markerId }).mapValues { it.value.distinct() }
 
     /** The current and recent strikes and front-line slots, planned once and kept while they matter. */
     private fun plansAround(t: Long): List<AttackPlan> {

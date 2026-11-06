@@ -52,9 +52,11 @@ internal object AirForceMessages {
     private val throughPhrase = Regex("""через\s+(?:м\.\s*)?$PLACE""")
     private val headingPhrase = Regex("""(?:курсом на|у напрямку|в напрямку|напрямок на|на)\s+(?:м\.\s*)?$PLACE""")
 
-    private fun through(text: String): City? = throughPhrase.findAll(text).firstNotNullOfOrNull { city(it.groupValues[1]) }
+    private fun through(text: String): City? =
+        throughPhrase.findAll(text).firstNotNullOfOrNull { city(it.groupValues[1]) }
 
-    private fun heading(text: String): City? = headingPhrase.findAll(text).firstNotNullOfOrNull { city(it.groupValues[1]) }
+    private fun heading(text: String): City? =
+        headingPhrase.findAll(text).firstNotNullOfOrNull { city(it.groupValues[1]) }
 
     /**
      * The city a place name in any case refers to: "Полтаву", "Дніпра", "Києва". Map keywords are stems
@@ -73,7 +75,7 @@ internal object AirForceMessages {
     private fun loose(word: String) = word.lowercase().replace(Regex("[іїоеєи]"), "*")
 
     /** Oblasts as the messages name them, by stem: "Сумщина", "на Сумщині", "Харківщину". */
-    private val oblastStems = listOf(
+    private val OBLAST_STEMS = listOf(
         "Хмельниччин" to 3, "Вінниччин" to 4, "Рівненщин" to 5, "Волин" to 8, "Дніпропетровщин" to 9, "Дніпровщин" to 9,
         "Житомирщин" to 10, "Закарпатт" to 11, "Франківщин" to 13, "Прикарпатт" to 13, "Київщин" to 14,
         "Кіровоградщин" to 15, "Кропивниччин" to 15, "Луганщин" to 16, "Миколаївщин" to 17, "Одещин" to 18,
@@ -82,7 +84,8 @@ internal object AirForceMessages {
         "Донеччин" to 28, "Крим" to 29,
     )
 
-    private fun oblast(text: String): Int? = oblastStems.firstOrNull { (stem, _) -> text.contains(stem, ignoreCase = true) }?.second
+    private fun oblast(text: String): Int? =
+        OBLAST_STEMS.firstOrNull { (stem, _) -> text.contains(stem, ignoreCase = true) }?.second
 
     private fun cityLocation(city: City) = AlertLocation(
         uid = "tg-${city.name}",

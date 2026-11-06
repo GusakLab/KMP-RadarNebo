@@ -1,6 +1,7 @@
 package com.gusak.lab.radarnebo.console
 
 import com.gusak.lab.radarnebo.debug.HttpExchange
+import com.gusak.lab.radarnebo.debug.HttpHeader
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -14,7 +15,7 @@ class ClientInfoTest {
         url: String = "/v1/alerts/active.json",
         status: Int? = 200,
         at: Long = 1_000,
-        headers: List<Pair<String, String>> = emptyList(),
+        headers: List<HttpHeader> = emptyList(),
     ) = HttpExchange(
         startedAt = at,
         direction = HttpExchange.Direction.Incoming,
@@ -51,7 +52,7 @@ class ClientInfoTest {
 
     @Test
     fun aKeyOnceUsedStaysUsed() {
-        assertTrue(seen(exchange(headers = listOf("authorization" to "Bearer x")), exchange()).usedKey)
+        assertTrue(seen(exchange(headers = listOf(HttpHeader("authorization", "Bearer x"))), exchange()).usedKey)
         assertTrue(seen(exchange(url = "/v1/alerts/active.json?token=x"), exchange()).usedKey)
         assertTrue(seen(exchange(url = "/v1/alerts/active.json?a=1&token=x")).usedKey)
         assertFalse(seen(exchange()).usedKey)
@@ -64,11 +65,11 @@ class ClientInfoTest {
 
     @Test
     fun keepsThePreviousUserAgentWhenARequestHasNone() {
-        val client = seen(exchange(headers = listOf("User-Agent" to "RadarNebo/1.0")), exchange())
+        val client = seen(exchange(headers = listOf(HttpHeader("User-Agent", "RadarNebo/1.0"))), exchange())
         assertEquals("RadarNebo/1.0", client.userAgent)
         val switched = seen(
-            exchange(headers = listOf("User-Agent" to "RadarNebo/1.0")),
-            exchange(headers = listOf("User-Agent" to "curl/8")),
+            exchange(headers = listOf(HttpHeader("User-Agent", "RadarNebo/1.0"))),
+            exchange(headers = listOf(HttpHeader("User-Agent", "curl/8"))),
         )
         assertEquals("curl/8", switched.userAgent)
     }

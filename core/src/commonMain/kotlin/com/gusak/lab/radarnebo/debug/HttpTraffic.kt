@@ -23,7 +23,7 @@ fun httpTrafficCapture(
         val requestHeaders = TrafficMasking.headers(request.headers.build())
         fun record(
             status: Int?,
-            headers: List<Pair<String, String>>,
+            headers: List<HttpHeader>,
             type: ContentType?,
             body: String?,
             error: String?,

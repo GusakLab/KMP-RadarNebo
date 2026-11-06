@@ -213,7 +213,7 @@ class AlertsInUaSourceTest {
         assertTrue("Бровари" in assertNotNull(exchange.responseBody))
         assertEquals(
             "***",
-            exchange.requestHeaders.single { it.first == HttpHeaders.Authorization }.second,
+            exchange.requestHeaders.single { it.name == HttpHeaders.Authorization }.value,
             "the token is masked",
         )
     }

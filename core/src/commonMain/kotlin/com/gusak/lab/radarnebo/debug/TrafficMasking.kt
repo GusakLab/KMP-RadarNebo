@@ -11,8 +11,8 @@ object TrafficMasking {
     /** alerts.in.ua-style clients may pass their key as `?token=`. */
     fun url(url: String): String = url.replace(tokenParameter, "$1$MASK")
 
-    fun headers(headers: Headers): List<Pair<String, String>> = headers.entries().flatMap { (name, values) ->
-        values.map { name to if (name.equals(HttpHeaders.Authorization, ignoreCase = true)) MASK else it }
+    fun headers(headers: Headers): List<HttpHeader> = headers.entries().flatMap { (name, values) ->
+        values.map { HttpHeader(name, if (name.equals(HttpHeaders.Authorization, ignoreCase = true)) MASK else it) }
     }
 
     fun isText(type: ContentType?): Boolean {

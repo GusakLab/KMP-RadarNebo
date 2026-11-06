@@ -22,7 +22,7 @@ private val TOKEN_PARAM = Regex("[?&]token=")
 internal fun ClientInfo?.after(exchange: HttpExchange, address: String): ClientInfo {
     // No status means the request failed before a response went out.
     val failed = exchange.status.let { it == null || it >= 400 }
-    val usedKey = exchange.requestHeaders.any { it.first.equals("Authorization", ignoreCase = true) } ||
+    val usedKey = exchange.requestHeaders.any { it.name.equals("Authorization", ignoreCase = true) } ||
         TOKEN_PARAM.containsMatchIn(exchange.url)
     return ClientInfo(
         address = address,

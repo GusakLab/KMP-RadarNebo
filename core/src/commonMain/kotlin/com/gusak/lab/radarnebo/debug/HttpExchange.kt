@@ -15,8 +15,8 @@ data class HttpExchange(
     val remoteAddress: String?,
     val status: Int?,
     val durationMs: Long,
-    val requestHeaders: List<Pair<String, String>>,
-    val responseHeaders: List<Pair<String, String>>,
+    val requestHeaders: List<HttpHeader>,
+    val responseHeaders: List<HttpHeader>,
     val contentType: String?,
     /** Text bodies only, cut at [MAX_BODY_CHARS]; null for binary, streamed or empty bodies. */
     val responseBody: String?,
@@ -42,7 +42,7 @@ data class HttpExchange(
     companion object {
         internal const val MAX_BODY_CHARS: Int = 2_000_000
 
-        private fun header(headers: List<Pair<String, String>>, name: String) =
-            headers.firstOrNull { it.first.equals(name, ignoreCase = true) }?.second
+        private fun header(headers: List<HttpHeader>, name: String) =
+            headers.firstOrNull { it.name.equals(name, ignoreCase = true) }?.value
     }
 }

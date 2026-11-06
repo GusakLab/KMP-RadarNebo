@@ -53,6 +53,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.gusak.lab.radarnebo.debug.HttpExchange
+import com.gusak.lab.radarnebo.debug.HttpHeader
 import com.gusak.lab.radarnebo.ui.STATUS_TINT
 import com.gusak.lab.radarnebo.ui.formatClock
 import com.gusak.lab.radarnebo.ui.radarColors
@@ -378,7 +379,7 @@ private fun CopyButton(text: String) {
 }
 
 @Composable
-private fun Headers(headers: List<Pair<String, String>>) {
+private fun Headers(headers: List<HttpHeader>) {
     if (headers.isEmpty()) Text("(none)", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
     headers.forEach { (name, value) ->
         Text(

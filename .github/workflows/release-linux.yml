@@ -135,10 +135,14 @@ jobs:
         run: |
           sed -i "s/^version: .*/version: \"$VERSION\"/" snap/snapcraft.yaml
           grep -x "version: \"$VERSION\"" snap/snapcraft.yaml
+      # On failure snapcraft only prints a summary, so show the end of its detailed log.
       - name: Build the snap
         run: |
           sudo snap install snapcraft --classic
-          sudo snapcraft pack --destructive-mode
+          sudo snapcraft pack --destructive-mode || {
+            sudo sh -c 'tail -n 80 /root/.local/state/snapcraft/log/snapcraft-*.log'
+            exit 1
+          }
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: linux-snap

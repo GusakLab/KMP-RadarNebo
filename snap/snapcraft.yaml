@@ -39,10 +39,13 @@ apps:
 
 parts:
   app:
-    plugin: dump
+    plugin: nil
     source: app/desktop/build/compose/binaries/main/app/RadarNebo
-    organize:
-      "*": lib/radarnebo/
+    # A copy rather than `organize: {"*": lib/radarnebo/}`, which would have to move the distributable's own lib
+    # directory into itself.
+    override-build: |
+      mkdir -p "$CRAFT_PART_INSTALL/lib/radarnebo"
+      cp -a . "$CRAFT_PART_INSTALL/lib/radarnebo/"
 
   desktop-entry:
     plugin: dump

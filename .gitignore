@@ -104,6 +104,16 @@ fastlane/test_output
 *.rpm
 *.exe
 
+# Linux packages (packaging/linux, snap/): outputs, and the work directories of flatpak-builder and of
+# snapcraft's destructive mode
+*.AppImage
+*.flatpak
+*.snap
+.flatpak-builder/
+/parts/
+/stage/
+/prime/
+
 # ==========================================================
 # Server (Ktor)
 # ==========================================================

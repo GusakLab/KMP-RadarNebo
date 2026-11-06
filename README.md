@@ -52,6 +52,8 @@ From a terminal:
 - MissionControl-Nebo, the Android server monitor: `./gradlew :mission-control:android:bundleRelease`; signing and the
   Google Play listing are in [MissionControl-Nebo release](./docs/mission-control-android-release.md).
 - Desktop app: `./gradlew :app:desktop:run`
+- Desktop app for Linux as an AppImage, Flatpak and Snap, published as a GitHub release on a `v1.2.3` tag:
+  [Linux release](./docs/linux-release.md).
 - iOS app: open the [/app/ios](./app/ios) directory in Xcode and run it from there.
 - Server: CI, the Oracle Cloud deploy and the server's environment variables are in [Server deployment](./docs/deployment.md).
 

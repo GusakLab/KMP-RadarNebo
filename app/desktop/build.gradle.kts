@@ -69,7 +69,8 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "RadarNebo"
-            packageVersion = "1.0.0"
+            // The Linux release workflow passes the tag's version: -PappVersion=1.2.3 for tag v1.2.3.
+            packageVersion = providers.gradleProperty("appVersion").getOrElse("1.0.0")
             // The packaged app ships a trimmed JDK. `suggestRuntimeModules` finds the first three; logback needs
             // java.naming (loaded reflectively, so not detected) and HTTPS tile servers need jdk.crypto.ec.
             modules("java.instrument", "java.management", "jdk.unsupported", "java.naming", "jdk.crypto.ec")

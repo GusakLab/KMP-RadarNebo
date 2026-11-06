@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- What software centers (GNOME Software, KDE Discover) show when installing the Flatpak, Snap or AppImage. -->
+<component type="desktop-application">
+  <id>com.gusak.lab.radarnebo</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>LicenseRef-proprietary</project_license>
+
+  <name>RadarNebo</name>
+  <summary>Drone and missile threats over Ukraine on a live map</summary>
+  <description>
+    <p>
+      RadarNebo shows active air-raid alerts and the drones and missiles behind them on a map of Ukraine. Select a
+      target to see its type, its track so far and where it is predicted to go next, and save the places you care
+      about to be flagged when a threat comes near.
+    </p>
+    <p>
+      Tracks and predictions are estimated from public alerts and warnings. They are not official warnings: always
+      follow the air-raid alerts of your region.
+    </p>
+  </description>
+
+  <launchable type="desktop-id">com.gusak.lab.radarnebo.desktop</launchable>
+  <provides>
+    <binary>radarnebo</binary>
+  </provides>
+
+  <url type="homepage">https://github.com/TreeDev-Innovation/KMP-RadarNebo</url>
+  <url type="bugtracker">https://github.com/TreeDev-Innovation/KMP-RadarNebo/issues</url>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>Active threats on the map</caption>
+      <image>https://raw.githubusercontent.com/TreeDev-Innovation/KMP-RadarNebo/main/docs/screenshots/map-overview-tablet.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>A cruise missile's track and predicted route</caption>
+      <image>https://raw.githubusercontent.com/TreeDev-Innovation/KMP-RadarNebo/main/docs/screenshots/missile-selected-tablet.png</image>
+    </screenshot>
+  </screenshots>
+
+  <categories>
+    <category>Utility</category>
+    <category>Maps</category>
+  </categories>
+
+  <requires>
+    <internet>always</internet>
+  </requires>
+
+  <content_rating type="oars-1.1"/>
+</component>

@@ -23,8 +23,10 @@ import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import kotlin.time.Clock
 import kotlin.time.Instant
+
+/** A fixed instant (the one the previews use), so time labels and track positions are the same every run. */
+private val NOW: Instant = Instant.parse("2026-03-14T15:00:00Z")
 
 /** Renders tracked demo drones, the targets panel and a selected target's timeline, also scrolled. */
 @OptIn(ExperimentalComposeUiApi::class)
@@ -73,7 +75,7 @@ class TargetsSnapshotTest {
     }
 
     private fun run(width: Int, height: Int, firstRow: Offset, name: String) {
-        val now = Clock.System.now()
+        val now = NOW
         val state = state(now)
         assertTrue(state.tracks.count { it.samples.size >= 2 } >= 2, "demo produced moving tracks")
         val prediction = TrackPredictor.predict(state.tracks.first { it.id == "trk-99" }, now.toEpochMilliseconds())
@@ -85,6 +87,7 @@ class TargetsSnapshotTest {
                     onModeChange = {},
                     onAddFavorite = { _, _ -> },
                     bottomInset = 88f.let { androidx.compose.ui.unit.Dp(it) },
+                    clock = { NOW.toEpochMilliseconds() },
                 )
             }
         }.use { scene ->

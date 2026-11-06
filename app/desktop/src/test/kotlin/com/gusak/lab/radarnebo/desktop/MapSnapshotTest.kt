@@ -18,8 +18,10 @@ import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import kotlin.time.Clock
 import kotlin.time.Instant
+
+/** A fixed instant (the one the previews use), so time labels and track positions are the same every run. */
+private val NOW: Instant = Instant.parse("2026-03-14T15:00:00Z")
 
 /** Renders the map headlessly with a drone track moving between reports, to check the desktop UI draws. */
 class MapSnapshotTest {
@@ -60,11 +62,13 @@ class MapSnapshotTest {
 
     @Test
     fun rendersMapWithInterpolatedTrack() {
-        val state = state(Clock.System.now())
+        val state = state(NOW)
 
         val out = File(System.getProperty("snapshot.dir") ?: "build/snapshots").apply { mkdirs() }
         ImageComposeScene(width = 1100, height = 820, density = Density(1.5f)) {
-            RadarTheme { MapScreen(state, onModeChange = {}, onAddFavorite = { _, _ -> }) }
+            RadarTheme {
+                MapScreen(state, onModeChange = {}, onAddFavorite = { _, _ -> }, clock = { NOW.toEpochMilliseconds() })
+            }
         }.use { scene ->
             scene.render(0)
             val image = scene.render(2_000_000_000L)
@@ -79,6 +83,7 @@ class MapSnapshotTest {
                     state.copy(settings = state.settings.copy(mapMode = MapMode.Cinematic)),
                     onModeChange = {},
                     onAddFavorite = { _, _ -> },
+                    clock = { NOW.toEpochMilliseconds() },
                 )
             }
         }.use { scene ->

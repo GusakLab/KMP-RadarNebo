@@ -3,7 +3,7 @@
 <component type="desktop-application">
   <id>com.gusak.lab.radarnebo</id>
   <metadata_license>CC0-1.0</metadata_license>
-  <project_license>LicenseRef-proprietary</project_license>
+  <project_license>MIT</project_license>
 
   <name>RadarNebo</name>
   <summary>Drone and missile threats over Ukraine on a live map</summary>

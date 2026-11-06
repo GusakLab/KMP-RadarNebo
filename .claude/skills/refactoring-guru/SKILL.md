@@ -6,48 +6,48 @@ license: MIT
 
 # Refactoring.Guru Skill
 
-Refactoring: small, smell-driven, behavior-preserving change, verified, with stop condition. Not general cleanup. Not an excuse to apply patterns.
+Refactoring is a small, smell-driven, behavior-preserving change with verification and a stop condition. It is not general cleanup, and it is not a chance to apply patterns.
 
-Before deciding anything, read and apply [refactoring-guru.mini.md](refactoring-guru.mini.md): decision rules, trigger rules, final checklist. Deeper reference for full smell catalog (bloaters, OO abusers, change preventers, dispensables, couplers) or tradeoffs mini rules don't settle: [refactoring-guru.md](refactoring-guru.md).
+Before you make decisions, read and apply [refactoring-guru.mini.md](refactoring-guru.mini.md), which contains the decision rules, trigger rules, and final checklist. Use [refactoring-guru.md](refactoring-guru.md) as the deeper reference when you need the full smell catalog (bloaters, OO abusers, change preventers, dispensables, couplers) or a tradeoff the mini rules don't settle. For the mechanics of a specific technique, see [references/catalog/README.md](references/catalog/README.md).
 
 ## Workflow
 
 ### 1. Diagnose the smell
 
-Name smell. Record symptom, current maintenance cost, scope, expected cleaner end state. Can't name a smell with present cost: don't refactor.
+Name the smell and record its symptom, the maintenance cost it causes now, its scope, and the cleaner end state you expect. If you can't name a smell with a present cost, don't refactor.
 
 ### 2. Establish the behavior boundary and proof
 
-- Decide what must not change: public interfaces, return values, error types and messages, side effects, ordering, serialized or reflected names. Treat each found bug as separate change.
-- Pick proof to run before and after. Use existing tests if they cover changed code.
-- **When no tests cover the code**, write characterization tests first. They record *current* behavior, oddities included, not intended behavior. Output-heavy code: golden-master snapshot. Capture outputs for representative set of inputs, compare after each step.
-- Run proof once before editing; confirm it passes on current code.
+- Decide what must not change: public interfaces, return values, error types and messages, side effects, ordering, and serialized or reflected names. Treat every bug you discover as a separate change.
+- Pick the proof you will run before and after the change. Use existing tests when they cover the code you are changing.
+- **When no tests cover the code**, write characterization tests first. They record what the code *currently* does, including odd behavior, not what it should do. For output-heavy code, use a golden-master snapshot: capture outputs for a representative set of inputs, then compare after each step.
+- Run the proof once before editing to confirm it passes on the current code.
 
 ### 3. Pick the smallest technique
 
-Map smell to treatment via mini file trigger rules. Then open matching entry in [references/catalog/README.md](references/catalog/README.md) for mechanics. Escalate (method object, new class, polymorphism, pattern) only when smaller treatment is blocked.
+Use the trigger rules in the mini file to map the smell to a treatment, then open the matching entry in [references/catalog/README.md](references/catalog/README.md) for the mechanics. Escalate (method object, new class, polymorphism, pattern) only when the smaller treatment is blocked.
 
 ### 4. Apply in small steps
 
-- Move one ownership boundary per step (one method, field, or responsibility).
-- Keep every intermediate state buildable and testable. Never leave tree broken between steps.
-- No new dependencies or configuration unless correctness requires them.
-- Changing signatures or other externally reachable APIs: keep transition path (delegating old entry point, deprecation) unless breaking them is in scope.
+- Move one ownership boundary at a time (one method, field, or responsibility per step).
+- Keep every intermediate state buildable and testable. Never leave the tree broken between steps.
+- Don't add dependencies or configuration unless correctness requires them.
+- When signatures or other externally reachable APIs change, keep a transition path (delegating old entry point, deprecation) unless breaking them is in scope.
 
 ### 5. Verify
 
-Rerun same proof after each risky step (moves, signature changes, state-flow changes, algorithm substitutions) and at end. If a test needs editing to pass, behavior changed. Stop and split out that change.
+Run the same proof after each risky step and at the end: moves, signature changes, state-flow changes, and algorithm substitutions. If a test needs to be modified to pass, behavior changed. Stop and separate the change.
 
 ### 6. Stop
 
-Stop when named smell is gone or materially reduced and requested structure reached. Log other smells as follow-ups; don't expand the change.
+Stop when the named smell is gone or materially reduced and the requested structure is reached. Record any other smells you noticed as follow-ups instead of expanding the change.
 
 ## Report
 
-Smell, technique(s) applied, proof run (results before and after), split-out behavior changes, smells deliberately left untreated.
+Name the smell, the technique(s) applied, the proof that was run (with its result before and after), any behavior changes split out, and any smells left untreated on purpose.
 
 ## Related
 
 - `code-simplification`: readability cleanup of recent changes (naming, nesting, dead code) without structural moves.
-- `code-refactoring-tech-debt`: choosing *which* debt to refactor across codebase.
-- `gof-patterns`: judging if existing pattern is over-engineered before removing or adding one.
+- `code-refactoring-tech-debt`: choosing *which* debt to refactor across a codebase.
+- `gof-patterns`: judging whether an existing pattern is over-engineered before you remove or introduce one.

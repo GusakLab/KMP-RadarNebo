@@ -66,8 +66,9 @@ Incremental builds hide warnings from compiled-before files. To see every warnin
 
 ## Skill Routing
 
-Project skills live in [`.claude/skills/`](.claude/skills/), copied from dot-agents. Provenance and licenses are in
-[`.claude/THIRD_PARTY_SKILLS.md`](.claude/THIRD_PARTY_SKILLS.md). Do not edit a copied skill here.
+Project skills live in [`.claude/skills/`](.claude/skills/), copied from a pinned public commit of dot-agents.
+Provenance and licenses are in [`.claude/THIRD_PARTY_SKILLS.md`](.claude/THIRD_PARTY_SKILLS.md). Do not edit a copied
+skill here. `python3 .claude/sync-skills.py --check` verifies the copies against the pinned commit.
 
 ### Always
 

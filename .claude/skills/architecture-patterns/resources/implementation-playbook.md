@@ -1,5 +1,7 @@
 # Architecture Patterns Implementation Playbook
 
+This file contains detailed patterns, checklists, and code samples referenced by the skill.
+
 ## Core Concepts
 
 ### 1. Clean Architecture (Uncle Bob)
@@ -13,23 +15,30 @@
 
 **Key Principles:**
 
+- Dependencies point inward
 - Inner layers know nothing about outer layers
 - Business logic independent of frameworks
-- Testable without UI, database or external services
+- Testable without UI, database, or external services
 
 ### 2. Hexagonal Architecture (Ports and Adapters)
 
 **Components:**
 
 - **Domain Core**: Business logic
-- **Ports**: Interfaces defining interactions; keep small and focused (interface segregation)
-- **Adapters**: Port implementations (database, REST, message queue)
+- **Ports**: Interfaces defining interactions
+- **Adapters**: Implementations of ports (database, REST, message queue)
+
+**Benefits:**
+
+- Swap implementations easily (mock for testing)
+- Technology-agnostic core
+- Clear separation of concerns
 
 ### 3. Domain-Driven Design (DDD)
 
 **Strategic Patterns:**
 
-- **Bounded Contexts**: Separate models per domain
+- **Bounded Contexts**: Separate models for different domains
 - **Context Mapping**: How contexts relate
 - **Ubiquitous Language**: Shared terminology
 
@@ -441,11 +450,22 @@ class OrderRepository:
         order._events.clear()
 ```
 
+## Best Practices
+
+1. **Dependency Rule**: Dependencies always point inward
+2. **Interface Segregation**: Small, focused interfaces
+3. **Business Logic in Domain**: Keep frameworks out of core
+4. **Test Independence**: Core testable without infrastructure
+5. **Bounded Contexts**: Clear domain boundaries
+6. **Ubiquitous Language**: Consistent terminology
+7. **Thin Controllers**: Delegate to use cases
+8. **Rich Domain Models**: Behavior with data
+
 ## Common Pitfalls
 
 - **Anemic Domain**: Entities with only data, no behavior
 - **Framework Coupling**: Business logic depends on frameworks
-- **Fat Controllers**: Business logic in controllers; keep controllers thin, delegate to use cases
+- **Fat Controllers**: Business logic in controllers
 - **Repository Leakage**: Exposing ORM objects
 - **Missing Abstractions**: Concrete dependencies in core
 - **Over-Engineering**: Clean architecture for simple CRUD

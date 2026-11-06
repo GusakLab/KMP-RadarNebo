@@ -6,9 +6,9 @@ tags: flow, guards, validation, preconditions, defensive-programming
 
 ## Use Guard Clauses for Preconditions
 
-Guard clauses check all preconditions at function entry and exit immediately on failure. Clear contract: past the guards, every required condition holds.
+Guard clauses validate all preconditions at the function's entry point and exit immediately if validation fails. This pattern creates a clear contract: if execution passes the guards, all required conditions are met. Readers don't need to trace conditions through the entire function body.
 
-**Incorrect (scattered validations):**
+**Incorrect (validations scattered throughout):**
 
 ```typescript
 function sendNotification(user: User, message: string, channel: Channel): void {
@@ -83,12 +83,74 @@ function sendNotification(user: User, message: string, channel: Channel): void {
 }
 ```
 
+**Incorrect (null checks interleaved with logic):**
+
+```typescript
+function calculateShipping(order: Order): number {
+  let shipping = 0;
+
+  if (order) {
+    const items = order.items;
+    if (items) {
+      for (const item of items) {
+        if (item && item.weight) {
+          shipping += item.weight * RATE_PER_KG;
+        }
+      }
+      if (order.address) {
+        if (order.address.country !== 'US') {
+          shipping *= INTERNATIONAL_MULTIPLIER;
+        }
+      }
+    }
+  }
+
+  return shipping;
+}
+```
+
+**Correct (guards enforce valid state):**
+
+```typescript
+function calculateShipping(order: Order): number {
+  if (!order) {
+    throw new Error('Order is required');
+  }
+  if (!order.items?.length) {
+    throw new Error('Order must have items');
+  }
+  if (!order.address) {
+    throw new Error('Order must have an address');
+  }
+
+  let shipping = 0;
+
+  for (const item of order.items) {
+    shipping += (item.weight ?? 0) * RATE_PER_KG;
+  }
+
+  if (order.address.country !== 'US') {
+    shipping *= INTERNATIONAL_MULTIPLIER;
+  }
+
+  return shipping;
+}
+```
+
+### Benefits
+
+- Function contract is immediately visible
+- Invalid states fail fast before causing side effects
+- Core logic operates on guaranteed valid data
+- Testing is simplified - guards can be tested independently
+- Debugging is easier - failures point to specific validation
+
 ### Related
 
-- See also [`flow-early-return`](flow-early-return.md) for reducing nesting with early returns generally
+- See also [`flow-early-return`](flow-early-return.md) for reducing nesting with early returns in general
 
 ### When NOT to Apply
 
-- Partial/graceful degradation required (use defaults instead)
-- Hot paths where exceptions cost too much
-- Tolerant readers handling malformed input
+- When partial/graceful degradation is required (use defaults instead)
+- In hot paths where exceptions are too expensive
+- When building tolerant readers that handle malformed input

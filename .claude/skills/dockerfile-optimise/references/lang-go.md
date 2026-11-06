@@ -7,7 +7,7 @@ tags: lang, go, static, distroless, cross-compile, buildx
 
 ## Go - static binary, cached module and build caches, distroless or scratch runtime
 
-Go service needs no toolchain or shell at runtime. Without cache mounts, each build re-downloads modules and recompiles standard library. QEMU emulation for another architecture is many times slower than Go cross-compiling.
+A Go service needs neither the toolchain nor a shell at runtime. Without cache mounts, every build re-downloads modules and recompiles the standard library. Building under QEMU emulation for another architecture is many times slower than letting Go cross-compile.
 
 **Incorrect:**
 
@@ -43,11 +43,11 @@ EXPOSE 8080
 ENTRYPOINT ["/server"]
 ```
 
-Build multi-arch with `docker buildx build --platform linux/amd64,linux/arm64 .`. Builder runs natively; only Go compiler targets each platform.
+Build multi-arch with `docker buildx build --platform linux/amd64,linux/arm64 .`; the builder runs natively and only the Go compiler targets each platform.
 
 **Pitfalls:**
-- `CGO_ENABLED=1` (e.g. sqlite via cgo) needs libc at runtime. Use `gcr.io/distroless/base-debian12` instead of `static`, or pure-Go driver.
-- `scratch` lacks CA certificates, timezone data and `/etc/passwd`. Copy them in, or use `distroless/static`, which has them.
-- Private modules: pass credentials with `--mount=type=secret` or `--mount=type=ssh` and set `GOPRIVATE`. Never via `ARG` (see `sec-secret-mounts`).
+- `CGO_ENABLED=1` (for example sqlite via cgo) needs libc at runtime: use `gcr.io/distroless/base-debian12` instead of `static`, or a pure-Go driver.
+- `scratch` has no CA certificates, timezone data or `/etc/passwd`; copy them in explicitly or use `distroless/static`, which includes them.
+- Private modules: pass credentials with `--mount=type=secret` or `--mount=type=ssh` and set `GOPRIVATE`, never via `ARG` (see `sec-secret-mounts`).
 
 Reference: [Docker: Go language guide](https://docs.docker.com/guides/golang/)

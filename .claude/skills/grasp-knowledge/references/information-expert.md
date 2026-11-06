@@ -2,12 +2,12 @@
 
 ## Definition
 
-Assign responsibility to class holding information needed to fulfill it. Class with data owns behavior that operates on that data.
+Assign responsibility to the class that has the information needed to fulfill it. The class with the data should have the behavior that operates on that data.
 
 ## When to Apply
 
-- Deciding which class gets a method
-- Choosing where calculation logic goes
+- Deciding which class should have a method
+- Choosing where to put calculation logic
 - Determining behavior ownership
 
 ## Key Indicators

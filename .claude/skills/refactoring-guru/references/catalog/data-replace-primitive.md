@@ -6,7 +6,7 @@ tags: data, primitive-obsession, value-object, domain-modeling
 
 ## Replace Primitive with Object
 
-When primitives carry domain meaning beyond raw value, wrap them in domain objects. Gives validation and behavior a home.
+When primitives carry domain meaning beyond their raw value, wrap them in domain objects. This provides a home for validation and behavior.
 
 **Incorrect (primitives scattered throughout):**
 
@@ -105,5 +105,10 @@ const user = createUser(
   new ZipCode('12345')
 )
 ```
+
+**Benefits:**
+- Validation happens once, at construction
+- Formatting and behavior lives with the data
+- Type system prevents passing wrong primitives
 
 Reference: [Replace Primitive with Object](https://refactoring.com/catalog/replacePrimitiveWithObject.html)

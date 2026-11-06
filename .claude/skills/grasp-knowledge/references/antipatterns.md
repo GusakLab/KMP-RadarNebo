@@ -1,5 +1,9 @@
 # Common GRASP Violations (Antipatterns)
 
+## Overview
+
+This document catalogs common GRASP violations found in PHP codebases with detection patterns and remediation guidance.
+
 ## Information Expert Violations
 
 ### Feature Envy
@@ -33,6 +37,11 @@ final class OrderReporter
         return $summary;
     }
 }
+```
+
+**Detection:**
+```bash
+grep -rn "->get.*()->get.*()->" --include="*.php"
 ```
 
 **Fix:** Move logic to Order class
@@ -121,7 +130,7 @@ final class EmailService
 }
 ```
 
-**Fix:** Use factory; inject created object
+**Fix:** Use factory, inject created object
 ```php
 final readonly class EmailService
 {
@@ -173,6 +182,11 @@ final class OrderController
         return new JsonResponse(['id' => $order->getId()]);
     }
 }
+```
+
+**Detection:**
+```bash
+find . -path "*/Controller/*.php" -exec wc -l {} \; | awk '$1 > 100'
 ```
 
 **Fix:** Delegate to handler
@@ -463,6 +477,6 @@ grep -rn "new.*\\\\Stripe\|new.*\\\\Aws" --include="*.php"
 
 | Severity | Description | Action |
 |----------|-------------|--------|
-| CRITICAL | Fundamental violation | Refactor immediately |
+| CRITICAL | Fundamental violation | Immediate refactoring |
 | WARNING | Localized violation | Plan refactoring |
-| INFO | Minor issue | Consider next iteration |
+| INFO | Minor issue | Consider in next iteration |

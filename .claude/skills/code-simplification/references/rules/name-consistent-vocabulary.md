@@ -6,7 +6,7 @@ tags: name, consistency, vocabulary, ubiquitous-language, domain
 
 ## Use Consistent Vocabulary Throughout
 
-One concept with many names forces readers to map synonyms. Pick one term per concept. Use it everywhere: code, comments, documentation, conversation.
+When the same concept is called different things in different places, readers must mentally map synonyms and wonder if they refer to the same thing or subtly different concepts. Pick one term for each concept and use it everywhere - in code, comments, documentation, and conversation.
 
 **Incorrect (inconsistent terminology):**
 
@@ -105,7 +105,7 @@ func (q *JobQueue) GetJobStatus(jobID string) JobStatus { ... }
 
 ### Create a Project Vocabulary
 
-Document chosen terms:
+Document your chosen terms:
 
 | Concept | Use This | NOT These |
 |---------|----------|-----------|
@@ -117,9 +117,17 @@ Document chosen terms:
 
 ### When NOT to Apply
 
-- Integrating with external APIs that use different terminology
-- Domain experts use specific terms (use their ubiquitous language)
-- Language idioms dictate different verbs (e.g., `append` in Go)
+- When integrating with external APIs that use different terminology
+- When domain experts use specific terms (use their ubiquitous language)
+- When language idioms dictate different verbs (e.g., `append` in Go)
+
+### Benefits
+
+- Concepts are immediately recognizable
+- No mental mapping between synonyms required
+- Search and replace works reliably
+- Onboarding is faster with predictable naming
+- Domain model stays clear and unambiguous
 
 ### References
 

@@ -6,9 +6,9 @@ tags: struct, function-length, readability, complexity
 
 ## Keep Functions Under 20 Lines
 
-Functions over 20 lines are harder to understand, test, maintain.
+Functions longer than 20 lines are harder to understand, test, and maintain. Research shows bug density increases with function length.
 
-**Incorrect (long, needs scrolling):**
+**Incorrect (long function requiring scrolling):**
 
 ```typescript
 function processPayment(order: Order, paymentMethod: PaymentMethod): PaymentResult {
@@ -61,7 +61,7 @@ function processPayment(order: Order, paymentMethod: PaymentMethod): PaymentResu
 }
 ```
 
-**Correct (focused functions):**
+**Correct (composed of focused functions):**
 
 ```typescript
 function processPayment(order: Order, paymentMethod: PaymentMethod): PaymentResult {
@@ -94,7 +94,7 @@ function handlePaymentResult(order: Order, result: PaymentResult): PaymentResult
 ```
 
 **When longer functions are acceptable:**
-- Complex algorithms losing clarity when split
+- Complex algorithms that lose clarity when split
 - State machines with necessary sequential steps
 - Generated code or configuration
 

@@ -1,10 +1,10 @@
 # GitHub Actions Advanced Skill - Detailed Guide
 
-> Procedure and reference material split from `SKILL.md` for focused loading. Root skill defines activation, examples, safety constraints and limitations.
+> This file contains the detailed procedure and reference material extracted from `SKILL.md` for focused loading. The root skill defines activation, examples, safety constraints, and limitations.
 
 ## Step 1: Understand Context Before Responding
 
-When invoked, gather context first:
+When invoked, first gather context:
 
 ```bash
 # Discover existing workflows in the repo
@@ -17,13 +17,14 @@ find .github/actions -name "action.yml" 2>/dev/null
 ls package.json requirements.txt Gemfile go.mod Cargo.toml pom.xml 2>/dev/null
 ```
 
-Adapt recommendations to:
-- Existing workflow patterns in repo
-- Tech stack and language runtime
-- Monorepo or single-project repo
-- Self-hosted or GitHub-hosted runners in use
+Then adapt recommendations to:
+- Existing workflow patterns in the repo
+- The tech stack and language runtime
+- Whether this is a monorepo or single-project repo
+- Whether self-hosted or GitHub-hosted runners are in use
 
 ---
+
 
 ## Workflow Structure Reference
 
@@ -58,6 +59,7 @@ jobs:
 ```
 
 ---
+
 
 ## Triggers (`on:`)
 
@@ -104,13 +106,14 @@ on:
     types: [labeled]                     # Gate with label + author_association check
 ```
 
-> **Security Warning:** `pull_request_target` runs with repo secrets. Use only after maintainer labels PR. Never check out fork code without explicit sandboxing.
+> **Security Warning:** `pull_request_target` runs with repo secrets. Only use after a maintainer labels the PR. Never check out fork code without explicit sandboxing.
 
 ---
 
+
 ## Reusable Workflows
 
-Split large pipelines into composable units in `.github/workflows/`.
+Split large pipelines into composable units stored in `.github/workflows/`.
 
 **Convention:** Prefix internal/reusable workflows with `_` (e.g., `_build.yml`).
 
@@ -170,6 +173,7 @@ jobs:
 ```
 
 ---
+
 
 ## Matrix Builds
 
@@ -231,6 +235,7 @@ jobs:
 ```
 
 ---
+
 
 ## Caching Strategies
 
@@ -296,9 +301,10 @@ jobs:
 
 ---
 
+
 ## OIDC Authentication (Keyless Cloud Auth)
 
-**Never store long-lived cloud credentials as secrets.** Use OIDC for short-lived tokens that expire automatically.
+**Never store long-lived cloud credentials as secrets.** Use OIDC to get short-lived tokens that expire automatically.
 
 ### AWS
 
@@ -352,6 +358,7 @@ steps:
 
 ---
 
+
 ## Environments & Deployment Protection
 
 ```yaml
@@ -381,8 +388,10 @@ jobs:
 - **Wait timer** — delay after approval (e.g., 10-minute buffer)
 - **Branch/tag restrictions** — only `main` or `v*` tags can deploy to prod
 - **Environment-specific secrets** — override repo-level secrets per environment
+- **Deployment branches** — whitelist which branches can target this environment
 
 ---
+
 
 ## Secrets Management
 
@@ -422,9 +431,10 @@ env:
 
 ---
 
+
 ## Composite Actions
 
-Package reusable step sequences as local actions. No container spin-up, no separate workflow file.
+Package reusable step sequences into local actions. No container spin-up, no separate workflow file needed.
 
 ### Action Definition (`.github/actions/setup-app/action.yml`)
 
@@ -493,17 +503,30 @@ steps:
 
 ---
 
+
 ## Self-Hosted Runners
 
-Registration, label targeting, ephemeral setup and hardening: see [runners-and-verification.md](runners-and-verification.md).
+Registration, ephemeral setup and hardening: see [runners-and-verification.md](runners-and-verification.md).
+
+```yaml
+jobs:
+  build-gpu:
+    runs-on: [self-hosted, linux, x64, gpu]    # Label matching
+    timeout-minutes: 60
+
+  build-arm:
+    runs-on: [self-hosted, linux, arm64]
+```
 
 ### Runner Best Practices
 
 | Practice | Details |
 |---|---|
+| **Ephemeral runners** | Use Actions Runner Controller (ARC) on Kubernetes for fresh runners per job |
 | **Isolation** | Never share prod runners with untrusted/fork PR workflows |
 | **Cleanup hooks** | Set `ACTIONS_RUNNER_HOOK_JOB_COMPLETED` to reset environment |
-| **Labels** | Custom labels (e.g., `gpu`, `high-memory`) for precise targeting |
+| **Runner groups** | Use groups to restrict which repos/workflows can access which runners |
+| **Labels** | Use custom labels (e.g., `gpu`, `high-memory`) for precise targeting |
 | **Security** | Disable fork PR access to self-hosted runners in Settings |
 
 ```bash
@@ -511,11 +534,11 @@ Registration, label targeting, ephemeral setup and hardening: see [runners-and-v
 helm install arc \
   --namespace arc-systems \
   --create-namespace \
-  --version "$ARC_CHART_VERSION" \
-  oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set-controller   # pin a reviewed chart version
+  oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set-controller
 ```
 
 ---
+
 
 ## Conditional Execution & Flow Control
 
@@ -590,6 +613,7 @@ jobs:
 
 ---
 
+
 ## Debugging Techniques
 
 ```yaml
@@ -635,6 +659,7 @@ jobs:
 ```
 
 ---
+
 
 ## Complete Pipeline Patterns
 
@@ -791,8 +816,6 @@ jobs:
 
 ### Pattern 3: Dependency Auto-Update with PR
 
-Prefer Dependabot or Renovate. Scripted alternative installs fresh, unreviewed versions with write token around: pin tool, skip install scripts, keep token out of `.git/config`.
-
 ```yaml
 name: Dependency Updates
 
@@ -811,15 +834,13 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
-        with:
-          persist-credentials: false   # create-pull-request sets its own auth
 
       - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af  # v4.1.0
         with:
           node-version: '20'
 
-      - run: npx npm-check-updates@23.1.1 -u   # pinned tool version
-      - run: npm install --ignore-scripts      # unreviewed versions: no lifecycle scripts
+      - run: npx npm-check-updates -u
+      - run: npm install
 
       - uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f  # v7.0.5
         with:
@@ -883,20 +904,22 @@ jobs:
 
 ---
 
+
 ## Common Pitfalls & Fixes
 
 | Problem | Cause | Fix |
 |---|---|---|
-| Workflow doesn't trigger on fork PR | Fork PRs use restricted `GITHUB_TOKEN` | Use `pull_request` not `pull_request_target`. Avoid repo secrets in fork context |
-| Secret is `***` in logs but exposed | Dynamic value not masked | Run `echo "::add-mask::$VALUE"` before use |
+| Workflow doesn't trigger on PR from fork | Fork PRs use restricted `GITHUB_TOKEN` | Use `pull_request` not `pull_request_target`; avoid repo secrets in fork context |
+| Secret is `***` in logs but exposed | Dynamic value not masked | Use `echo "::add-mask::$VALUE"` before using it |
 | Cache never hits across branches | Cache key too specific | Add `restore-keys` fallback without branch or hash segment |
 | Matrix job fails silently | `fail-fast: true` (default) cancels siblings | Set `fail-fast: false` during debugging |
-| Job hangs indefinitely | No `timeout-minutes` set | Set `timeout-minutes` on every job |
+| Job hangs indefinitely | No `timeout-minutes` set | Always set `timeout-minutes` on every job |
 | `$GITHUB_OUTPUT` not set | Old `set-output` command used | Use `echo "key=value" >> $GITHUB_OUTPUT` |
 | OIDC token request fails | Missing `id-token: write` permission | Add to job-level `permissions` block |
-| Reusable workflow can't access caller secrets | Secrets not passed to callee | Pass each declared secret explicitly under `secrets:`. Use `secrets: inherit` only for trusted same-org workflows needing many secrets |
+| Reusable workflow can't access caller secrets | Secrets not passed to the callee | Pass each declared secret explicitly under `secrets:`; use `secrets: inherit` only for trusted same-org workflows that need many secrets |
 
 ---
+
 
 ## GitHub Actions Expressions Reference
 
@@ -927,18 +950,21 @@ ${{ always() }}     # Always runs (success OR failure OR cancelled)
 
 ---
 
+
 ## Production Readiness Checklist
 
 Before merging any workflow to `main`, verify:
 
 ### Security
+- [ ] All third-party actions pinned to full commit SHA
 - [ ] `permissions:` declared at workflow and job level (least privilege)
 - [ ] No `${{ }}` expressions directly in `run:` blocks (use env vars)
-- [ ] OIDC for cloud credentials (no stored long-lived secrets)
+- [ ] OIDC used for cloud credentials (no long-lived secrets stored)
 - [ ] `pull_request_target` gated with label check + author_association guard
 - [ ] Secrets never echoed or logged
 
 ### Reliability
+- [ ] `timeout-minutes` set on every job
 - [ ] `fail-fast: false` set for matrix builds used for debugging
 - [ ] `concurrency` configured to cancel stale runs
 - [ ] Retry logic for flaky external calls
@@ -951,16 +977,19 @@ Before merging any workflow to `main`, verify:
 - [ ] Matrix parallelism appropriate (not exhausting runner pool)
 
 ### Maintainability
-- [ ] Reusable workflows for repeated patterns
-- [ ] Composite actions for repeated step sequences
-- [ ] Workflow and step names human-readable
+- [ ] Reusable workflows used for repeated patterns
+- [ ] Composite actions used for repeated step sequences
+- [ ] Workflow names and step names are human-readable
 - [ ] `_` prefix on internal/reusable workflow files
 - [ ] Environment protection rules configured for `production`
 
 ---
 
+
 ## Related Skills
 
+- `github-actions-debugger` — Diagnose a failing workflow run from its logs
 - `building-ci-pipelines` — Platform-agnostic pipeline design, GitLab CI, SLSA provenance
+- `dockerfile-optimise` — Container build optimization and Dockerfile rules
 - `implementing-gitops` — Deploying to Kubernetes through Argo CD or Flux
 - `dependency-scanning` — Dependency and SBOM scanning in CI

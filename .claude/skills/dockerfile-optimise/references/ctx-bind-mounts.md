@@ -7,7 +7,7 @@ tags: ctx, bind-mount, buildkit, cache-efficiency
 
 ## Use Bind Mounts Instead of COPY for Build-Only Files
 
-`COPY` persists every copied file into image layer, even files needed only during compilation when final artifact is single binary. For compiled languages like Go, C, C++ or Rust, whole source tree and intermediate object files stay in layer cache permanently. `RUN --mount=type=bind` exposes files to one `RUN` step without writing them to any layer; only build output remains.
+`COPY` instructions persist every copied file into an image layer, even when the files are only needed during compilation and the final artifact is a single binary. For compiled languages like Go, C, C++, or Rust, this means the entire source tree and all intermediate object files are stored in the layer cache permanently. A `RUN --mount=type=bind` instruction makes files available to a single `RUN` step without writing them into any layer -- only the build output remains.
 
 ### Go
 
@@ -22,7 +22,7 @@ COPY . .
 RUN go build -o /app/server ./cmd/server
 ```
 
-(`COPY . .` layer permanently stores every `.go` file, test file and internal package in build cache. Large Go project can carry 50-200 MB of source unused after compilation.)
+(The `COPY . .` layer permanently stores every `.go` file, test file, and internal package in the build cache. For a large Go project this can be 50-200 MB of source that is never used after compilation.)
 
 **Correct (source mounted temporarily via bind mount):**
 
@@ -38,7 +38,7 @@ COPY --from=build /out/server /server
 CMD ["/server"]
 ```
 
-(Source tree is mounted read-only into build step and disappears when `RUN` finishes. Cache mounts persist Go module and build caches across builds. Only compiled binary lands in layer.)
+(The source tree is mounted read-only into the build step and disappears when the `RUN` instruction finishes. The Go module cache and build cache are persisted across builds via cache mounts. Only the compiled binary is written to the layer.)
 
 ### C / C++
 
@@ -51,7 +51,7 @@ COPY . .
 RUN make -j$(nproc) && make install
 ```
 
-(`COPY . .` layer stores all source files, headers and Makefiles. `RUN make` layer stores intermediate `.o` files next to final binary. Both persist in cache indefinitely.)
+(The `COPY . .` layer stores all source files, headers, and Makefiles. The `RUN make` layer stores all intermediate `.o` files alongside the final binary. Both layers persist in the cache indefinitely.)
 
 **Correct (bind mount keeps source out of layers):**
 
@@ -65,6 +65,6 @@ COPY --from=build /out/ /
 CMD ["/usr/local/bin/myapp"]
 ```
 
-(Source and object files exist only during `RUN` step. Final image holds only installed binaries and libraries from `DESTDIR`.)
+(Source files and object files exist only during the `RUN` step. The final image contains only the installed binaries and libraries from the `DESTDIR`.)
 
 Reference: [Docker Build Cache - Optimize](https://docs.docker.com/build/cache/optimize/)

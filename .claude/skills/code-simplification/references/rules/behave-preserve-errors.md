@@ -6,7 +6,7 @@ tags: behave, errors, exceptions, error-handling
 
 ## Preserve Error Messages, Types, and Handling
 
-Error behavior is part of the API contract. Changing exception types, messages or when errors throw breaks catch blocks, monitoring systems and user expectations. Simplify error handling only when observable error behavior stays identical.
+Error behavior is part of your API contract. Changing exception types, error messages, or when errors are thrown breaks catch blocks, monitoring systems, and user expectations. Simplify error handling code only when the observable error behavior remains identical.
 
 **Incorrect (changes exception type):**
 
@@ -56,8 +56,25 @@ def validate_age(age: int) -> None:
 # Breaks: tests checking for specific error messages
 ```
 
+**Correct (preserves original error messages):**
+
+```python
+def validate_age(age: int) -> None:
+    if age < 0:
+        raise ValueError("Age cannot be negative")
+    if age > 150:
+        raise ValueError("Age cannot exceed 150")
+```
+
 ### When NOT to Apply
 
-- Task is explicitly to improve error messages
-- Messages contain sensitive information that should be removed
-- Consolidating truly duplicate error paths (same message, same type)
+- When explicitly tasked with improving error messages
+- When error messages contain sensitive information that should be removed
+- When consolidating truly duplicate error paths (same message, same type)
+
+### Benefits
+
+- Catch blocks continue working correctly
+- Monitoring and alerting rules remain valid
+- User-facing error messages stay consistent
+- Error documentation stays accurate

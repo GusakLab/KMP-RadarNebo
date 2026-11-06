@@ -7,7 +7,7 @@ tags: lang, rust, cargo, musl, distroless, scratch
 
 ## Rust - cache registry and target dir, copy one binary into a minimal runtime
 
-Release builds of dependency tree take minutes. Uncached, every source edit recompiles all crates. Rust toolchain image exceeds 1GB and must not ship.
+Release builds of a dependency tree take minutes; without caching, every source edit recompiles all crates. The Rust toolchain image is over 1GB and must not ship.
 
 **Incorrect:**
 
@@ -57,8 +57,8 @@ ENTRYPOINT ["/app"]
 ```
 
 **When NOT to use the musl/scratch variant:**
-- Crates linking C libraries (OpenSSL, some allocators) may not build statically. musl's default allocator can slow allocation-heavy services. Prefer `rustls` or glibc/distroless variant.
+- Crates linking C libraries (OpenSSL, some allocators) may not build statically, and musl's default allocator can slow allocation-heavy services; prefer `rustls` or the glibc/distroless variant.
 
-Heavy dependency trees: `cargo-chef` (separate "recipe" stage) caches compiled dependencies in normal image layer. Works on CI builders without persistent cache mounts too.
+For heavy dependency trees, `cargo-chef` (separate "recipe" stage) caches compiled dependencies in a normal image layer, which also works on CI builders without persistent cache mounts.
 
 Reference: [Docker: Rust language guide](https://docs.docker.com/guides/rust/)

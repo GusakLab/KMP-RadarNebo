@@ -5,65 +5,69 @@ description: Secure application code at trust boundaries - input validation, aut
 
 # Security and Hardening
 
+## Overview
+
+Security-first development practices for web applications. Treat every external input as hostile, every secret as sacred, and every authorization check as mandatory. Security isn't a phase — it's a constraint on every line of code that touches user data, authentication, or external systems.
+
 ## When to Use
 
-- Accepting user input
-- Authentication or authorization
+- Building anything that accepts user input
+- Implementing authentication or authorization
 - Storing or transmitting sensitive data
-- External API or service integrations
-- File uploads, webhooks, callbacks
-- Payment or PII data
+- Integrating with external APIs or services
+- Adding file uploads, webhooks, or callbacks
+- Handling payment or PII data
 
 ## Process: Threat Model First
 
-Before hardening, spend five minutes thinking like an attacker:
+Controls bolted on without a threat model are guesses. Before hardening, spend five minutes thinking like an attacker:
 
-1. **Map trust boundaries.** Untrusted data enters via HTTP requests, form fields, file uploads, webhooks, third-party APIs, message queues, **LLM output**. Also OS-supplied local values that look internal: another process's command line or environment, shared-volume filenames, job-payload paths. Trust follows who *wrote* a value, not which channel delivered it. Every boundary is attack surface.
-2. **Name assets** worth stealing or breaking: credentials, PII, payment data, admin actions, money movement.
-3. **Run STRIDE over each boundary.** Quick lens, not ceremony:
+1. **Map the trust boundaries.** Where does untrusted data cross into your system? HTTP requests, form fields, file uploads, webhooks, third-party APIs, message queues, and **LLM output** — plus the local values that look internal because the OS handed them to you: another process's command line or environment, filenames on a shared volume, a path in a job payload. Trust follows who *wrote* a value, not which channel delivered it. Every boundary is attack surface.
+2. **Name the assets.** What's worth stealing or breaking? Credentials, PII, payment data, admin actions, money movement.
+3. **Run STRIDE over each boundary** — a quick lens, not a ceremony:
 
 | Threat | Ask | Typical mitigation |
 |---|---|---|
-| **S**poofing | Impersonate a user/service? | Authentication, signature verification |
-| **T**ampering | Alter data in transit or at rest? | Integrity checks, parameterized queries, HTTPS |
-| **R**epudiation | Deny an action later? | Audit-log security events |
-| **I**nformation disclosure | Leak data? | Encryption, field allowlists, generic errors |
-| **D**enial of service | Overwhelm it? | Rate limiting, input size caps, timeouts |
-| **E**levation of privilege | Gain rights a user should not have? | Authorization checks, least privilege |
+| **S**poofing | Can someone impersonate a user/service? | Authentication, signature verification |
+| **T**ampering | Can data be altered in transit or at rest? | Integrity checks, parameterized queries, HTTPS |
+| **R**epudiation | Can an action be denied later? | Audit logging of security events |
+| **I**nformation disclosure | Can data leak? | Encryption, field allowlists, generic errors |
+| **D**enial of service | Can it be overwhelmed? | Rate limiting, input size caps, timeouts |
+| **E**levation of privilege | Can a user gain rights they shouldn't? | Authorization checks, least privilege |
 
-4. **Write abuse cases next to use cases.** Per feature, ask "how would I misuse this?" Make that the first test.
+4. **Write abuse cases next to use cases.** For each feature, ask "how would I misuse this?" — then make that your first test.
 
-If you cannot name a feature's trust boundaries, you cannot secure it yet. OWASP **A04: Insecure Design**: most breaches begin in design, not code.
+If you can't name the trust boundaries for a feature, you're not ready to secure it. This is OWASP **A04: Insecure Design** — most breaches begin in design, not code.
 
 ## The Three-Tier Boundary System
 
 ### Always Do (No Exceptions)
 
-- **Validate all external input** at system boundary (API routes, form handlers)
-- **Parameterize all database queries**; never concatenate user input into SQL
-- **Encode output** against XSS (framework auto-escaping; do not bypass it)
+- **Validate all external input** at the system boundary (API routes, form handlers)
+- **Parameterize all database queries** — never concatenate user input into SQL
+- **Encode output** to prevent XSS (use framework auto-escaping, don't bypass it)
 - **Use HTTPS** for all external communication
-- **Hash passwords** with bcrypt/scrypt/argon2 (never plaintext)
+- **Hash passwords** with bcrypt/scrypt/argon2 (never store plaintext)
 - **Set security headers** (CSP, HSTS, X-Frame-Options, X-Content-Type-Options)
 - **Use httpOnly, secure, sameSite cookies** for sessions
-  - *Local-dev exception:* plain-HTTP dev/test may turn `Secure` off via an env flag that defaults to on; never ship that flag enabled. Start HSTS with short `max-age`; add `includeSubDomains`/`preload` only deliberately (same policy as `security-best-practices`)
-- **Run detected package manager's native audit** on committed lockfile before every release
+  - *Local-dev exception:* plain-HTTP dev/test setups may turn `Secure` off through an env flag that defaults to on; never ship that flag enabled. Roll HSTS out with a short `max-age` first and add `includeSubDomains`/`preload` only deliberately (same policy as `security-best-practices`)
+- **Run the detected package manager's native audit** against the committed lockfile before every release
 
 ### Ask First (Requires Human Approval)
 
-- New authentication flows or auth logic changes
-- New categories of stored sensitive data (PII, payment info)
-- New external service integrations
-- CORS configuration changes
-- File upload handlers
-- Rate limiting or throttling changes
-- Elevated permissions or roles
+- Adding new authentication flows or changing auth logic
+- Storing new categories of sensitive data (PII, payment info)
+- Adding new external service integrations
+- Changing CORS configuration
+- Adding file upload handlers
+- Modifying rate limiting or throttling
+- Granting elevated permissions or roles
 
 ### Never Do
 
 - **Never commit secrets** to version control (API keys, passwords, tokens)
 - **Never log sensitive data** (passwords, tokens, full credit card numbers)
-- **Never trust client-side validation** as security boundary
+- **Never trust client-side validation** as a security boundary
 - **Never disable security headers** for convenience
 - **Never use `eval()` or `innerHTML`** with user-provided data
 - **Never store sessions in client-accessible storage** (localStorage for auth tokens)
@@ -71,132 +75,145 @@ If you cannot name a feature's trust boundaries, you cannot secure it yet. OWASP
 
 ## Hardening Controls
 
-Rules below are the workflow; [references/hardening-patterns.md](references/hardening-patterns.md) shows one implementation per rule. Open a section only on reaching that code.
+The rules below are the workflow; a concrete implementation of each lives in [references/hardening-patterns.md](references/hardening-patterns.md). Open the section you need when you reach that code, not before.
 
 ### Injection, XSS, and access control
 
-- Parameterize every query. Never build SQL, NoSQL or shell commands from input strings.
-- Encode output via framework auto-escaping. If raw HTML is unavoidable, sanitize first with an allowlist sanitizer.
-- Check **authorization** on every request, not only authentication: user must own, or be permitted on, the specific resource (A01, IDOR).
+- Parameterize every query. Never build SQL, NoSQL, or shell commands from input strings.
+- Encode output through the framework's auto-escaping. If raw HTML is unavoidable, sanitize with an allowlist sanitizer first.
+- Check **authorization** on every request, not just authentication: the authenticated user must own, or be permitted on, the specific resource (A01, IDOR).
 
 Patterns: [Injection](references/hardening-patterns.md#injection), [XSS](references/hardening-patterns.md#cross-site-scripting-xss), [Access control](references/hardening-patterns.md#broken-access-control).
 
 ### Authentication and sessions
 
-- Hash passwords with bcrypt (≥12 rounds), scrypt or argon2. Session secret from environment, never code.
-- Session cookies: `httpOnly`, `secure`, `sameSite: 'lax'` or `'strict'` (CSRF defense; `'none'` sends cookie on cross-site requests), bounded `maxAge`.
+- Hash passwords with bcrypt (≥12 rounds), scrypt, or argon2. The session secret comes from the environment, never from code.
+- Session cookies are `httpOnly`, `secure`, and `sameSite: 'lax'` or `'strict'` (the CSRF defense; `'none'` sends the cookie on cross-site requests), with a bounded `maxAge`.
 
 Pattern: [Authentication](references/hardening-patterns.md#broken-authentication).
 
 ### Headers, CORS, and responses
 
-- Security headers on every response (helmet or framework equivalent). CSP starts at `default-src 'self'`; tighten, never loosen.
-- CORS: explicit origin list from configuration. Never `*` with credentials.
-- Strip sensitive fields (`passwordHash`, reset tokens) from every response. Generic error bodies; internals to server logs only.
+- Security headers on every response (helmet or the framework equivalent); CSP starts from `default-src 'self'` and is tightened, not loosened.
+- CORS restricted to an explicit origin list from configuration. Never `*` with credentials.
+- Strip sensitive fields (`passwordHash`, reset tokens) before any response. Error bodies are generic; internals go to server logs only.
 
 Patterns: [Misconfiguration](references/hardening-patterns.md#security-misconfiguration), [Sensitive data exposure](references/hardening-patterns.md#sensitive-data-exposure).
 
 ### Input validation and uploads
 
-- Validate at boundary with a schema: allowlisted shape, lengths, enums, formats. Reject with 422 plus structured details. Downstream code uses only the parsed, typed value.
-- Uploads: allowlist MIME types, cap size, verify content (magic bytes) when it matters. Extension proves nothing.
+- Validate at the boundary with a schema: allowlisted shape, lengths, enums, formats. Reject with 422 and structured details; downstream code uses only the parsed, typed value.
+- Uploads: allowlist MIME types, cap size, verify content (magic bytes) when it matters. The extension proves nothing.
 
 Patterns: [Schema validation](references/hardening-patterns.md#schema-validation-at-boundaries), [File upload](references/hardening-patterns.md#file-upload-safety).
 
 ### Server-side fetches (SSRF)
 
-Any user-influenced URL (webhooks, import-from-URL, image proxies, link previews) can target internal services. Allowlist scheme and host. Resolve **all** DNS records; reject any private or reserved address (loopback, link-local `169.254.169.254`, private, unique-local; IPv4 and IPv6). Forbid redirects. DNS-rebinding TOCTOU gap remains: for high-risk surfaces, pin resolved IP or front with a filtering agent.
+Any URL the user influences — webhooks, import-from-URL, image proxies, link previews — can be aimed at internal services. Allowlist scheme and host, resolve **all** DNS records and reject any private or reserved address (loopback, link-local `169.254.169.254`, private, unique-local, for IPv4 and IPv6), and forbid redirects. That check still has a DNS-rebinding TOCTOU gap: for high-risk surfaces, pin the resolved IP or put a filtering agent in front.
 
 Pattern: [SSRF](references/hardening-patterns.md#server-side-request-forgery-ssrf).
 
 ### Destructive operations on derived paths
 
-Delete, move or overwrite is only as safe as the value naming its target. Trust follows who *wrote* that value, not which channel delivered it: another process's command line is as attacker-controlled as a form field. Shape check proves well-formedness, not authorization. Before the call, require all three: resolved target (symlinks resolved) under an **allowlisted root**; at least one level **below** that root; **ownership evidence read before the operation**. On refusal, log rejected target and stop; never fall back to a broader default path.
+A delete, move, or overwrite is only as safe as the value naming its target, and trust follows who *wrote* that value, not which channel delivered it: another process's command line is as attacker-controlled as a form field. A shape check proves well-formedness, not authorization. Before the call, require all three: the resolved target (symlinks resolved) sits under an **allowlisted root**; it is at least one level **below** that root; and it carries **ownership evidence read before the operation**. On refusal, log the rejected target and stop; never fall back to a broader default path.
 
-Why the check is weaker than it reads (marker self-attestation, check/use races): [Destructive paths](references/hardening-patterns.md#destructive-operations-on-derived-paths). Worked code: security checks above and the repository's documented requirements.
+Why the check is weaker than it reads (marker self-attestation, check/use races): [Destructive paths](references/hardening-patterns.md#destructive-operations-on-derived-paths). Worked code: the security checks above and the repository's documented requirements.
 
 ### Rate limiting
 
-Limit API generally, auth endpoints strictly (about 10 attempts per 15 minutes). Once more than one process serves traffic, in-memory counters silently become `max × instances`, or never fire on serverless: back the limiter with a shared store.
+Limit the API generally and auth endpoints strictly (about 10 attempts per 15 minutes). Once more than one process serves traffic, in-memory counters silently become `max × instances`, or never fire on serverless: back the limiter with a shared store.
 
 Pattern: [Rate limiting](references/hardening-patterns.md#rate-limiting).
 
 ### Secrets
 
-Secrets come from environment. Commit `.env.example` with placeholders; gitignore real `.env*` files and key material; check staged diff before committing, printing file names only, never matched values. **Secret reaching a remote is compromised on arrival: rotate first, then purge history.** Purging rewrites history and force-pushes: confirm with user first.
+Secrets come from the environment. `.env.example` is committed with placeholders; real `.env*` files and key material are gitignored; grep the staged diff before committing. **A secret that reaches a remote is compromised the moment it lands: rotate it first, then purge history.**
 
 Pattern: [Secrets management](references/hardening-patterns.md#secrets-management).
 
 ### Dependencies and supply chain
 
-1. **Find installation boundary and manager.** Use workspace root owning the lockfile, or an independent nested project only when outside that workspace. Corroborate `packageManager` (if present), lockfile and CI; stop on disagreement or competing lockfiles. Pin manager version.
-2. **Block dependency scripts before first execution.** Bootstrap with scripts disabled or a documented fail-closed policy. Inspect pending script source, approve only the minimum, commit the policy, verify with a clean frozen/immutable install. Never blanket-approve.
-3. **Run native audit on committed lockfile before every release.** Triage critical/high by **reachability** (runtime, build, test, deploy paths) and fix availability. Never auto-apply forced remediation (`npm audit fix --force` or equivalent): forced fixes may cross declared dependency ranges. Preview, read changelogs, test each upgrade. Document each deferral with reason and review date.
-4. **Audits only match known advisories.** They do not catch newly malicious or typosquatted packages (`cross-env` vs `crossenv`). Review new dependencies, lockfile diffs and script-policy changes together: ownership, maintenance, release age, provenance, transitive graph. Verify registry signatures where supported (`npm audit signatures`, `pnpm audit signatures`); missing signatures signal investigation, not automatic proof of compromise (A06, LLM03).
+1. **Find the installation boundary and manager.** Use the workspace root that owns the lockfile, or an independent nested project only when it is outside that workspace. Corroborate `packageManager` (when present), the lockfile, and CI; stop on disagreement or competing lockfiles. Pin the manager version.
+2. **Block dependency scripts before first execution.** Bootstrap with scripts disabled or a documented fail-closed policy, inspect the pending script source, approve only the minimum, commit the policy, then verify with a clean frozen/immutable install. Never blanket-approve.
+3. **Run the native audit against the committed lockfile before every release.** Triage critical/high by **reachability** (runtime, build, test, deploy paths) and fix availability. Never apply forced remediation (`npm audit fix --force` or equivalent) automatically, since forced fixes may cross declared dependency ranges; preview, read changelogs, test each upgrade. Document every deferral with a reason and a review date.
+4. **Audits only match known advisories.** They do not catch a newly malicious or typosquatted package (`cross-env` vs `crossenv`). Review new dependencies, lockfile diffs, and script-policy changes together: ownership, maintenance, release age, provenance, transitive graph. Verify registry signatures where supported (`npm audit signatures`, `pnpm audit signatures`) and treat their absence as a signal to investigate, not automatic proof of compromise (A06, LLM03).
 
-Triage decision tree: [Dependency audit triage](references/hardening-patterns.md#dependency-audit-triage). CI scanner setup (Snyk, Dependabot, OSV, SBOM generation): `dependency-scanning` skill.
+Triage decision tree: [Dependency audit triage](references/hardening-patterns.md#dependency-audit-triage). For scanner setup in CI (Snyk, Dependabot, OSV, SBOM generation), use the `dependency-scanning` skill.
 
 ### Personal data and privacy
 
-Hardening asks "can an attacker read it?" Privacy asks "should *we* hold it at all, and for how long?" Treat personal data as a liability to minimize.
+Hardening asks "can an attacker read it?" Privacy asks "should *we* hold it at all, and for how long?" The cheapest data to protect, breach, and comply over is the data you never collected; treat personal data as a liability to minimize.
 
-- **Classify fields as you add them** (non-personal, PII, sensitive); handle each class accordingly. Data you cannot find, you cannot protect or delete on request.
-- **Collect only against a stated purpose.** "Might be useful later" is latent breach scope, not a purpose. Keep PII out of telemetry (ops view: `observability-and-instrumentation` skill).
-- **Set retention up front, then delete.** Each personal-data store needs a TTL and working deletion path, covering backups, caches, search indexes, analytics copies.
-- **Support data-subject rights your jurisdiction requires** (GDPR, CCPA and kin): export, correct, delete. Design schema so a user's data is findable and erasable, not smeared irreversibly across systems.
-- **Consent gates collection and third-party sharing, and is auditable.** PII sent to an analytics, ad or LLM vendor is sharing; vendor needs a data-processing agreement. Make region a configurable policy, not a hardcoded assumption.
+- **Classify fields as you add them** (non-personal, PII, sensitive) and handle each class accordingly. You cannot protect, or honor a deletion request for, data you cannot find.
+- **Collect only against a stated purpose.** "Might be useful later" is latent breach scope, not a purpose. Keep PII out of telemetry (the `observability-and-instrumentation` skill makes the same point from the ops side).
+- **Set retention up front, then actually delete.** Every personal-data store needs a TTL and a working deletion path, including backups, caches, search indexes, and analytics copies.
+- **Support the data-subject rights your jurisdiction requires** (GDPR, CCPA, and kin): export, correct, delete. Design the schema so a user's data is findable and erasable, not smeared irreversibly across systems.
+- **Consent gates collection and third-party sharing, and is auditable.** Sending PII to an analytics, ad, or LLM vendor is sharing; the vendor needs a data-processing agreement. Make region a configurable policy, not a hardcoded assumption.
 
-Classification table: [Data classification](references/hardening-patterns.md#data-classification). Privacy incident starts the breach-notification clock; run postmortem with `debugging-and-error-recovery` skill.
+Classification table: [Data classification](references/hardening-patterns.md#data-classification). A privacy incident starts the breach-notification clock; run the postmortem with the `debugging-and-error-recovery` skill.
 
 ### AI / LLM features
 
-Calling an LLM (chatbots, summarizers, agents, RAG) adds attack surface. Map it to the [OWASP Top 10 for LLM Applications (2025)](https://genai.owasp.org/llm-top-10/):
+Calling an LLM — chatbots, summarizers, agents, RAG — adds a new attack surface; map it to the [OWASP Top 10 for LLM Applications (2025)](https://genai.owasp.org/llm-top-10/):
 
-- **Model output is untrusted input** (LLM05). Never into `eval`, SQL, a shell, `innerHTML` or a file path. Parse defensively, validate against a schema, then encode.
-- **Prompts can be hijacked** (LLM01). Untrusted context text (user message, fetched page, PDF) can carry instructions. System prompt is not a security boundary; enforce permissions in code.
-- **Keep secrets, other tenants' data and the full system prompt out of the context window** (LLM02, LLM07). Scope tool permissions, validate every tool argument, confirm destructive actions (LLM06). Cap tokens, request rate, recursion depth (LLM10). Partition RAG embeddings per tenant; validate documents before indexing (LLM08).
+- **Model output is untrusted input** (LLM05). Never into `eval`, SQL, a shell, `innerHTML`, or a file path; parse defensively, validate against a schema, then encode.
+- **Prompts can be hijacked** (LLM01). Untrusted text in the context — a user message, a fetched page, a PDF — can carry instructions. The system prompt is not a security boundary; enforce permissions in code.
+- **Keep secrets, other tenants' data, and the full system prompt out of the context window** (LLM02, LLM07); scope tool permissions, validate every tool argument, and confirm destructive actions (LLM06); cap tokens, request rate, and recursion depth (LLM10); partition RAG embeddings per tenant and validate documents before indexing (LLM08).
 
 Pattern: [LLM output handling](references/hardening-patterns.md#llm-output-handling).
 
 ## Review Checklist
 
-Before sign-off, walk security checks above and the repository's documented requirements: authentication, authorization, input, data protection and privacy, headers and CORS, dependencies and supply chain, AI/LLM, error handling.
+Before sign-off, walk the security checks above and the repository's documented requirements: authentication, authorization, input, data protection and privacy, headers and CORS, dependencies and supply chain, AI/LLM, and error handling.
 
-Before a production release, or when authorization runs through Supabase/Postgres row-level security, run [the pre-deployment checklist and RLS rules](references/predeploy-and-supabase.md).
+Before a production release, or when the project authorizes through Supabase/Postgres row-level security, run [the pre-deployment checklist and RLS rules](references/predeploy-and-supabase.md).
 
 ## Common Rationalizations
 
 | Rationalization | Reality |
 |---|---|
 | "This is an internal tool, security doesn't matter" | Internal tools get compromised. Attackers target the weakest link. |
-| "We'll add security later" | Retrofitting security is 10x harder than building it in. Add it now. |
-| "No one would try to exploit this" | Automated scanners will find it. Obscurity is not security. |
-| "The framework handles security" | Frameworks give tools, not guarantees. You must still use them correctly. |
+| "We'll add security later" | Security retrofitting is 10x harder than building it in. Add it now. |
+| "No one would try to exploit this" | Automated scanners will find it. Security by obscurity is not security. |
+| "The framework handles security" | Frameworks provide tools, not guarantees. You still need to use them correctly. |
 | "It's just a prototype" | Prototypes become production. Security habits from day one. |
-| "Compliance is legal's problem, not ours" | Export, deletion, retention and consent are schema and code. Legal can't bolt them on after PII is smeared across ten systems. |
+| "Threat modeling is overkill here" | Five minutes of "how would I attack this?" prevents the design flaws no control can patch later. |
+| "It's just LLM output, it's only text" | That "text" can be a SQL statement, a script tag, or a shell command. Treat it like any untrusted input. |
+| "The audit passed, so the dependency is safe" | Audits match known advisories. They do not detect a newly malicious package or make unreviewed install scripts safe to execute. |
+| "Collect it now, we might need it later" | Data you don't hold can't be breached, subpoenaed, or mis-deleted. "Might need it" is breach scope, not a purpose. |
+| "We'll handle deletion requests manually" | Manual erasure misses backups, caches, and analytics copies. If the schema can't find a user's data, you can't honor the request — design for it. |
+| "Compliance is legal's problem, not ours" | Export, deletion, retention, and consent are schema and code. Legal can't bolt them on after you've smeared PII across ten systems. |
 
 ## Red Flags
 
-- User input passed directly into DB queries, shell commands or HTML rendering
-- Delete, move or overwrite targeting a path from a payload, config value or another process's command line, guarded only by a path shape check
+- User input passed directly to database queries, shell commands, or HTML rendering
+- A delete, move, or overwrite whose target comes from a payload, a config value, or another process's command line, guarded only by a shape check on the path
+- Secrets in source code or commit history
+- API endpoints without authentication or authorization checks
 - Permissive CORS: wildcard (`*`) or reflected origins, or credentials allowed for untrusted origins (no CORS config at all is the safe default)
-- Secrets, PII or full system prompt inside an LLM context window
-- PII sent to analytics/ad/LLM vendors without consent or data-processing agreement
-- "Delete my account" only flipping a flag while personal data lingers in stores and backups
+- No rate limiting on authentication endpoints, or an in-memory limiter in front of more than one instance
+- Stack traces or internal errors exposed to users
+- Dependencies with known critical vulnerabilities, competing lockfiles at one installation boundary, non-reproducible installs, or blanket-approved scripts
+- Server fetches user-supplied URLs without an allowlist (SSRF)
+- LLM/model output passed into a query, the DOM, a shell, or `eval`
+- Secrets, PII, or the full system prompt placed inside an LLM context window
+- Personal data collected with no stated purpose, retention limit, or deletion path
+- PII sent to analytics/ad/LLM vendors with no consent or data-processing agreement
+- "Delete my account" that only flips a flag while the personal data lingers in stores and backups
 
 ## Verification
 
 After implementing security-relevant code:
 
-- [ ] Native audit: no unmitigated reachable critical/high findings; CI keeps authoritative lockfile and blocks unreviewed dependency scripts
-- [ ] No secrets in source or git history
+- [ ] The native audit has no unmitigated reachable critical/high findings; CI preserves the authoritative lockfile and blocks unreviewed dependency scripts
+- [ ] No secrets in source code or git history
 - [ ] All user input validated at system boundaries
-- [ ] Destructive filesystem operations resolve symlinks, then verify allowlisted root, minimum depth, ownership before running
+- [ ] Destructive filesystem operations resolve symlinks, then verify allowlisted root, minimum depth, and ownership before running
 - [ ] Authentication and authorization checked on every protected endpoint
-- [ ] Security headers in responses (check with browser DevTools)
-- [ ] Error responses expose no internal details
-- [ ] Rate limiting on auth endpoints, backed by a shared store when more than one instance serves traffic
+- [ ] Security headers present in response (check with browser DevTools)
+- [ ] Error responses don't expose internal details
+- [ ] Rate limiting active on auth endpoints, backed by a shared store when more than one instance serves traffic
 - [ ] Server-side URL fetches validated against an allowlist (no SSRF)
 - [ ] LLM/model output validated and encoded before use (if AI features present)
-- [ ] Personal data classified, minimized to a stated purpose, retention-limited
-- [ ] Deletion and export work end-to-end (including backups, caches, analytics copies)
+- [ ] Personal data is classified, minimized to a stated purpose, and has a retention limit
+- [ ] Deletion and export requests work end-to-end (including backups, caches, and analytics copies)

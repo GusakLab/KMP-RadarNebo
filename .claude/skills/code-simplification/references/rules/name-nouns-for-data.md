@@ -6,7 +6,7 @@ tags: name, conventions, semantics, functions, variables
 
 ## Use Nouns for Data, Verbs for Actions
 
-Variables, constants, properties hold data: name them with nouns or noun phrases. Functions and methods act: name them with verbs or verb phrases.
+Variables, constants, and properties represent data - name them with nouns or noun phrases. Functions and methods perform actions - name them with verbs or verb phrases. This grammatical consistency creates intuitive expectations about what code does, making it easier to read and harder to misuse.
 
 **Incorrect (confused naming conventions):**
 
@@ -114,6 +114,13 @@ var apiResponse = Response{Status: 200}
 
 ### When NOT to Apply
 
-- Factory functions may use nouns where conventional (e.g., `NewUser()` in Go)
+- Factory functions may use nouns when the pattern is conventional (e.g., `NewUser()` in Go)
 - Builder pattern methods may chain noun-like names
-- DSL or fluent APIs may favor readability over grammar
+- DSL or fluent APIs may prioritize readability over grammar
+
+### Benefits
+
+- Instantly distinguishes data from behavior
+- Reduces cognitive load when reading code
+- Prevents accidental misuse (calling data, accessing functions)
+- Makes code structure predictable

@@ -7,7 +7,7 @@ tags: stage, multi-stage, image-size, production
 
 ## Separate Build and Runtime Stages
 
-Compilers, build tools and source in final image waste disk, slow pulls, widen attack surface. Multi-stage builds compile in full SDK image, then copy only resulting binary into minimal runtime image.
+Including compilers, build tools, and source code in the final image wastes disk space, increases pull times, and expands the attack surface. Multi-stage builds let you compile in a full SDK image and copy only the resulting binary into a minimal runtime image.
 
 **Incorrect (single stage ships compiler and source):**
 

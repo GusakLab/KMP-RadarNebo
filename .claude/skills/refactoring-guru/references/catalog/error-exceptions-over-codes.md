@@ -6,7 +6,7 @@ tags: error, exceptions, error-codes, control-flow
 
 ## Use Exceptions Instead of Error Codes
 
-Error codes mix error handling with normal flow and can be silently ignored. Exceptions separate the error path and force handling.
+Error codes mix error handling with normal flow and can be silently ignored. Exceptions clearly separate the error path and force handling.
 
 **Incorrect (error codes mixed with return value):**
 
@@ -93,6 +93,6 @@ function checkout(cart: Cart): void {
 **When error codes are appropriate:**
 - Performance-critical code where exceptions are too expensive
 - Interoperating with languages/systems that use error codes
-- Expected, non-exceptional failure cases (e.g., user input validation)
+- Expected failure cases that aren't exceptional (e.g., user input validation)
 
 Reference: [Clean Code - Error Handling](https://www.oreilly.com/library/view/clean-code-a/9780136083238/)

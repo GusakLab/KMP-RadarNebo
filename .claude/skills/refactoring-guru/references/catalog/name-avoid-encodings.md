@@ -6,7 +6,7 @@ tags: name, encodings, hungarian-notation, prefixes
 
 ## Avoid Type Encodings in Names
 
-Don't embed type information in names. Encoded types become lies after refactoring.
+Don't embed type information in variable names. Modern IDEs show types on hover, and encoded types become lies when refactored.
 
 **Incorrect (type encodings in names):**
 
@@ -29,7 +29,7 @@ class UserServiceImpl implements IUserService {  // 'Impl' suffix
 }
 ```
 
-**Correct (clean names, no encodings):**
+**Correct (clean names without encodings):**
 
 ```typescript
 interface UserService {  // No 'I' prefix needed
@@ -50,10 +50,10 @@ class DefaultUserService implements UserService {  // Descriptive, not 'Impl'
 }
 ```
 
-**Alternatives to prefixes:**
-- Instead of `IUserService`: `UserService` for interface, `HttpUserService` for implementation
-- Instead of `Impl` suffix: descriptive names like `CachedUserService`, `MockUserService`
-- Instead of Hungarian notation: let type system and IDE show types
+**Modern alternatives to prefixes:**
+- Instead of `IUserService`: Just `UserService` for interface, `HttpUserService` for implementation
+- Instead of `Impl` suffix: Use descriptive names like `CachedUserService`, `MockUserService`
+- Instead of Hungarian notation: Let the type system and IDE show types
 
 **When encodings are acceptable:**
 - Language conventions require them (C# interfaces commonly use `I`)

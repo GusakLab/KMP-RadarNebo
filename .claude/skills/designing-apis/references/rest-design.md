@@ -1,5 +1,7 @@
 # RESTful API Design Patterns
 
+Complete guide to REST API design patterns and best practices.
+
 ## Table of Contents
 
 1. [Resource Naming Conventions](#resource-naming-conventions)
@@ -15,19 +17,19 @@
 
 ### Core Rules
 
-1. **Nouns, not verbs**
+1. **Use nouns, not verbs**
    ```
    ✓ /users
    ✗ /getUsers
    ```
 
-2. **Plural nouns for collections**
+2. **Use plural nouns for collections**
    ```
    ✓ /users
    ✗ /user
    ```
 
-3. **Lowercase with hyphens (kebab-case)**
+3. **Use lowercase with hyphens (kebab-case)**
    ```
    ✓ /user-profiles
    ✗ /userProfiles
@@ -89,16 +91,16 @@ POST /orders/456/refund
 POST /posts/789/publish
 ```
 
-Use custom actions sparingly.
+Use custom actions sparingly. Prefer standard REST methods when possible.
 
 ## HTTP Method Semantics
 
 ### GET - Read Resource
 
 **Characteristics:**
-- Safe: does not modify server state
-- Idempotent: repeated identical requests give same result
-- Cacheable: responses may be cached
+- Safe: Does not modify server state
+- Idempotent: Multiple identical requests = same result
+- Cacheable: Responses can be cached
 
 **Usage:**
 ```http
@@ -116,13 +118,13 @@ Cache-Control: max-age=3600
 }
 ```
 
-**No Request Body:** GET requests should not carry a body.
+**No Request Body:** GET requests should not have a request body.
 
 ### POST - Create Resource
 
 **Characteristics:**
-- Not safe: modifies server state
-- Not idempotent: each request creates new resource
+- Not safe: Modifies server state
+- Not idempotent: Each request creates new resource
 - Not cacheable (unless explicitly set)
 
 **Usage:**
@@ -154,8 +156,8 @@ Content-Type: application/json
 ### PUT - Replace Entire Resource
 
 **Characteristics:**
-- Not safe: modifies server state
-- Idempotent: repeated identical requests give same result
+- Not safe: Modifies server state
+- Idempotent: Multiple identical requests = same result
 - Replaces entire resource
 
 **Usage:**
@@ -183,14 +185,14 @@ Content-Type: application/json
 ```
 
 **Key Points:**
-- Send all fields, not only changed ones
+- Send all fields, not just changed ones
 - Missing fields may be set to null or default
 - Use PATCH for partial updates
 
 ### PATCH - Partial Update
 
 **Characteristics:**
-- Not safe: modifies server state
+- Not safe: Modifies server state
 - Not idempotent (typically)
 - Updates specific fields only
 
@@ -217,7 +219,7 @@ Content-Type: application/json
 
 **Key Points:**
 - Send only changed fields
-- Other fields stay unchanged
+- Other fields remain unchanged
 - Use JSON Patch (RFC 6902) for complex updates
 
 **JSON Patch Example:**
@@ -234,9 +236,9 @@ Content-Type: application/json-patch+json
 ### DELETE - Remove Resource
 
 **Characteristics:**
-- Not safe: modifies server state
-- Idempotent: repeated DELETE requests give same result
-- Resource no longer exists afterward
+- Not safe: Modifies server state
+- Idempotent: Multiple DELETE requests = same result
+- Resource no longer exists after deletion
 
 **Usage:**
 ```http
@@ -267,22 +269,37 @@ Content-Type: application/json
 
 ### 2xx Success
 
-**200 OK** - Standard success with body
+**200 OK** - Standard success response with body
+```http
+GET /users/123
+200 OK
+{ "id": "123", "username": "alice" }
+```
 
-**201 Created** - Resource created
+**201 Created** - Resource created successfully
+```http
+POST /users
+201 Created
+Location: /users/124
+{ "id": "124", "username": "bob" }
+```
 
-**202 Accepted** - Accepted for async processing
+**202 Accepted** - Request accepted for async processing
 ```http
 POST /reports/generate
 202 Accepted
 { "jobId": "job-789", "status": "processing" }
 ```
 
-**204 No Content** - Success, no response body
+**204 No Content** - Success with no response body
+```http
+DELETE /users/123
+204 No Content
+```
 
 ### 3xx Redirection
 
-**301 Moved Permanently** - Resource moved permanently
+**301 Moved Permanently** - Resource permanently moved
 ```http
 GET /old-endpoint
 301 Moved Permanently
@@ -297,6 +314,11 @@ Location: /users/123
 ```
 
 **304 Not Modified** - Cached version still valid
+```http
+GET /users/123
+If-None-Match: "abc123"
+304 Not Modified
+```
 
 ### 4xx Client Errors
 
@@ -349,7 +371,7 @@ POST /users/123
 Allow: GET, PUT, PATCH, DELETE
 ```
 
-**409 Conflict** - Conflicts with current state
+**409 Conflict** - Request conflicts with current state
 ```json
 {
   "type": "https://api.example.com/errors/conflict",
@@ -408,7 +430,7 @@ GET /products?category=electronics&inStock=true
 
 ### Sorting
 
-Sort by field:
+Sort results by field:
 ```
 GET /users?sort=createdAt:desc
 GET /products?sort=price:asc
@@ -431,11 +453,11 @@ GET /users?fields=id,username,email
 GET /posts?fields=id,title,authorId
 ```
 
-Response holds only requested fields, shrinking payload.
+Response only includes requested fields, reducing payload size.
 
 ### Pagination
 
-Full guide: pagination-patterns.md.
+See pagination-patterns.md for complete guide.
 
 ### Combined Example
 
@@ -453,12 +475,12 @@ GET /products?
 
 ## HATEOAS
 
-Hypermedia As The Engine Of Application State: include links to related resources.
+Hypermedia As The Engine Of Application State - include links to related resources.
 
 ### When to Use HATEOAS
 
 **Use when:**
-- API must evolve without breaking clients
+- API evolution without breaking clients
 - Clients navigate API dynamically
 - Workflow-driven applications
 
@@ -521,7 +543,17 @@ Hypertext Application Language (HAL) standard:
 
 ### Accept Header
 
-Client states preferred response format(s):
+Client specifies preferred response format:
+```http
+GET /users/123
+Accept: application/json
+
+200 OK
+Content-Type: application/json
+{ "id": "123", "username": "alice" }
+```
+
+Multiple formats:
 ```http
 Accept: application/json, application/xml;q=0.9
 ```
@@ -558,7 +590,7 @@ Accept: application/yaml
 
 ### Cache-Control Header
 
-Controls caching:
+Control caching behavior:
 
 **No caching:**
 ```http
@@ -617,7 +649,7 @@ If-Match: "abc123"
 
 ### Last-Modified
 
-Timestamp-based alternative to ETags:
+Alternative to ETags using timestamps:
 
 **Initial request:**
 ```http
@@ -636,6 +668,31 @@ If-Modified-Since: Wed, 01 Dec 2025 12:00:00 GMT
 ```
 
 ## Best Practices Checklist
+
+### Resource Design
+- [ ] Use nouns, not verbs in URLs
+- [ ] Use plural nouns for collections
+- [ ] Use kebab-case for multi-word resources
+- [ ] Limit nesting to 2-3 levels
+- [ ] Use query parameters for filtering and sorting
+
+### HTTP Methods
+- [ ] GET for reading (safe, idempotent)
+- [ ] POST for creating (not idempotent)
+- [ ] PUT for replacing entire resource (idempotent)
+- [ ] PATCH for partial updates
+- [ ] DELETE for removal (idempotent)
+
+### Status Codes
+- [ ] 200 OK for successful GET/PUT/PATCH
+- [ ] 201 Created for successful POST
+- [ ] 204 No Content for successful DELETE
+- [ ] 400 Bad Request for validation errors
+- [ ] 401 Unauthorized for auth failures
+- [ ] 403 Forbidden for permission errors
+- [ ] 404 Not Found for missing resources
+- [ ] 429 Too Many Requests for rate limits
+- [ ] 500 Internal Server Error for server errors
 
 ### Headers
 - [ ] Content-Type in all responses

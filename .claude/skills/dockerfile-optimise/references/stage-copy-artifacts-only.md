@@ -7,7 +7,7 @@ tags: stage, copy-from, artifacts, minimal
 
 ## Copy Only Final Artifacts Between Stages
 
-Copying whole directories between stages defeats multi-stage builds: pulls in source, build caches, dev dependencies, test fixtures. Name exactly which outputs runtime stage needs.
+Copying entire directories between stages defeats the purpose of multi-stage builds by pulling in source files, build caches, dev dependencies, and test fixtures. Be explicit about exactly which output files the runtime stage needs.
 
 **Incorrect (copies entire /app including source, tests, and dev deps):**
 

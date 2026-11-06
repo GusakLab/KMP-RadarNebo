@@ -2,14 +2,14 @@
 
 ## Definition
 
-Assign a highly cohesive set of responsibilities to an artificial or convenience class that does not represent a domain concept: a fabrication of imagination.
+Assign a highly cohesive set of responsibilities to an artificial or convenience class that does not represent a domain concept — a fabrication of the imagination.
 
 ## When to Apply
 
-- Information Expert would give poor cohesion or coupling
-- Infrastructure services needed (persistence, logging)
+- Information Expert would result in poor cohesion or coupling
+- Need infrastructure services (persistence, logging)
 - Cross-cutting concerns don't fit domain objects
-- Reuse requires non-domain abstraction
+- Reusability requires non-domain abstraction
 
 ## Key Indicators
 
@@ -22,6 +22,17 @@ Assign a highly cohesive set of responsibilities to an artificial or convenience
 | Calculations | Specification, Calculator |
 | Creation | Factory, Builder |
 | Cross-cutting | Policy, Validator |
+
+### Common Pure Fabrications in DDD
+
+| Pattern | Purpose |
+|---------|---------|
+| Repository | Aggregate persistence abstraction |
+| Factory | Complex object creation |
+| Domain Service | Cross-entity business logic |
+| Specification | Reusable business rules |
+| Event Dispatcher | Domain event distribution |
+| Query Handler | Read model construction |
 
 ## Patterns
 
@@ -376,9 +387,9 @@ final readonly class DefaultOrderCancellationPolicy implements OrderCancellation
 | Fabrication | Layer | Purpose |
 |-------------|-------|---------|
 | Repository Interface | Domain | Aggregate persistence contract |
-| Repository Implementation | Infrastructure | Concrete persistence |
-| Factory | Domain or Application | Complex object creation |
-| Specification | Domain | Reusable business rules |
+| Repository Implementation | Infrastructure | Actual persistence |
+| Factory | Domain or Application | Object creation |
+| Specification | Domain | Business rules |
 | Domain Service | Domain | Cross-entity logic |
 | Event Dispatcher | Application/Infrastructure | Event distribution |
 | Query Handler | Application | Read model |

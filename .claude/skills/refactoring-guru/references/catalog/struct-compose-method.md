@@ -6,7 +6,7 @@ tags: struct, compose-method, readability, abstraction-levels
 
 ## Compose Method for Readable Flow
 
-Make method body read as steps at one abstraction level. Name each step to reveal intent.
+Transform a method so that its body reads like a series of steps at the same level of abstraction. Each step should have a clear name that reveals its intent.
 
 **Incorrect (mixed abstraction levels):**
 
@@ -38,7 +38,7 @@ async function publishArticle(article: Article, author: User): Promise<void> {
 }
 ```
 
-**Correct (consistent abstraction level):**
+**Correct (composed at consistent abstraction level):**
 
 ```typescript
 async function publishArticle(article: Article, author: User): Promise<void> {
@@ -80,5 +80,10 @@ function generateSlug(title: string): string {
   return title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
 }
 ```
+
+**Benefits:**
+- Main method reads like documentation
+- Each helper can be tested independently
+- Easy to modify individual steps without affecting others
 
 Reference: [Compose Method Pattern](https://wiki.c2.com/?ComposeMethod)

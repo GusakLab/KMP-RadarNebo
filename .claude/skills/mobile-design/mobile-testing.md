@@ -1,6 +1,8 @@
 # Mobile Testing Patterns
 
-> Covers WHEN to use each testing approach and WHY.
+> **Mobile testing is NOT web testing. Different constraints, different strategies.**
+> This file teaches WHEN to use each testing approach and WHY.
+> **Code examples are minimal - focus on decision-making.**
 
 ---
 
@@ -28,8 +30,8 @@ Mobile testing differs from web:
 | Browser-based E2E (Cypress) | Can't test native features | Detox / Maestro |
 | Mock everything | Misses integration bugs | Real device testing |
 | Ignore platform tests | iOS/Android differ | Platform-specific cases |
-| Skip performance tests | Mobile perf critical | Profile on low-end device |
-| Test only happy path | More edge cases on mobile | Offline, permissions, interrupts |
+| Skip performance tests | Mobile perf is critical | Profile on low-end device |
+| Test only happy path | Mobile has more edge cases | Offline, permissions, interrupts |
 | 100% unit test coverage | False security | Pyramid balance |
 | Copy web testing patterns | Different environment | Mobile-specific tools |
 
@@ -96,7 +98,16 @@ WHAT ARE YOU TESTING?
                     └───────────────┘
 ```
 
-> 🔴 **90% unit tests and 0% E2E means you test the wrong things.**
+### Why This Distribution?
+
+| Level | Why This % |
+|-------|------------|
+| **E2E 10%** | Slow, flaky, but catches integration bugs |
+| **Integration 20%** | Tests real user flows without full app |
+| **Component 30%** | Fast feedback on UI changes |
+| **Unit 40%** | Fastest, most stable, logic coverage |
+
+> 🔴 **If you have 90% unit tests and 0% E2E, you're testing the wrong things.**
 
 ---
 
@@ -262,8 +273,8 @@ WHERE TO TEST:
 
 | Element | Check |
 |---------|-------|
-| Interactive elements | accessibilityLabel set |
-| Images | Alt text or decorative flag |
+| Interactive elements | Have accessibilityLabel |
+| Images | Have alt text or decorative flag |
 | Forms | Labels linked to inputs |
 | Buttons | Role = button |
 | Touch targets | ≥ 44x44 (iOS) / 48x48 (Android) |
@@ -336,10 +347,10 @@ MANUAL:
 
 Before writing tests, answer:
 
-1. **What could break?** Test it.
-2. **What's critical for users?** E2E test it.
-3. **What's complex logic?** Unit test it.
-4. **What's platform-specific?** Test on both platforms.
-5. **What happens offline?** Test that scenario.
+1. **What could break?** → Test that
+2. **What's critical for users?** → E2E test that
+3. **What's complex logic?** → Unit test that
+4. **What's platform-specific?** → Test on both platforms
+5. **What happens offline?** → Test that scenario
 
-> **Remember:** Flaky E2E test is worse than no test.
+> **Remember:** Good mobile testing is about testing the RIGHT things, not EVERYTHING. A flaky E2E test is worse than no test. A failing unit test that catches a bug is worth 100 passing trivial tests.

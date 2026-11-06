@@ -7,7 +7,7 @@ tags: cache, layer-ordering, build-time, invalidation
 
 ## Order Layers by Change Frequency
 
-Docker reuses cached layer while instruction and inputs are unchanged. Invalidated layer invalidates every later layer too, and all must rebuild. Frequently-changing instructions (like copying application source) before stable ones (like installing system packages) force Docker to redo stable work every build.
+Docker caches each layer and reuses it as long as the instruction and its inputs have not changed. When a layer's cache is invalidated, every subsequent layer is also invalidated and must be rebuilt. Placing frequently-changing instructions (like copying application source code) before stable instructions (like installing system packages) forces Docker to redo all the stable work on every build.
 
 **Incorrect (frequently-changing layer before stable layers):**
 
@@ -27,6 +27,8 @@ RUN npm run build
 EXPOSE 3000
 CMD ["node", "dist/server.js"]
 ```
+
+(Any change to a source file, README, or test invalidates the `npm install` layer and every layer after it.)
 
 **Correct (layers ordered from least to most frequently changing):**
 
@@ -56,6 +58,6 @@ ENTRYPOINT ["tini", "--"]
 CMD ["node", "dist/server.js"]
 ```
 
-(Source changes invalidate only `COPY . .` layer and build step. Dependency installation stays cached.)
+(Source code changes only invalidate the `COPY . .` layer and the build step. Dependency installation remains cached.)
 
 Reference: [Docker Build Cache - Optimize](https://docs.docker.com/build/cache/optimize/)

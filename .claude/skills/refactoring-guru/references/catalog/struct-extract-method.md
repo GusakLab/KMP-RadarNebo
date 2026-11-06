@@ -6,9 +6,9 @@ tags: struct, extract-method, decomposition, readability
 
 ## Extract Method for Long Functions
 
-Extract cohesive blocks into well-named methods for readability and reuse.
+Long functions are the most common source of code complexity. Extract cohesive blocks of code into well-named methods to improve readability and enable reuse.
 
-**Incorrect (monolith with multiple responsibilities):**
+**Incorrect (monolithic function with multiple responsibilities):**
 
 ```typescript
 function processOrder(order: Order): ProcessedOrder {
@@ -39,7 +39,7 @@ function processOrder(order: Order): ProcessedOrder {
 }
 ```
 
-**Correct (focused methods):**
+**Correct (decomposed into focused methods):**
 
 ```typescript
 function processOrder(order: Order): ProcessedOrder {
@@ -75,8 +75,8 @@ function formatOrderItems(items: OrderItem[]): FormattedItem[] {
 ```
 
 **When to extract:**
-- Block has clear single purpose
-- Block reusable elsewhere
-- Block needs own documentation/testing
+- Code block has a clear single purpose
+- Block is reusable in other contexts
+- Block requires its own documentation/testing
 
 Reference: [Extract Function](https://refactoring.com/catalog/extractFunction.html)

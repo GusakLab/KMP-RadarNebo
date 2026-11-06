@@ -1,50 +1,51 @@
 # Sections
 
-Section ID (in parentheses) is filename prefix grouping rules.
+This file defines all sections, their ordering, impact levels, and descriptions.
+The section ID (in parentheses) is the filename prefix used to group rules.
 
 ---
 
 ## 1. Layer Caching & Ordering (cache)
 
 **Impact:** CRITICAL
-**Description:** Wrong layer order invalidates all downstream cache: full rebuilds. Cache mounts and instruction order are #1 build time optimization; one misplaced COPY can add minutes to every build.
+**Description:** Wrong layer order invalidates all downstream cache, causing full rebuilds. Cache mounts and instruction ordering are the #1 build time optimization — a single misplaced COPY can add minutes to every build.
 
 ## 2. Multi-Stage Builds (stage)
 
 **Impact:** CRITICAL
-**Description:** Without multi-stage, build tools, compilers and intermediate artifacts ship to production: 2-10x image size bloat, wider attack surface, slower deploys.
+**Description:** Without multi-stage, build tools, compilers, and intermediate artifacts ship to production — 2-10x image size bloat, expanded attack surface, and slower deployments.
 
 ## 3. Base Image Selection (base)
 
 **Impact:** HIGH
-**Description:** Base image sets size floor, security surface and compatibility for every layer above. Wrong choice cascades through whole image.
+**Description:** The base image determines the size floor, security surface, and compatibility of every layer above it. Choosing the wrong base cascades through the entire image.
 
 ## 4. Build Context Management (ctx)
 
 **Impact:** HIGH
-**Description:** Large build contexts slow transfer to builder daemon and spuriously invalidate cache. Bind mounts and .dockerignore cut unneeded transfer.
+**Description:** Large build contexts cause slow transfers to the builder daemon and spurious cache invalidation. Bind mounts and .dockerignore eliminate unnecessary data transfer.
 
 ## 5. Security & Secrets (sec)
 
 **Impact:** HIGH
-**Description:** Secrets in ARG or ENV persist in image layers forever, readable by anyone with image access. Production images need secret mounts, non-root users and attestations.
+**Description:** Secrets in ARG or ENV persist in image layers forever and are readable by anyone with image access. Secret mounts, non-root users, and attestations are essential for production images.
 
 ## 6. Dependency Management (dep)
 
 **Impact:** MEDIUM-HIGH
-**Description:** Package manager operations are costliest build steps. Cache mounts, version pinning and cleanup cut redundant downloads and image size.
+**Description:** Package manager operations are the most expensive build steps. Cache mounts, version pinning, and cleanup strategies eliminate redundant downloads and reduce image size.
 
 ## 7. Instruction Patterns (inst)
 
 **Impact:** MEDIUM
-**Description:** Wrong CMD/ENTRYPOINT form breaks signal handling. Missing HEALTHCHECK prevents orchestrator health detection. Heredocs make multi-line scripts readable.
+**Description:** Incorrect CMD/ENTRYPOINT form breaks signal handling; missing HEALTHCHECK prevents orchestrator health detection; heredocs improve multi-line script readability.
 
 ## 8. Quality & Validation (lint)
 
 **Impact:** MEDIUM
-**Description:** Docker build checks, pipefail, standard labels and single-concern containers catch silent failures and keep long-term image quality.
+**Description:** Docker build checks, pipefail, standard labels, and single-concern containers catch silent failures and maintain long-term image quality.
 
 ## 9. Language Patterns (lang)
 
 **Impact:** HIGH
-**Description:** Each ecosystem has own dependency layout, cache paths and runtime needs. Language-specific templates applying generic rules avoid most common size, cache and signal-handling mistakes.
+**Description:** Each ecosystem has its own dependency layout, cache paths and runtime needs. Applying the generic rules through a language-specific template avoids the most common size, cache and signal-handling mistakes.

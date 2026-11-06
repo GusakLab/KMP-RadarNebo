@@ -6,7 +6,7 @@ tags: name, string-interpolation, readability, template-literals, f-strings
 
 ## Prefer String Interpolation Over Concatenation
 
-Concatenation scatters output format across operators and quotes, hiding final string shape. Template literals (JavaScript/TypeScript), f-strings (Python), and format strings (Go, Rust) keep structure intact, values inline.
+String concatenation scatters the output format across operators and quotes, making it hard to see the final shape of the string. Template literals (JavaScript/TypeScript), f-strings (Python), and format strings (Go, Rust) keep the structure intact with values inserted inline, so readers can see exactly what the output looks like.
 
 **Incorrect (string concatenation):**
 
@@ -42,16 +42,16 @@ function logOrderEvent(orderId: string, status: string, timestamp: Date): void {
 }
 ```
 
-**Incorrect (Python - concatenation and % formatting):**
+**Incorrect (Python - string concatenation and % formatting):**
 
 ```python
 def format_error_message(code, endpoint, method):
     # Concatenation: hard to see the shape
     return "Error " + str(code) + " on " + method + " " + endpoint
 
-def format_progress(task, done, total):
+def build_query(table, columns, condition):
     # % formatting: positional args drift from placeholders
-    return "%s: %d/%d done (%s)" % (task, done, total, ", ".join(task.tags))
+    return "SELECT %s FROM %s WHERE %s" % (", ".join(columns), table, condition)
 ```
 
 **Correct (Python - f-strings):**
@@ -60,8 +60,8 @@ def format_progress(task, done, total):
 def format_error_message(code, endpoint, method):
     return f"Error {code} on {method} {endpoint}"
 
-def format_progress(task, done, total):
-    return f"{task}: {done}/{total} done ({', '.join(task.tags)})"
+def build_query(table, columns, condition):
+    return f"SELECT {', '.join(columns)} FROM {table} WHERE {condition}"
 ```
 
 **Incorrect (Go - fmt.Sprintf with positional verbs):**
@@ -83,6 +83,13 @@ func formatLogEntry(level string, component string, message string) string {
 ### When NOT to Apply
 
 - Building SQL queries (use parameterized queries, never interpolation)
-- Pieces come from a loop or dynamic collection (use `join`)
+- When string pieces come from a loop or dynamic collection (use `join`)
 - Performance-critical paths with many concatenations (use `strings.Builder` in Go, `StringBuilder` in Java)
-- Simple two-part concatenation with equal readability
+- Simple two-part concatenation where readability is equivalent
+
+### Benefits
+
+- String structure visible at a glance without tracing through operators
+- Eliminates off-by-one quote/space errors between concatenated segments
+- Easier to add or reorder interpolated values
+- Fewer characters and less visual noise than concatenation

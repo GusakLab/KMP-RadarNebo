@@ -7,7 +7,7 @@ tags: lang, python, uv, poetry, pip, venv, multi-stage
 
 ## Python - build a venv in a builder stage, copy it to a slim runtime
 
-Installing dependencies and source in one step rebuilds every dependency on each code change. It also leaves build tools (gcc, headers, pip caches) in image. Install locked dependencies into venv in builder stage. Copy only venv and source into runtime stage on **same** Python image (venv's interpreter path must exist at same location).
+Installing dependencies and source in one step rebuilds every dependency on each code change, and leaves build tools (gcc, headers, pip caches) in the image. Install the locked dependencies into a virtual environment in a builder stage, then copy only that venv and the source into a runtime stage based on the **same** Python image (the venv's interpreter path must exist at the same location).
 
 **Incorrect (single stage, source copied before dependencies, runs as root):**
 
@@ -64,12 +64,12 @@ ENV PATH="/opt/venv/bin:$PATH"
 # ... copy source, non-root USER, CMD
 ```
 
-Poetry: install with `poetry install --no-root --only main` and `POETRY_VIRTUALENVS_IN_PROJECT=1`, then copy `/app/.venv`. Or `poetry export` to requirements and use pip pattern. Export is plugin in recent Poetry versions; check installed version.
+For Poetry, install with `poetry install --no-root --only main` and `POETRY_VIRTUALENVS_IN_PROJECT=1`, then copy `/app/.venv`; or `poetry export` to requirements and use the pip pattern (the export command is a plugin in recent Poetry versions; check the installed version).
 
 **Pitfalls:**
-- Alpine uses musl. Many wheels are glibc-only, so packages like numpy may compile from source. Prefer `-slim`.
-- Packages linking system libraries need `-dev` package in builder, only runtime library (e.g. `libpq5`) in final stage.
-- Run Django `collectstatic` in builder or as root before `USER`, not at container start.
-- Distroless Python images ship distribution's Python, which may differ from `python:3.x`. Venv works only if interpreter version matches.
+- Alpine uses musl; many wheels are glibc-only, so packages like numpy may compile from source. Prefer `-slim`.
+- Packages that link system libraries need the `-dev` package in the builder and only the runtime library (for example `libpq5`) in the final stage.
+- Run Django `collectstatic` in the builder or as root before `USER`, not at container start.
+- Distroless Python images ship the distribution's Python version, which may differ from `python:3.x`; the venv only works if the interpreter version matches.
 
 Reference: [uv: Using uv in Docker](https://docs.astral.sh/uv/guides/integration/docker/)

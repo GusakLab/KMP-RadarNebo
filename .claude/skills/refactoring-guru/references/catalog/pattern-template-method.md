@@ -6,7 +6,7 @@ tags: pattern, template-method, inheritance, skeleton
 
 ## Use Template Method for Shared Skeleton
 
-If classes share algorithm shape but differ in steps, define skeleton in base class. Subclasses override specific steps.
+When multiple classes have similar algorithms with different steps, define the skeleton in a base class and let subclasses override specific steps.
 
 **Incorrect (duplicated algorithm structure):**
 
@@ -104,5 +104,10 @@ class ExcelReportGenerator extends ReportGenerator {
   }
 }
 ```
+
+**Benefits:**
+- Algorithm skeleton defined once
+- Subclasses focus on what's different
+- Adding new report types only requires implementing abstract methods
 
 Reference: [Template Method Pattern](https://refactoring.guru/design-patterns/template-method)

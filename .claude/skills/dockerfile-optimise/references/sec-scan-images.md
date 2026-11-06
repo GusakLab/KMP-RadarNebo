@@ -7,7 +7,7 @@ tags: sec, scanning, trivy, grype, scout, sarif, ci
 
 ## Scan built images for vulnerabilities in CI
 
-Minimal base images still gain CVEs with age. Scan built image every build, and on schedule for published images. Makes "rebuild regularly" (see `base-rebuild-regularly`) an enforced gate.
+A minimal base image still accumulates CVEs as it ages. Scanning the built image on every build, and on a schedule for already-published images, turns "rebuild regularly" (see `base-rebuild-regularly`) into an enforced gate.
 
 **Incorrect (unpinned scanner action, results only in logs):**
 
@@ -26,9 +26,6 @@ permissions:
 steps:
   - name: Scan image
     uses: aquasecurity/trivy-action@<pinned-sha> # vX.Y.Z - resolve the current release SHA
-    env:
-      TRIVY_DISABLE_TELEMETRY: "true"   # trivy sends usage telemetry by default
-      TRIVY_SKIP_VERSION_CHECK: "true"
     with:
       image-ref: ${{ env.IMAGE }}@${{ steps.build.outputs.digest }}
       format: sarif
@@ -46,15 +43,14 @@ steps:
 **Local equivalents:**
 
 ```bash
-export TRIVY_DISABLE_TELEMETRY=true TRIVY_SKIP_VERSION_CHECK=true   # opt out of trivy telemetry
 trivy image --severity CRITICAL,HIGH --ignore-unfixed myapp@sha256:<digest>
 grype myapp@sha256:<digest>
 docker scout cves myapp@sha256:<digest>
 ```
 
 **Notes:**
-- Scan exact digest you will push, not mutable tag.
-- Record accepted findings in scanner ignore file with reason and expiry. Do not lower severity threshold instead.
-- Pin every third-party action to full commit SHA; see `github-actions-advanced` skill.
+- Scan the exact digest you will push, not a mutable tag.
+- Record accepted findings in the scanner's ignore file with a reason and expiry instead of lowering the severity threshold.
+- Pin every third-party action to a full commit SHA; see the `github-actions-advanced` skill.
 
 Reference: [Docker Scout](https://docs.docker.com/scout/), [Trivy](https://trivy.dev/)

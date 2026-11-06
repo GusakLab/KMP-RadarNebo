@@ -7,7 +7,7 @@ tags: lint, single-concern, architecture, decoupling
 
 ## One Concern per Container
 
-Several services in one container (e.g. web server, application and background worker under supervisord) cannot be scaled, updated, restarted or monitored independently. One crash takes down the rest. One service needing capacity forces scaling whole bundle. Logs from several processes interleave, hurting debugging and structured logging pipelines.
+Running multiple services in a single container -- such as a web server, application process, and background worker managed by supervisord -- prevents each service from being scaled, updated, restarted, or monitored independently. When one service crashes, it takes down the others. When one service needs more capacity, you must scale the entire bundle. Logs from multiple processes interleave, making debugging harder and structured logging pipelines unreliable.
 
 **Incorrect (multiple services in one container via supervisord):**
 
@@ -30,7 +30,7 @@ EXPOSE 80
 CMD ["supervisord", "-c", "/etc/supervisord.conf"]
 ```
 
-(Container runs nginx, gunicorn and celery worker under supervisord. If celery worker OOMs, supervisord restarts it, but nginx/gunicorn may drop requests meanwhile.)
+(This container runs nginx, gunicorn, and a celery worker under supervisord. If the celery worker OOMs, supervisord restarts it but the nginx/gunicorn processes may drop requests during the restart cycle. Scaling requires tripling resources for all three services even if only the worker needs more capacity. Container health is ambiguous -- the container is "running" even if two of three processes have crashed.)
 
 **Correct (separate containers for each concern):**
 
@@ -93,17 +93,17 @@ services:
       - web
 ```
 
-(Each service scales alone: worker at 4 replicas, web at 2. Worker crash leaves web requests unaffected. One log stream per container keeps aggregation simple.)
+(Each service scales independently. The worker can be scaled to 4 replicas while the web server stays at 2. If the worker crashes, web requests continue uninterrupted. Each container produces a single log stream, making log aggregation straightforward.)
 
 ### Not a Hard Rule
 
-"One concern per container" is guideline, not strict "one process per container" rule. Helpers that directly support main process are fine:
+"One concern per container" is a guideline, not a strict "one process per container" rule. Helper processes that directly support the main process are acceptable:
 
-- Log rotation sidecar managing main process's log files
-- Init process like `tini` reaping zombie processes
-- Startup script running migrations before handing off to application
+- A log rotation sidecar that manages the main process's log files
+- An init process like `tini` that reaps zombie processes
+- A startup script that runs migrations before handing off to the application
 
-**Tightly coupled helpers** are acceptable; **independent services** belong in separate containers. If process could reasonably have own scaling policy, deployment lifecycle or health check, give it own container.
+The distinction is between **tightly coupled helpers** (acceptable) and **independent services** (should be separate containers). If a process could reasonably have its own scaling policy, deployment lifecycle, or health check, it belongs in its own container.
 
 ### Signals and Health
 
@@ -115,6 +115,6 @@ HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 ```
 
-With several services in one container, single `HEALTHCHECK` cannot represent all of them. One healthy process masks failures in others.
+With multiple services in one container, a single `HEALTHCHECK` cannot accurately represent the state of all services. One healthy process masks failures in the others.
 
 Reference: [Building best practices](https://docs.docker.com/build/building/best-practices/)

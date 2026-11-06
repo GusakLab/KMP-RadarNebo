@@ -12,6 +12,8 @@
 
 ## Overview
 
+Mocking is the practice of replacing real dependencies with controlled substitutes during testing. Effective mocking enables fast, isolated tests while maintaining confidence in system behavior.
+
 ### The Mocking Decision Matrix
 
 | Dependency | Unit Test | Integration Test | E2E Test |
@@ -32,11 +34,11 @@
 ✅ **External API calls**:
 - Third-party services (payment, shipping, email)
 - Avoid rate limits and costs
-- Deterministic responses
+- Ensure deterministic responses
 - Test error scenarios (API down, timeout)
 
 ✅ **Slow operations**:
-- File I/O (unless testing file handling)
+- File I/O (unless testing file handling specifically)
 - Network requests
 - Heavy computations (not core to test)
 
@@ -53,14 +55,14 @@
 
 ✅ **Database operations** (integration tests):
 - Use ephemeral database (Docker, in-memory SQLite)
-- Test real SQL queries
+- Test actual SQL queries
 - Validate transaction behavior
 - Ensure data integrity
 
 ✅ **Internal services** (integration tests):
 - Test component interactions
 - Validate interface contracts
-- Check data flow correctness
+- Ensure data flow correctness
 
 ✅ **File operations** (integration tests):
 - Use temporary directories
@@ -69,11 +71,17 @@
 
 ✅ **Core business logic**:
 - Never mock the system under test
-- Never mock what you're validating
+- Never mock what you're trying to validate
 
 ## Mocking External APIs
 
 ### TypeScript/JavaScript: Mock Service Worker (MSW)
+
+**Why MSW?**
+- Intercepts requests at network level (realistic)
+- Same handlers for tests and development
+- Framework-agnostic (works with any test library)
+- TypeScript support
 
 **Basic Setup**:
 ```typescript
@@ -205,8 +213,7 @@ def test_api_error_handling(httpserver):
 ```python
 import vcr
 
-# Cassettes get committed: filter auth headers, scrub other secrets (cookies, key params) first
-@vcr.use_cassette('fixtures/vcr_cassettes/user_123.yaml', filter_headers=['authorization'])
+@vcr.use_cassette('fixtures/vcr_cassettes/user_123.yaml')
 def test_fetch_user():
     # First run: Makes real API call, records response
     # Subsequent runs: Replays recorded response
@@ -217,11 +224,11 @@ def test_fetch_user():
 **Benefits**:
 - Real API responses (realistic data)
 - No mocking code needed
-- Offline testing (no network)
+- Offline testing (no network required)
 
 **Drawbacks**:
-- Cassettes can go stale
-- Error scenarios not easy to test
+- Cassettes can become stale
+- Doesn't test error scenarios easily
 - Large responses bloat repository
 
 ### Go: httptest
@@ -682,8 +689,23 @@ beforeEach(() => {
 
 ## Summary
 
+**Key Takeaways**:
+
+1. **Mock external dependencies**: APIs, time, randomness
+2. **Use real dependencies for integration tests**: Databases (ephemeral), internal services
+3. **Never mock the system under test**: Test real behavior, not mocks
+4. **Choose the right test double**: Dummy, stub, spy, mock, fake
+5. **Avoid over-mocking**: Only mock what's necessary
+6. **Reset mocks between tests**: Prevent test pollution
+
 **Tools by Language**:
 - **TypeScript/JavaScript**: MSW (APIs), Vitest mocks/spies, useFakeTimers
 - **Python**: pytest-httpserver, VCR.py, freezegun, unittest.mock
 - **Go**: httptest (stdlib), testify/mock
 - **Rust**: mockito, mockall
+
+**Next Steps**:
+- Identify slow/flaky tests caused by external dependencies
+- Replace with appropriate mocks (MSW for APIs, Docker for databases)
+- Verify mocks are reset between tests
+- Refactor over-mocked tests to test behavior, not implementation

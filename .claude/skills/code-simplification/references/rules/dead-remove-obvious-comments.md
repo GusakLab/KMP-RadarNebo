@@ -6,7 +6,7 @@ tags: dead, comments, redundancy, self-documenting
 
 ## Remove Comments That State the Obvious
 
-Comments repeating code add noise without value. Comments should add context code cannot express.
+Comments that repeat what the code says add noise without value. They double the reading burden and inevitably drift out of sync with the code they describe. Well-named variables and functions are self-documenting; comments should add context the code cannot express.
 
 **Incorrect (comments repeat the code):**
 
@@ -153,15 +153,22 @@ public class Product {
 
 ### What Makes a Comment Obvious?
 
-- Restates identifier name: `// the user's name` for `userName`
-- Describes language construct: `// loop through items` for a for loop
+- Restates the identifier name: `// the user's name` for `userName`
+- Describes the language construct: `// loop through items` for a for loop
 - Explains standard operations: `// return the result`
 - Documents trivial getters/setters with no logic
 
 ### When NOT to Apply
 
-- Regex patterns needing explanation
+- Regex patterns that need explanation
 - Complex algorithms that benefit from step descriptions
 - Non-obvious hardcoded numbers or business rules
 - Workarounds for known bugs or platform quirks
 - Public API documentation (JSDoc, docstrings)
+
+### Benefits
+
+- Comments that remain are actually valuable
+- Reduces maintenance burden of keeping comments in sync
+- Forces better naming instead of relying on comments
+- Faster code scanning without visual noise

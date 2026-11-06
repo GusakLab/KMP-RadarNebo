@@ -7,9 +7,9 @@ tags: inst, cmd, entrypoint, exec-form, signals
 
 ## Use JSON Form for CMD and ENTRYPOINT
 
-Shell form (`CMD command arg1`) wraps process in `/bin/sh -c`, so shell becomes PID 1 instead of application. Shell does not forward OS signals (SIGTERM, SIGINT) to child, so application cannot shut down gracefully. In orchestrators like Kubernetes or Docker Swarm, every deploy, restart or scale-down hits 10-second forced kill timeout.
+Shell form (`CMD command arg1`) wraps the process in `/bin/sh -c`, which means the shell becomes PID 1 instead of your application. The shell does not forward OS signals (SIGTERM, SIGINT) to the child process, so the application cannot shut down gracefully. In orchestrated environments like Kubernetes or Docker Swarm, this results in a 10-second forced kill timeout on every deploy, restart, or scale-down event.
 
-**Incorrect (shell form -- shell is PID 1, application gets no signals):**
+**Incorrect (shell form -- shell is PID 1, application does not receive signals):**
 
 ```dockerfile
 FROM node:22-slim
@@ -23,7 +23,7 @@ EXPOSE 3000
 CMD node server.js
 ```
 
-(`CMD node server.js` becomes `CMD ["/bin/sh", "-c", "node server.js"]`. After 10-second grace period, Docker sends SIGKILL, killing process without cleanup.)
+(The `CMD node server.js` instruction is interpreted as `CMD ["/bin/sh", "-c", "node server.js"]`. The shell becomes PID 1 and node runs as a child process. When Docker sends SIGTERM to stop the container, the shell receives it but does not forward it to node. After a 10-second grace period, Docker sends SIGKILL, forcibly terminating the process without cleanup.)
 
 **Correct (JSON/exec form -- application is PID 1, receives signals directly):**
 
@@ -39,7 +39,7 @@ EXPOSE 3000
 CMD ["node", "server.js"]
 ```
 
-(`CMD ["node", "server.js"]` runs node as PID 1, no intermediate shell. SIGTERM reaches node, so it can close database connections, flush logs and finish in-flight requests before exit.)
+(The `CMD ["node", "server.js"]` instruction runs node directly as PID 1 with no intermediate shell. SIGTERM is delivered to the node process, allowing it to close database connections, flush logs, and finish in-flight requests before exiting.)
 
 **Correct (ENTRYPOINT in exec form for Python applications):**
 
@@ -56,7 +56,7 @@ ENTRYPOINT ["python", "-m", "uvicorn"]
 CMD ["main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
-(Both use exec form. ENTRYPOINT sets executable; CMD sets default arguments. `docker run myimage --workers 4` replaces CMD, keeps ENTRYPOINT: `python -m uvicorn --workers 4`.)
+(Both ENTRYPOINT and CMD use exec form. The ENTRYPOINT defines the executable and CMD provides default arguments. Running `docker run myimage --workers 4` replaces CMD but keeps the ENTRYPOINT, resulting in `python -m uvicorn --workers 4`.)
 
 ### Shell Form vs Exec Form Reference
 
@@ -70,12 +70,12 @@ CMD ["main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 ### When Shell Form is Acceptable
 
-Shell form is needed for shell features like variable expansion, pipes or redirection. Then add `exec` for proper signal handling:
+Shell form is needed when the command relies on shell features like variable expansion, pipes, or redirection. In that case, combine it with `exec` to ensure proper signal handling:
 
 ```dockerfile
 CMD ["sh", "-c", "exec java $JAVA_OPTS -jar /app/server.jar"]
 ```
 
-(`exec` replaces shell with java, restoring PID 1 signal handling while keeping variable expansion.)
+(The `exec` replaces the shell with the java process, restoring proper PID 1 signal handling while retaining shell variable expansion.)
 
 Reference: [Building best practices](https://docs.docker.com/build/building/best-practices/)

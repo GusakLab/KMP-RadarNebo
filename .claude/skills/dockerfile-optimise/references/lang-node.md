@@ -7,7 +7,7 @@ tags: lang, node, npm, pnpm, yarn, multi-stage, signals
 
 ## Node.js - install from the lockfile, ship production deps only, run node directly
 
-`npm install` can rewrite lockfile and resolve versions CI never tested. Shipping builder's `node_modules` ships devDependencies (TypeScript, test runners). `npm start` makes npm PID 1 in front of node. It may not forward SIGTERM, so containers stop only after kill timeout.
+`npm install` can rewrite the lockfile and resolve different versions than CI tested. Shipping the builder's `node_modules` includes devDependencies (TypeScript, test runners). Starting via `npm start` puts npm in front of node as PID 1, which may not forward SIGTERM, so containers stop only after the kill timeout.
 
 **Incorrect:**
 
@@ -52,14 +52,14 @@ CMD ["node", "dist/index.js"]
 | Manager | Install command | Cache mount target |
 |---|---|---|
 | npm | `npm ci` (`--omit=dev` for runtime deps) | `/root/.npm` |
-| pnpm | `pnpm install --frozen-lockfile` (`--prod`) | pnpm store dir (set explicitly, e.g. `PNPM_STORE_DIR` / `pnpm config set store-dir`) |
-| Yarn (Berry) | `yarn install --immutable` | `.yarn/cache` or configured cache folder |
+| pnpm | `pnpm install --frozen-lockfile` (`--prod`) | the pnpm store dir (set it explicitly, e.g. `PNPM_STORE_DIR` / `pnpm config set store-dir`) |
+| Yarn (Berry) | `yarn install --immutable` | `.yarn/cache` or the configured cache folder |
 
-Install pnpm/Yarn at pinned version: Corepack where Node image still provides it, otherwise `npm install -g pnpm@<version>`.
+Install pnpm/Yarn at a pinned version (Corepack where the Node image still provides it, otherwise `npm install -g pnpm@<version>`).
 
 **Pitfalls:**
-- Native modules (`bcrypt`, `sharp`) built on Alpine (musl) fail on Debian (glibc), and vice versa. Build and run on same libc.
-- Shell-free runtime: `gcr.io/distroless/nodejs<major>-debian12` works with same deps/build stages. Set `CMD ["dist/index.js"]`, since entrypoint is already `node` (see `base-distroless`).
-- Next.js: use `output: "standalone"`; copy `.next/standalone`, `.next/static` and `public` instead of whole `node_modules`.
+- Native modules (`bcrypt`, `sharp`) compiled on Alpine (musl) fail on Debian (glibc) and vice versa. Build and run on the same libc.
+- For a shell-free runtime, `gcr.io/distroless/nodejs<major>-debian12` works with the same deps/build stages; set `CMD ["dist/index.js"]` because the entrypoint is already `node` (see `base-distroless`).
+- Next.js: use `output: "standalone"` and copy `.next/standalone`, `.next/static` and `public` instead of the whole `node_modules`.
 
 Reference: [Docker: Node.js language guide](https://docs.docker.com/guides/nodejs/)

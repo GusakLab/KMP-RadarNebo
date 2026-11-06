@@ -7,10 +7,26 @@ allowed-tools: []
 
 # Kotlin Null Safety
 
+## Introduction
+
+Kotlin's null safety system eliminates NullPointerExceptions at compile time by
+distinguishing between nullable and non-nullable types in the type system. This
+approach makes null handling explicit and forces developers to consciously
+handle potential null values.
+
+Unlike Java where any reference can be null, Kotlin requires explicit
+declaration of nullability with the `?` operator. The compiler enforces null
+checks before dereferencing nullable values, preventing the vast majority of
+null-related crashes that plague Java applications.
+
+This skill covers nullable types, safe call operators, smart casts, nullability
+in generic types, and patterns for designing null-safe APIs while maintaining
+code clarity.
+
 ## Nullable Types
 
-`?` suffix makes type nullable (can hold null). Non-nullable type is guaranteed
-non-null at compile time.
+Nullable types explicitly indicate that a variable or property can hold null,
+while non-nullable types provide compile-time guarantees of non-null values.
 
 ```kotlin
 // Non-nullable types
@@ -71,10 +87,13 @@ class Service {
 }
 ```
 
+The `?` suffix makes a type nullable. Non-nullable types cannot be assigned null
+without explicit nullability declaration, preventing accidental null references.
+
 ## Safe Call Operator
 
-Safe call `?.` accesses members of nullable reference. Returns null instead of
-throwing NPE when receiver is null.
+The safe call operator `?.` safely accesses properties and methods on nullable
+references, returning null if the receiver is null instead of throwing NPE.
 
 ```kotlin
 // Basic safe calls
@@ -132,11 +151,13 @@ class Container {
 }
 ```
 
-Chain short-circuits at first null.
+Safe call chains short-circuit at the first null, making deeply nested optional
+access clean and safe without multiple null checks.
 
 ## Elvis Operator and Null Coalescing
 
-Elvis `?:` gives default for null expression.
+The Elvis operator `?:` provides default values for null expressions, enabling
+concise fallback logic without verbose if-else statements.
 
 ```kotlin
 // Basic Elvis operator
@@ -198,12 +219,13 @@ fun getData(): String {
 }
 ```
 
-Right side evaluates only if left side is null, so defaults are lazy.
+The Elvis operator evaluates the right side only if the left side is null,
+supporting lazy evaluation of default values.
 
 ## Smart Casts
 
-After null check, compiler casts nullable type to non-nullable. No redundant
-casts.
+Smart casts automatically cast nullable types to non-nullable after null checks,
+eliminating redundant casts and improving code clarity.
 
 ```kotlin
 // Smart cast after null check
@@ -276,13 +298,13 @@ fun requireNotNull(value: String?) {
 }
 ```
 
-Works on immutable variables and val properties, not var properties: var
-could change between check and use.
+Smart casts work with immutable variables and val properties but not var
+properties, which could change between the check and usage.
 
 ## Not-Null Assertion and Platform Types
 
-Not-null assertion `!!` throws NPE if value is null. Use when null is
-impossible but compiler cannot prove it.
+The not-null assertion operator `!!` explicitly throws NPE if a value is null,
+useful for cases where null is impossible but the compiler cannot verify.
 
 ```kotlin
 // Not-null assertion operator
@@ -297,7 +319,7 @@ fun initializeFromConfig(config: Map<String, String>) {
     val apiKey = config["api_key"]!!
     val endpoint = config["endpoint"]!!
 
-    println("Configured endpoint $endpoint") // never log apiKey
+    println("Configured with $apiKey at $endpoint")
 }
 
 // Avoid chaining !!
@@ -362,7 +384,14 @@ class JavaClass {
 }
 ```
 
+The `!!` operator should be used sparingly and only when you have high
+confidence the value is non-null, as it reintroduces crash potential.
+
 ## Nullability in Collections and Generics
+
+Collections and generic types support nullability at both the container and
+element levels, requiring clear distinction between nullable elements and
+nullable collections.
 
 ```kotlin
 // Nullable elements vs nullable collections
@@ -440,9 +469,13 @@ interface Consumer<in T> {
 }
 ```
 
-`List<String?>` is list of nullable strings. `List<String>?` is nullable list.
+Understanding the distinction between `List<String?>` (list of nullable strings)
+and `List<String>?` (nullable list) is crucial for correct null handling.
 
 ## Designing Null-Safe APIs
+
+Designing APIs with appropriate nullability improves usability and prevents
+misuse by making null expectations explicit in the type system.
 
 ```kotlin
 // Prefer non-nullable parameters
@@ -466,7 +499,6 @@ class UserService {
 }
 
 // Builder pattern with nullable accumulation
-// (trusted identifiers only; bind user values as query parameters, never interpolate)
 class QueryBuilder {
     private var table: String? = null
     private var where: String? = null
@@ -538,58 +570,91 @@ class AsyncLoader {
 }
 ```
 
+Good API design minimizes nullability where possible, using empty collections
+instead of null lists and sealed classes for richer optional value semantics.
+
 ## Best Practices
 
-1. **Prefer non-nullable types by default**: more compile-time safety, fewer
-   null checks
+1. **Prefer non-nullable types by default** to maximize compile-time safety and
+   reduce null checks throughout the codebase
 
 2. **Use safe call operator `?.` for chaining** instead of multiple null checks
+   to keep code concise and readable
 
-3. **Provide defaults with Elvis operator `?:`** instead of if-else chains for
-   simple fallbacks
+3. **Provide defaults with Elvis operator `?:`** rather than verbose if-else
+   chains for simple fallback scenarios
 
-4. **Return empty collections instead of null** so clients skip null checks
+4. **Return empty collections instead of null** to simplify client code and
+   eliminate null checks for collection results
 
-5. **Minimize use of `!!` operator** and document assumptions when used.
-   Reintroduces crash risk
+5. **Leverage smart casts after null checks** to avoid redundant casts and let
+   the compiler track non-null guarantees
 
-6. **Design APIs with explicit nullability** to state intent and prevent misuse
+6. **Minimize use of `!!` operator** and document assumptions when used, as it
+   reintroduces crash potential
 
-7. **Use lateinit for non-null deferred initialization** instead of nullable
+7. **Design APIs with explicit nullability** to communicate intent clearly and
+   prevent misuse of nullable values
+
+8. **Use lateinit for non-null deferred initialization** instead of nullable
    properties with manual null checks
 
-8. **Apply nullable extensions** like `isNullOrEmpty()` for common null handling
+9. **Apply nullable extensions** to provide utilities like `isNullOrEmpty()` for
+   cleaner null handling in common scenarios
 
-9. **Prefer sealed classes over nullable types** to represent success, error,
-   and absent states
+10. **Prefer sealed classes over nullable types** for richer semantics when
+    representing success, error, and absent states
 
 ## Common Pitfalls
 
-1. **Chaining `!!` operators** hides crash points. Use safe calls or explicit
-   validation instead
+1. **Overusing nullable types** when values should never be null makes APIs
+   harder to use and adds unnecessary checks
 
-2. **Ignoring platform types from Java** can cause NPEs. Treat Java returns as
-   nullable unless documented
+2. **Chaining `!!` operators** creates unclear crash points; use safe calls or
+   explicit validation instead
 
-3. **Not considering nullability in equals/hashCode** can break collections
-   and comparisons
+3. **Ignoring platform types from Java** can cause NPEs; treat Java return
+   values as nullable unless documented
 
-4. **Forgetting that safe calls return nullable types** lets unexpected nulls
-   propagate
+4. **Using var properties for smart casts** fails because vars can change; use
+   local val copies for smart casting
 
-5. **Using nullable primary constructor parameters** without defaults
-   complicates object creation
+5. **Returning null collections** instead of empty collections forces clients to
+   handle two separate cases unnecessarily
 
-6. **Creating deeply nested nullable structures** gets unwieldy. Flatten or use
-   sealed classes
+6. **Not considering nullability in equals/hashCode** can cause unexpected
+   behavior in collections and comparisons
 
-7. **Not documenting null semantics** in complex APIs leaves callers guessing
-   when nulls are valid or what they mean
+7. **Forgetting that safe calls return nullable types** leads to unexpected null
+   values propagating through code
+
+8. **Using nullable primary constructor parameters** without defaults makes
+   object creation unnecessarily complex
+
+9. **Creating deeply nested nullable structures** becomes unwieldy; flatten or
+   use sealed classes for clarity
+
+10. **Not documenting null semantics** in complex APIs leaves callers guessing
+    when nulls are valid or what they represent
 
 ## When to Use This Skill
 
-Use nullable types and safe calls for external data (network APIs, databases,
-user input) where values may be absent.
+Use Kotlin null safety when building any Kotlin application to eliminate
+NullPointerExceptions and make null handling explicit, including Android apps,
+server-side services, and multiplatform projects.
+
+Apply nullable types and safe call operators when working with data from
+external sources like network APIs, databases, or user input where values may be
+absent.
+
+Employ Elvis operator and smart casts when handling optional configuration,
+defaults, or fallback values to keep code concise and readable.
+
+Leverage null-safe design patterns when building libraries or frameworks to
+create APIs that are hard to misuse and clearly communicate expectations.
+
+Use sealed classes and Result types for richer optional semantics in domain
+models where null is insufficient to represent different states.
 
 ## Resources
 

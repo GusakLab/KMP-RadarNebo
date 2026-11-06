@@ -6,9 +6,9 @@ tags: error, fail-fast, preconditions, validation
 
 ## Fail Fast with Preconditions
 
-Check preconditions at function entry. Fail immediately on violation. Don't let invalid data propagate.
+Check preconditions at the start of functions and fail immediately if they're violated. Don't let invalid data propagate through the system.
 
-**Incorrect (late validation spreads corruption):**
+**Incorrect (late validation allows corruption to spread):**
 
 ```typescript
 function processOrder(order: Order): Receipt {
@@ -31,7 +31,7 @@ function processOrder(order: Order): Receipt {
 // Error surfaces 3 layers deep, hard to trace back
 ```
 
-**Correct (fail fast at entry):**
+**Correct (fail fast at entry point):**
 
 ```typescript
 function processOrder(order: Order): Receipt {
@@ -71,5 +71,10 @@ function assertPositive(value: number, message: string): void {
   }
 }
 ```
+
+**Benefits:**
+- Errors caught at the source, not deep in the call stack
+- Error messages point directly to the problem
+- Invalid state never enters the system
 
 Reference: [Fail Fast Principle](https://martinfowler.com/ieeeSoftware/failFast.pdf)

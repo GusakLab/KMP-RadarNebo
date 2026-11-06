@@ -7,9 +7,9 @@ tags: cache, layers, run, consolidation
 
 ## Consolidate Related RUN Instructions
 
-Each `RUN` creates new layer. Layers are additive: files created in one layer and deleted in later one still take image space. Put related operations in single `RUN`, so temporary files, caches and build artifacts get cleaned up in layer that created them.
+Each `RUN` instruction creates a new layer in the image. Files created in one layer and deleted in a subsequent layer still occupy space in the image because layers are additive. Consolidating related operations into a single `RUN` instruction ensures that temporary files, caches, and build artifacts are cleaned up within the same layer they were created in.
 
-**Incorrect (separate RUN instructions, cleanup does not reduce size):**
+**Incorrect (separate RUN instructions -- cleanup does not reduce size):**
 
 ```dockerfile
 FROM ubuntu:24.04
@@ -27,7 +27,7 @@ RUN apt-get install -y --no-install-recommends \
 RUN rm -rf /var/lib/apt/lists/*
 ```
 
-(`rm -rf` in Layer 3 adds whiteout entry that hides files but does not reclaim 35 MB from Layer 1. Image carries all three layers at full size.)
+(The `rm -rf` in Layer 3 creates a whiteout entry that hides the files but does not reclaim the 35 MB from Layer 1. The image carries all three layers at their full size.)
 
 **Correct (single RUN with chained commands):**
 
@@ -41,6 +41,8 @@ RUN apt-get update \
         curl \
     && rm -rf /var/lib/apt/lists/*
 ```
+
+(All operations happen in a single layer. The package lists are downloaded, used, and deleted before the layer is committed. The final layer only contains the installed packages.)
 
 **Alternative (heredoc syntax for readability):**
 
@@ -58,8 +60,8 @@ rm -rf /var/lib/apt/lists/*
 EOF
 ```
 
-(Heredoc syntax, available since Docker BuildKit, keeps multi-command operations readable in single layer. **Always include `set -e`** at top of heredocs. Unlike `&&` chaining, heredoc runs commands sequentially but does not stop on failure by default. Without `set -e`, failed `apt-get update` silently continues to `apt-get install` with stale index.)
+(Heredoc syntax, available since Docker BuildKit, improves readability for multi-command operations while keeping everything in a single layer. **Always include `set -e`** at the top of heredocs — unlike `&&` chaining, heredoc runs commands sequentially but does not stop on failure by default. Without `set -e`, a failed `apt-get update` silently continues to `apt-get install` with a stale index.)
 
-**When NOT to consolidate:** Keep layers separate when they change at different frequencies and you want to preserve cache granularity, such as system packages and application dependencies.
+**When NOT to consolidate:** Keep layers separate when they change at different frequencies and you want to preserve cache granularity. For example, system package installation and application dependency installation should be separate layers because they change at different rates.
 
 Reference: [Docker Build - Best Practices](https://docs.docker.com/build/building/best-practices/)

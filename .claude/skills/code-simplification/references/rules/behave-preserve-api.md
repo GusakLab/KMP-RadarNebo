@@ -6,7 +6,7 @@ tags: behave, api, signatures, types, compatibility
 
 ## Preserve Public Function Signatures and Types
 
-Public APIs are consumer contracts. Reordering parameters, making required params optional, narrowing accepted types or changing return types breaks every caller. Internal simplification must never leak into public interfaces.
+Public APIs are contracts with consumers. Changing parameter order, making required params optional, narrowing accepted types, or modifying return types breaks every caller. Internal simplification must never leak into public interfaces.
 
 **Incorrect (changes parameter order):**
 
@@ -45,6 +45,13 @@ def process_items(items: list[str]) -> list[str]:
 # Breaks: process_items(generator_expression)
 ```
 
+**Correct (preserves type flexibility):**
+
+```python
+def process_items(items: Iterable[str]) -> list[str]:
+    return [transform(item) for item in items]
+```
+
 **Incorrect (makes required parameter optional):**
 
 ```go
@@ -63,3 +70,18 @@ func NewClient(config ...Config) *Client {
 }
 // Breaks: compile-time safety, caller may forget config
 ```
+
+**Correct (preserve required parameter):**
+
+```go
+func NewClient(config Config) *Client {
+    return &Client{config: config}
+}
+```
+
+### Benefits
+
+- All existing callers continue working
+- No breaking changes in library versions
+- Type safety maintained for consumers
+- Documentation remains accurate

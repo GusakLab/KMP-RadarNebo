@@ -6,7 +6,7 @@ tags: cond, lookup-table, map, switch-elimination
 
 ## Replace Conditional with Lookup Table
 
-When a conditional only maps values to other values, replace it with lookup table (object or Map).
+When a conditional simply maps values to other values, replace it with a lookup table (object or Map). This is cleaner and often faster.
 
 **Incorrect (long switch for value mapping):**
 
@@ -76,8 +76,13 @@ function getStatusColor(status: string): string {
 }
 ```
 
+**Benefits:**
+- Single source of truth for all status-related data
+- Adding a new status is one line, not changes to multiple switches
+- Configuration can be externalized (loaded from JSON/database)
+
 **When NOT to use:**
-- Case logic is complex and varies significantly
+- Logic between cases is complex and varies significantly
 - Only 2-3 cases exist and unlikely to grow
 
 Reference: [Replace Conditional with Polymorphism](https://refactoring.com/catalog/replaceConditionalWithPolymorphism.html)

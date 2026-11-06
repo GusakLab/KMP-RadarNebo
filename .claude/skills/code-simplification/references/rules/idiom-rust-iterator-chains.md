@@ -6,9 +6,9 @@ tags: idiom, rust, iterators, functional
 
 ## Use Iterator Chains When Clearer Than Loops
 
-Rust iterator combinators (`map`, `filter`, `fold`, etc.) express data transformations declaratively. Not always clearer: complex chains with many closures or stateful steps often read worse than loops. Pick by readability, not style.
+Rust's iterator combinators (`map`, `filter`, `fold`, etc.) can express data transformations more declaratively than loops. However, they're not always clearer—complex chains with multiple closures or stateful operations often become harder to understand than equivalent loops. Choose based on readability, not style preference.
 
-**Incorrect (forced chain hurts clarity):**
+**Incorrect (forced iterator chain hurts clarity):**
 
 ```rust
 // Too complex - hard to follow the logic
@@ -35,7 +35,7 @@ fn process_orders(orders: &[Order]) -> HashMap<CustomerId, Vec<ProcessedOrder>> 
 }
 ```
 
-**Correct (loop clearer for complex logic):**
+**Correct (loop is clearer for complex logic):**
 
 ```rust
 fn process_orders(orders: &[Order]) -> HashMap<CustomerId, Vec<ProcessedOrder>> {
@@ -55,7 +55,7 @@ fn process_orders(orders: &[Order]) -> HashMap<CustomerId, Vec<ProcessedOrder>> 
 }
 ```
 
-**Correct (chain for simple transforms):**
+**Correct (iterator chain for simple transforms):**
 
 ```rust
 // Clear and concise - good use of iterators
@@ -82,12 +82,12 @@ fn total_revenue(orders: &[Order]) -> Decimal {
 | Use Iterators When | Use Loops When |
 |-------------------|----------------|
 | Simple filter/map/collect | Multiple related mutations |
-| No side effects | Early returns with context |
-| Each step self-contained | Stateful iteration |
+| No side effects needed | Early returns with context |
+| Each step is self-contained | Stateful iteration |
 | 2-3 combinators max | Complex branching logic |
 
 ### Benefits of Knowing Both
 
-- Chains can be lazy, use less memory
-- Loops easier to debug with breakpoints
-- Mixing both (filter in iterator, logic in loop) often best
+- Iterator chains can be lazy and more memory-efficient
+- Loops are easier to debug with breakpoints
+- Mixing both (filter in iterator, logic in loop) often optimal

@@ -1,5 +1,8 @@
 # GraphQL API Design
 
+Schema design, N+1 problem solutions, and GraphQL best practices.
+
+
 ## Table of Contents
 
 - [Schema Design Principles](#schema-design-principles)
@@ -130,7 +133,7 @@ query {
 }
 ```
 
-100 posts trigger 101 database queries (1 + 100).
+If there are 100 posts, this triggers 101 database queries (1 + 100).
 
 ### Solution: DataLoader
 
@@ -160,8 +163,8 @@ const resolvers = {
 
 **What happens:**
 1. Query requests 100 posts
-2. Each post needs author: 100 calls to `userLoader.load()`
-3. DataLoader batches all 100 IDs into 1 database query
+2. Each post needs author → 100 calls to `userLoader.load()`
+3. DataLoader batches all 100 IDs → 1 database query
 4. Results cached for request duration
 
 ## Pagination in GraphQL
@@ -295,25 +298,28 @@ if (!user) {
 ## Best Practices
 
 ### Schema Design
-- [ ] Non-null (!) for required fields
-- [ ] Custom scalars (DateTime, URL, Email)
-- [ ] Enums for fixed value sets
-- [ ] Input types for mutations
+- [ ] Use non-null (!) for required fields
+- [ ] Use custom scalars (DateTime, URL, Email)
+- [ ] Group related fields in types
+- [ ] Use enums for fixed sets of values
+- [ ] Provide input types for mutations
 
 ### Performance
-- [ ] DataLoader for all relationships
-- [ ] Connection pattern for pagination
-- [ ] Query cost analysis
+- [ ] Implement DataLoader for all relationships
+- [ ] Use connection pattern for pagination
+- [ ] Limit query depth and complexity
+- [ ] Implement query cost analysis
 - [ ] Cache expensive resolvers
 
 ### Error Handling
 - [ ] Return partial data when possible
-- [ ] Custom error codes
+- [ ] Use custom error codes
+- [ ] Include helpful error messages
 - [ ] Log errors server-side
 
 ### Security
 - [ ] Validate all inputs
-- [ ] Authorization in resolvers
+- [ ] Implement authorization in resolvers
 - [ ] Limit query depth
-- [ ] Query complexity limits
-- [ ] Persisted queries in production
+- [ ] Implement query complexity limits
+- [ ] Use persisted queries for production

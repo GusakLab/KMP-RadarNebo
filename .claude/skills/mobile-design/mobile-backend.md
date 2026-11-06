@@ -1,6 +1,8 @@
 # Mobile Backend Patterns
 
-> Generic backend patterns live in `backend-patterns` and `designing-apis`.
+> **This file covers backend/API patterns SPECIFIC to mobile clients.**
+> Generic backend patterns are in `backend-patterns` and `designing-apis`.
+> **Mobile backend is NOT the same as web backend. Different constraints, different patterns.**
 
 ---
 
@@ -16,11 +18,13 @@ Mobile clients are DIFFERENT from web clients:
 └── Binary updates are slow (App Store review)
 ```
 
-**Backend must compensate for ALL of these.**
+**Your backend must compensate for ALL of these.**
 
 ---
 
 ## 🚫 AI MOBILE BACKEND ANTI-PATTERNS
+
+### These are common AI mistakes when building mobile backends:
 
 | ❌ AI Default | Why It's Wrong | ✅ Mobile-Correct |
 |---------------|----------------|-------------------|
@@ -73,7 +77,7 @@ Mobile clients are DIFFERENT from web clients:
 | Send sensitive data in push | Push says "New message", app fetches content |
 | Overload with pushes | Batch, dedupe, respect quiet hours |
 | Same message to all | Segment by user preference, timezone |
-| Ignore failed tokens | Remove invalid tokens regularly |
+| Ignore failed tokens | Clean up invalid tokens regularly |
 | Skip APNs for iOS | FCM alone doesn't guarantee iOS delivery |
 
 ### Token Management
@@ -119,7 +123,7 @@ WHAT TYPE OF DATA?
 |----------|--------------|----------|
 | **Last-write-wins** | Latest timestamp overwrites | Simple data, single user |
 | **Server-wins** | Server always authoritative | Critical transactions |
-| **Client-wins** | Offline changes win | Offline-heavy apps |
+| **Client-wins** | Offline changes prioritized | Offline-heavy apps |
 | **Merge** | Combine changes field-by-field | Documents, rich content |
 | **CRDT** | Mathematically conflict-free | Real-time collaboration |
 
@@ -305,12 +309,12 @@ REQUEST FLOW:
 
 | Code Range | Category | Mobile Handling |
 |------------|----------|-----------------|
-| 400-499 | Client error | Show message, user must act |
+| 400-499 | Client error | Show message, user action needed |
 | 401 | Auth expired | Silent refresh or re-login |
 | 403 | Forbidden | Show upgrade/permission screen |
 | 404 | Not found | Remove from local cache |
 | 409 | Conflict | Show sync conflict UI |
-| 429 | Rate limit | Honor Retry-After header, backoff |
+| 429 | Rate limit | Retry after header, backoff |
 | 500-599 | Server error | Retry with backoff, show "try later" |
 | Network | No connection | Use cached data, queue for sync |
 
@@ -384,8 +388,7 @@ VERIFY REAL DEVICE (not emulator/bot):
 
 ```
 CLIENT:
-├── Create signature = HMAC(timestamp + path + body, device_key)
-│   └── device_key: per-device key server issues after attestation; never static secret in app bundle
+├── Create signature = HMAC(timestamp + path + body, secret)
 ├── Send: X-Signature: {signature}
 ├── Send: X-Timestamp: {timestamp}
 └── Send: X-Device-ID: {device_id}
@@ -393,7 +396,7 @@ CLIENT:
 SERVER:
 ├── Validate timestamp (within 5 minutes)
 ├── Recreate signature with same inputs
-├── Compare signatures (constant-time)
+├── Compare signatures
 └── Reject if mismatch (tampering detected)
 ```
 
@@ -454,15 +457,15 @@ ALERTS:
 ## 📝 MOBILE BACKEND CHECKLIST
 
 ### Before API Design
-- [ ] Mobile-specific requirements identified?
-- [ ] Offline behavior planned?
-- [ ] Sync strategy designed?
-- [ ] Bandwidth constraints considered?
+- [ ] Identified mobile-specific requirements?
+- [ ] Planned offline behavior?
+- [ ] Designed sync strategy?
+- [ ] Considered bandwidth constraints?
 
 ### For Every Endpoint
 - [ ] Response as small as possible?
 - [ ] Pagination cursor-based?
-- [ ] Caching headers set?
+- [ ] Proper caching headers?
 - [ ] Mobile error format with actions?
 
 ### Authentication
@@ -485,4 +488,4 @@ ALERTS:
 
 ---
 
-> **Remember:** Never trust the client. Never leave it hanging either: provide offline capabilities and clear error recovery paths.
+> **Remember:** Mobile backend must be resilient to bad networks, respect battery life, and handle interrupted sessions gracefully. The client cannot be trusted, but it also cannot be hung up—provide offline capabilities and clear error recovery paths.

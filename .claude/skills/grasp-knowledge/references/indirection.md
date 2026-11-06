@@ -2,14 +2,14 @@
 
 ## Definition
 
-Assign responsibility to intermediate object that mediates between components or services, so they are not directly coupled.
+Assign responsibility to an intermediate object to mediate between other components or services so that they are not directly coupled.
 
 ## When to Apply
 
-- Decoupling two components
+- Need to decouple two components
 - External system integration
-- Avoiding direct dependency on volatile classes
-- Enabling implementation substitution
+- Avoid direct dependency on volatile classes
+- Enable substitution of implementations
 
 ## Key Indicators
 
@@ -22,6 +22,13 @@ Assign responsibility to intermediate object that mediates between components or
 | Multiple handlers | Mediator |
 | Configuration | Service Factory |
 | Caching | Cache Decorator |
+
+### Benefits
+
+- Reduces direct coupling
+- Enables substitution
+- Improves testability
+- Isolates change impact
 
 ## Patterns
 

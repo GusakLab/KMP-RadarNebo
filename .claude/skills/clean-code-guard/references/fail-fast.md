@@ -1,9 +1,9 @@
-<!-- When to read: deciding where to detect and report invalid state. Combine with imperative 16 in SKILL.md: fail fast at trust boundaries and on violated invariants, but do not add redundant runtime checks for values declared type or caller contract already excludes. Examples are TypeScript. -->
+<!-- When to read: deciding where invalid state should be detected and reported. Combine with imperative 16 in SKILL.md: fail fast at trust boundaries and on violated invariants, but do not add redundant runtime checks for values that the declared type or caller contract already excludes. Examples are TypeScript. -->
 
 
 # Fail Fast Principle
 
-Detect and report errors as early as possible. Validate inputs at system boundaries, check preconditions at function start, throw immediately when something is wrong.
+Detect and report errors as early as possible. Validate inputs at system boundaries, check preconditions at the start of functions, and throw exceptions immediately when something is wrong.
 
 ## Bad Example
 
@@ -304,16 +304,16 @@ class OrderProcessor {
 
 ## Why
 
-1. **Clear Error Messages**: Failed validation says exactly what is wrong and where.
+1. **Clear Error Messages**: When validation fails, you know exactly what's wrong and where.
 
 2. **No Wasted Work**: Invalid requests fail immediately, not after expensive operations.
 
-3. **Data Integrity**: Database never goes inconsistent: validation precedes mutation.
+3. **Data Integrity**: The database never enters an inconsistent state because we validate before mutating.
 
-4. **Debugging**: Stack traces point at actual problem, not downstream symptom.
+4. **Debugging**: Stack traces point to the actual problem, not to a downstream symptom.
 
-5. **Predictability**: Operation fully succeeds or cleanly fails with clear reason.
+5. **Predictability**: Either the operation fully succeeds or it cleanly fails with a clear reason.
 
-6. **Security**: Invalid inputs rejected at boundary, not passed through system.
+6. **Security**: Invalid inputs are rejected at the boundary, not passed through the system.
 
-7. **Recovery**: Callers can handle specific error types (retry, report, fallback).
+7. **Recovery**: Callers can handle specific error types appropriately (retry, report, fallback).

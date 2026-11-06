@@ -7,7 +7,7 @@ tags: base, rebuild, pull, security-patches
 
 ## Rebuild Images Regularly with --pull
 
-Docker caches base image locally. Later builds reuse that copy even after upstream releases security patches, OS updates or critical bug fixes. Over time it piles up unpatched vulnerabilities fixed months ago.
+When Docker builds an image, it caches the base image locally. Subsequent builds reuse that cached copy even if the upstream publisher has released security patches, OS updates, or critical bug fixes. Over time, a locally cached base image accumulates unpatched vulnerabilities that were fixed months ago.
 
 **Incorrect (building without --pull):**
 
@@ -15,13 +15,15 @@ Docker caches base image locally. Later builds reuse that copy even after upstre
 docker build -t myapp:latest .
 ```
 
+(Docker uses the locally cached `node:22-alpine` base image, which was pulled three months ago and is missing twelve security patches published since then.)
+
 **Correct (force-pull latest base image on every build):**
 
 ```bash
 docker build --pull -t myapp:latest .
 ```
 
-(`--pull` makes Docker check registry for newer version of every `FROM` image and download it before building, so base image has latest security patches.)
+(The `--pull` flag instructs Docker to check the registry for a newer version of every `FROM` image in the Dockerfile and download it before building. This ensures the base image includes the latest security patches.)
 
 **Correct (full freshness for security-critical builds):**
 
@@ -29,7 +31,7 @@ docker build --pull -t myapp:latest .
 docker build --pull --no-cache -t myapp:latest .
 ```
 
-(`--no-cache` re-executes every layer from scratch, so `apt-get update`, `apk upgrade` and similar commands fetch latest package lists instead of reusing stale cached metadata.)
+(Adding `--no-cache` forces Docker to re-execute every layer from scratch, ensuring that `apt-get update`, `apk upgrade`, and similar commands fetch the latest package lists instead of reusing a cached layer with stale package metadata.)
 
 ### Recommended Rebuild Strategy
 
@@ -41,7 +43,7 @@ docker build --pull --no-cache -t myapp:latest .
 
 ### Automating Rebuilds in CI
 
-Schedule weekly CI pipeline that rebuilds and redeploys production images with `--pull`. Catches base image updates without manual intervention:
+Schedule a weekly CI pipeline that rebuilds and redeploys your production images with `--pull`. This catches base image updates without requiring manual intervention:
 
 ```yaml
 # Example: GitHub Actions scheduled rebuild
@@ -56,5 +58,7 @@ jobs:
       - run: docker build --pull -t myapp:latest .
       - run: docker push myapp:latest
 ```
+
+(The scheduled workflow pulls fresh base images weekly, ensuring production containers never run on base images more than seven days old.)
 
 Reference: [Building best practices](https://docs.docker.com/build/building/best-practices/)

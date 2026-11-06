@@ -7,9 +7,9 @@ tags: inst, healthcheck, orchestration, reliability
 
 ## Define HEALTHCHECK for Container Orchestration
 
-Without HEALTHCHECK, Docker calls container healthy while main process runs. Deadlocked application, exhausted connection pool or unresponsive web server all report "healthy", because process has not exited. Orchestrators like Docker Swarm and Docker Compose keep routing traffic to broken containers.
+Without a HEALTHCHECK instruction, Docker considers a container healthy as long as its main process is running. A deadlocked application, an exhausted connection pool, or an unresponsive web server all report as "healthy" because the process itself has not exited. Orchestrators like Docker Swarm and Docker Compose continue routing traffic to these broken containers, causing user-visible outages that persist until manual intervention.
 
-**Incorrect (no HEALTHCHECK -- container looks healthy even when application is unresponsive):**
+**Incorrect (no HEALTHCHECK -- container appears healthy even when the application is unresponsive):**
 
 ```dockerfile
 FROM node:22-slim
@@ -23,7 +23,7 @@ EXPOSE 3000
 CMD ["node", "server.js"]
 ```
 
-(Docker Swarm will not replace it. Docker Compose `depends_on` with `condition: service_healthy` will hang.)
+(Docker reports this container as "healthy" indefinitely, even if the event loop is blocked, the database connection is lost, or the HTTP server has stopped accepting requests. Docker Swarm will not replace it and Docker Compose `depends_on` with `condition: service_healthy` will hang.)
 
 **Correct (HEALTHCHECK with curl for Debian-based images):**
 
@@ -43,7 +43,7 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 CMD ["node", "server.js"]
 ```
 
-(Docker probes `/health` every 30 seconds. After 3 consecutive failures (5-second timeout each), container is marked `unhealthy`. 10-second start period lets application initialize before failures count.)
+(Docker probes the `/health` endpoint every 30 seconds. After 3 consecutive failures (5-second timeout each), the container is marked `unhealthy`. The 10-second start period gives the application time to initialize before health checks begin counting failures.)
 
 **Correct (HEALTHCHECK with wget for Alpine images that lack curl):**
 
@@ -63,7 +63,7 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 CMD ["node", "server.js"]
 ```
 
-(Alpine ships wget by default, not curl. `--spider` sends HEAD request without downloading body. `--no-verbose` keeps container logs clean.)
+(Alpine images include wget by default but not curl. The `--spider` flag performs a HEAD request without downloading the response body, and `--no-verbose` suppresses output to keep container logs clean.)
 
 **Correct (HEALTHCHECK with a zero-dependency custom binary):**
 
@@ -81,19 +81,19 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
 ENTRYPOINT ["/bin/server"]
 ```
 
-(Distroless images have no shell, curl or wget. Static healthcheck binary from build stage adds no runtime dependencies.)
+(Distroless images have no shell, curl, or wget. A statically compiled healthcheck binary built in the build stage avoids adding runtime dependencies to the production image.)
 
 ### HEALTHCHECK Parameters
 
 | Parameter | Default | Purpose |
 |-----------|---------|---------|
-| `--interval` | 30s | Time between probes |
-| `--timeout` | 30s | Max probe duration before it counts as failed |
-| `--start-period` | 0s | Grace period for container initialization (failures during it do not count toward retries) |
-| `--retries` | 3 | Consecutive failures needed to mark container unhealthy |
+| `--interval` | 30s | Time between health check probes |
+| `--timeout` | 30s | Maximum time a single probe can take before it is considered failed |
+| `--start-period` | 0s | Grace period for container initialization (failures during this period do not count toward retries) |
+| `--retries` | 3 | Number of consecutive failures required to mark the container as unhealthy |
 
 ### When NOT to Use HEALTHCHECK
 
-In Kubernetes, prefer Pod spec **liveness and readiness probes** over Dockerfile HEALTHCHECK. Kubernetes does not use Docker HEALTHCHECK. Its probes give finer control: separate liveness, readiness and startup probes, with HTTP, TCP and exec checks. HEALTHCHECK stays essential for **Docker Compose** and **Docker Swarm**, where Kubernetes probes are not available.
+In Kubernetes deployments, **liveness and readiness probes** defined in the Pod spec are preferred over the Dockerfile HEALTHCHECK instruction. Kubernetes does not use the Docker HEALTHCHECK and its probes offer more granular control (separate liveness, readiness, and startup probes with configurable HTTP, TCP, and exec checks). However, HEALTHCHECK remains essential for **Docker Compose** and **Docker Swarm** environments where Kubernetes probes are not available.
 
 Reference: [Dockerfile reference - HEALTHCHECK](https://docs.docker.com/reference/dockerfile/)

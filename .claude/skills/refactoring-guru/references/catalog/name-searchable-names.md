@@ -6,7 +6,7 @@ tags: name, searchable, constants, magic-numbers
 
 ## Use Searchable Names
 
-Single-letter names and numeric constants can't be searched. Use named constants and descriptive, greppable names.
+Single-letter names and numeric constants are impossible to search for. Use named constants and descriptive variable names that can be grepped across the codebase.
 
 **Incorrect (unnamed constants and short names):**
 
@@ -47,7 +47,7 @@ function calculatePrice(quantity: number, unitPrice: number): number {
 // Searching for "BULK_DISCOUNT" finds all related code instantly
 ```
 
-**Name everything meaningful:**
+**Name everything that has meaning:**
 - Thresholds and limits
 - Configuration values
 - Status codes and error codes

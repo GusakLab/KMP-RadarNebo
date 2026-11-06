@@ -7,9 +7,9 @@ tags: inst, heredoc, readability, buildkit, run
 
 ## Use Heredocs for Multi-Line Scripts
 
-Long RUN instructions with backslash continuations are hard to read, easy to break, and allow no inline comments between continued lines. Missing trailing backslash silently splits one command into two, causing subtle, hard-to-diagnose build failures. BuildKit heredoc syntax (`RUN <<EOF`) allows multi-line scripts in natural shell syntax with full comment support.
+Long RUN instructions with backslash continuations are hard to read, easy to break, and do not support inline comments between continued lines. A missing trailing backslash silently splits a single command into two separate commands, causing subtle build failures that are difficult to diagnose. BuildKit heredoc syntax (`RUN <<EOF`) allows writing multi-line scripts in natural shell syntax with full comment support.
 
-**Incorrect (backslash continuation -- fragile, hard to read):**
+**Incorrect (backslash continuation -- fragile and hard to read):**
 
 ```dockerfile
 FROM python:3.12-slim
@@ -22,9 +22,9 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 ```
 
-(Missing `\` after any line silently splits command. Drop backslash after `ca-certificates` and `libpq-dev` runs as standalone command, failing build with confusing error.)
+(A missing `\` after any line silently splits the command. For example, removing the backslash after `ca-certificates` causes `libpq-dev` to run as a standalone command, failing the build with a confusing error. Comments cannot be placed between continued lines without breaking the chain.)
 
-**Correct (heredoc syntax -- readable, resilient):**
+**Correct (heredoc syntax -- readable and resilient):**
 
 ```dockerfile
 # syntax=docker/dockerfile:1
@@ -40,7 +40,7 @@ rm -rf /var/lib/apt/lists/*
 EOF
 ```
 
-(Each command is own line. Missing backslash inside `apt-get install` list still fails clearly, because next line is separate command. Comments fit anywhere between lines without breaking script.)
+(Each command is a standalone line within the heredoc. Missing a backslash within the `apt-get install` list still fails clearly because the next line is a separate command. Comments can be added freely between lines without breaking the script.)
 
 **Correct (heredoc with explicit shell and error handling):**
 
@@ -58,7 +58,7 @@ tini --version
 EOF
 ```
 
-(`set -eux` gives strict error handling: `-e` exits on any failure, `-u` treats unset variables as errors, `-x` prints each command for build log debugging.)
+(The `set -eux` flags enable strict error handling: `-e` exits on any failure, `-u` treats unset variables as errors, and `-x` prints each command for build log debugging. Inline comments document intent without breaking the script.)
 
 **Correct (COPY heredoc for creating configuration files inline):**
 
@@ -85,7 +85,7 @@ server {
 EOF
 ```
 
-(COPY heredoc creates config file inline, no separate file in build context. Simple configs stay with Dockerfile for self-contained builds.)
+(The COPY heredoc creates a configuration file inline without needing a separate file in the build context. This keeps simple configs co-located with the Dockerfile for self-contained builds.)
 
 **Correct (multiple files in a single layer with heredocs):**
 
@@ -106,10 +106,10 @@ timeout = 120
 gunicorn.conf.py
 ```
 
-(Several heredocs in one COPY create several files in one layer. Each ends at own delimiter: `requirements.txt` and `gunicorn.conf.py`.)
+(Multiple heredocs in a single COPY instruction create several files in one layer. Each heredoc is terminated by its own delimiter -- `requirements.txt` and `gunicorn.conf.py` respectively.)
 
 ### Requirements
 
-Heredocs require BuildKit and `# syntax=docker/dockerfile:1` at top of Dockerfile. BuildKit is default builder in Docker Engine 23.0+ and Docker Desktop 4.0+. On older Docker, enable it with `DOCKER_BUILDKIT=1`.
+Heredoc syntax requires BuildKit and the `# syntax=docker/dockerfile:1` directive at the top of the Dockerfile. BuildKit is the default builder in Docker Engine 23.0+ and Docker Desktop 4.0+. For older Docker versions, enable BuildKit by setting `DOCKER_BUILDKIT=1`.
 
 Reference: [Building best practices](https://docs.docker.com/build/building/best-practices/)

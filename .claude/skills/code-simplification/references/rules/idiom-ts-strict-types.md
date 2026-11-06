@@ -6,9 +6,9 @@ tags: idiom, typescript, type-safety, strict-mode
 
 ## Use Strict Types Over any
 
-`any` defeats TypeScript's purpose and hides bugs the compiler would catch. When type is truly uncertain, prefer `unknown` with narrowing. Forces explicit checks before use.
+Using `any` defeats TypeScript's purpose and hides bugs that would otherwise be caught at compile time. Prefer `unknown` with type narrowing when the type is truly uncertain—this forces explicit type checking before use, making your code both safer and more self-documenting.
 
-**Incorrect (any bypasses type checking):**
+**Incorrect (using any bypasses type checking):**
 
 ```typescript
 function parseUserPayload(payload: any) {
@@ -21,7 +21,7 @@ function parseApiResponse(response: any): any {
 }
 ```
 
-**Correct (unknown with narrowing):**
+**Correct (using unknown with narrowing):**
 
 ```typescript
 interface UserPayload {
@@ -55,6 +55,13 @@ function parseApiResponse(response: ApiResponse): unknown {
 
 ### When to Allow any
 
-- Legacy migration where full typing isn't feasible yet
+- Legacy code migration where full typing isn't feasible yet
 - Third-party libraries without type definitions (prefer `@types/*` packages)
 - Explicit `// eslint-disable-next-line @typescript-eslint/no-explicit-any` with justification
+
+### Benefits
+
+- Compiler catches type mismatches before runtime
+- IDE autocomplete works correctly
+- Refactoring becomes safer with full type coverage
+- Self-documenting code through explicit type contracts

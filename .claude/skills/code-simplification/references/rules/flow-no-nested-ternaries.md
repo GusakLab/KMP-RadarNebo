@@ -6,7 +6,7 @@ tags: flow, ternary, readability, conditionals, anti-pattern
 
 ## Never Use Nested Ternary Operators
 
-Nested ternaries force evaluating several conditions at once. Even formatted, precedence and flow stay ambiguous.
+Nested ternary operators create write-only code. The human brain processes branching logic linearly, but nested ternaries force simultaneous evaluation of multiple conditions. Even with formatting, the precedence and flow become ambiguous. One nested ternary can make an entire function unreadable.
 
 **Incorrect (nested ternaries):**
 
@@ -42,7 +42,7 @@ function getStatusBadge(user: User): string {
 }
 ```
 
-**Incorrect (ternary chain picking value):**
+**Incorrect (ternary chain for value selection):**
 
 ```typescript
 const priority = task.isUrgent
@@ -69,7 +69,7 @@ const importance = task.isImportant ? 'important' : 'normal';
 const priority = priorityMatrix[`${urgency}-${importance}`];
 ```
 
-**Incorrect (nested ternary inline in JSX):**
+**Incorrect (inline nested ternary in JSX):**
 
 ```tsx
 function UserAvatar({ user }: Props) {
@@ -89,7 +89,7 @@ function UserAvatar({ user }: Props) {
 }
 ```
 
-**Correct (clear helper function):**
+**Correct (helper function with clear logic):**
 
 ```tsx
 function getAvatarClass(user: User): string {
@@ -124,6 +124,14 @@ const name = user?.name ?? 'Anonymous';
 const label = isLoading ? 'Loading...' : isDisabled ? 'Disabled' : 'Submit';
 ```
 
+### Benefits
+
+- Code flow is immediately apparent
+- Debugging is possible (can set breakpoints)
+- Modifications don't require understanding entire expression
+- Code review can focus on logic, not parsing
+
 ### When NOT to Apply
 
-- Ternaries in template literals for simple value selection
+- Single-level ternaries for simple binary choices are acceptable
+- Ternaries inside template literals for simple value selection

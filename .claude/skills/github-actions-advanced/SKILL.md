@@ -14,27 +14,31 @@ date_added: "2026-05-30"
 
 # GitHub Actions Advanced Skill
 
+Expert guidance for designing, writing, debugging, and securing **production-grade** GitHub Actions workflows.
+
+---
+
 ## Detailed Guide
 
-Read [the detailed guide](references/detailed-guide.md) before executing skill: full procedure and reference (triggers, matrices, reusable workflows, OIDC, caching, releases). Focused work: load relevant sections. End-to-end work: read all.
+Read [the detailed guide](references/detailed-guide.md) before executing this skill. It holds the full procedure and reference material (triggers, matrices, reusable workflows, OIDC, caching, releases). For focused work, load the relevant sections; for end-to-end work, read it completely.
 
-Read [runners and verification](references/runners-and-verification.md) for self-hosted runners, splitting validation from publication jobs, or proving new workflow blocks failing changes.
+Read [runners and verification](references/runners-and-verification.md) when adding a self-hosted runner, separating validation from publication jobs, or verifying that a new workflow blocks failing changes.
 
-Example commit SHAs are illustrative. Resolve each action's current release SHA yourself (for example `GH_TELEMETRY=false gh api repos/actions/checkout/git/ref/tags/vX.Y.Z`; gh sends usage telemetry by default). Keep `# vX.Y.Z` comment so Dependabot or Renovate can update it.
+Commit SHAs in examples are illustrative. Resolve the SHA of the current release of each action yourself (for example `gh api repos/actions/checkout/git/ref/tags/vX.Y.Z`) and keep the `# vX.Y.Z` comment so Dependabot or Renovate can update it.
 
 ## When to Use This Skill
 
-- Mentions GitHub Actions, `.github/workflows`, CI/CD pipelines, runners, jobs, steps or actions
-- Automating builds, tests, deployments or releases via GitHub
-- Matrix builds, reusable workflows, composite actions or self-hosted runners
-- OIDC authentication, caching strategies or secrets management
+- User mentions GitHub Actions, `.github/workflows`, CI/CD pipelines, runners, jobs, steps, or actions
+- User wants to automate builds, tests, deployments, or releases via GitHub
+- User asks about matrix builds, reusable workflows, composite actions, or self-hosted runners
+- User needs help with OIDC authentication, caching strategies, or secrets management
 - User says "set up CI for my repo"
-- Workflow security, hardening or environment protection rules
+- User asks about workflow security, hardening, or environment protection rules
 
 ## When NOT to Use This Skill
 
 - GitLab CI, Argo Workflows or cross-platform pipeline design → `building-ci-pipelines`
-- Specific failing run to diagnose from logs → `github-actions-debugger`
+- A specific failing run to diagnose from logs → `github-actions-debugger`
 - Dockerfile content without GitHub context → `dockerfile-optimise`
 - Kubernetes manifests or cluster configuration → `operating-kubernetes`
 
@@ -69,7 +73,7 @@ jobs:
 - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
 
 # Tool to automate SHA pinning:
-# npx pin-github-action@3.5.2 .github/workflows/*.yml
+# npx pin-github-action .github/workflows/*.yml
 # or sethvargo/ratchet (a Go binary - NOT the unrelated `ratchet` package on PyPI):
 #   go install github.com/sethvargo/ratchet@v0.12.0
 #   ratchet pin .github/workflows/*.yml
@@ -91,12 +95,15 @@ jobs:
   run: echo "Not a draft"
 ```
 
-Never put `${{ ... }}` directly in `run:` when value can come from PR metadata, workflow inputs, repository files, matrix JSON or earlier job outputs. Move it to `env:` first, validate allowlisted values where possible, reference quoted shell variable.
+Never place `${{ ... }}` directly inside `run:` when the value can come from
+PR metadata, workflow inputs, repository files, matrix JSON, or earlier job
+outputs. Put it in `env:` first, validate allowlisted values where possible, and
+reference the shell variable with quotes.
 
 ### 4. Restrict `pull_request_target` Usage
 
 ```yaml
-# Only run when a maintainer adds a specific label — limits who can trigger it
+# Only run when a maintainer adds a specific label — prevents untrusted execution
 on:
   pull_request_target:
     types: [labeled]
@@ -111,20 +118,15 @@ jobs:
        github.event.pull_request.author_association == 'OWNER')
 ```
 
-Label gate is not sandbox: commits can land after labeling. Never check out or run PR head code in this job (it holds secrets and write token).
-
-### 5. Optional: StepSecurity Harden-Runner
-
-Third-party SaaS: uploads runner egress/process telemetry to StepSecurity API by default; `audit` mode cannot turn it off. Add only if user opts in. `block` + explicit allowlist + `disable-telemetry: true` stops telemetry upload; setup still sends repo, run and job names to StepSecurity API. Needs v2.11.1+: older versions silently fall back to `audit`.
+### 5. Harden with StepSecurity
 
 ```yaml
-- uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43  # v2.22.3
+# Add to every workflow — hardens runner, monitors outbound traffic
+- uses: step-security/harden-runner@4d991eb9995541a0b71d1b66f1f98a5f1bef422c  # v2.11.0
   with:
-    egress-policy: block          # 'audit' builds allowlist but always uploads to StepSecurity
-    disable-telemetry: true       # only valid with block
+    egress-policy: audit          # Start with 'audit', move to 'block' after confirming allowlist
     allowed-endpoints: >
       api.github.com:443
-      github.com:443
       registry.npmjs.org:443
       objects.githubusercontent.com:443
 ```
@@ -133,8 +135,8 @@ Third-party SaaS: uploads runner egress/process telemetry to StepSecurity API by
 
 ## Done When
 
-- Every workflow declares `permissions:`. Each job has `timeout-minutes`.
-- Every third-party action pinned to full commit SHA with version comment.
-- No `${{ }}` expression from untrusted input interpolated directly into `run:`.
-- Untrusted (pull request) jobs hold no secrets or write tokens. Publication runs in separate trusted job.
-- `actionlint` passes. Passing run and deliberately failing run on topic branch behave as expected (see [runners and verification](references/runners-and-verification.md)).
+- Every workflow declares `permissions:` and each job has `timeout-minutes`.
+- Every third-party action is pinned to a full commit SHA with a version comment.
+- No `${{ }}` expression from untrusted input is interpolated directly into `run:`.
+- Untrusted (pull request) jobs hold no secrets or write tokens; publication runs in a separate trusted job.
+- `actionlint` passes, and a passing and a deliberately failing run on a topic branch behave as expected (see [runners and verification](references/runners-and-verification.md)).

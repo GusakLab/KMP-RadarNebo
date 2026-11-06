@@ -1,8 +1,8 @@
 # Refactoring Technique Catalog
 
-Read after diagnosing a smell (workflow step 1 in SKILL.md), when you need mechanics of a specific treatment. Open only the matching file. Each entry shows incorrect and correct code. Examples are mostly TypeScript; translate them to the project's language and idioms.
+Read this after you have diagnosed a smell (workflow step 1 in SKILL.md) and need the mechanics of a specific treatment. Open only the matching file. Each entry shows incorrect and correct code. The examples are mostly TypeScript, so translate them to the project's language and idioms.
 
-Priority labels come from the original catalog and describe typical impact, not mandatory order. Always prefer smallest treatment that removes diagnosed smell (see [../refactoring-guru.mini.md](../../refactoring-guru.mini.md)). Some entries state fixed thresholds (for example "functions under 20 lines"). Treat those as inspection signals, not rules.
+The priority labels come from the original catalog and describe typical impact, not mandatory order. Always prefer the smallest treatment that removes the diagnosed smell (see [../refactoring-guru.mini.md](../../refactoring-guru.mini.md)). Some entries state fixed thresholds (for example "functions under 20 lines"). Treat those as inspection signals, not rules.
 
 ## 1. Structure & Decomposition (CRITICAL)
 
@@ -70,3 +70,4 @@ Priority labels come from the original catalog and describe typical impact, not 
 - [Inline Trivial Variables](micro-inline-variable.md) (`micro-inline-variable`)
 - [Simplify Boolean Expressions](micro-simplify-expressions.md) (`micro-simplify-expressions`)
 - [Rename for Clarity](micro-rename-for-clarity.md) (`micro-rename-for-clarity`)
+

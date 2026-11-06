@@ -7,7 +7,7 @@ tags: dep, cleanup, layer-size, apt, pip
 
 ## Clean Package Manager Caches in the Same Layer
 
-Each `RUN` instruction creates immutable layer. Later layer cannot remove earlier layer's files. It only masks them with whiteout entry; bytes stay in image. Cleaning package manager caches in separate `RUN` has zero effect on image size.
+Each `RUN` instruction creates an immutable layer in the image. Files written in one layer cannot be removed by a later layer — the later layer only masks them with a whiteout entry, but the bytes remain in the image. This means cleaning package manager caches in a separate `RUN` instruction has zero effect on image size.
 
 **Incorrect (cleanup in separate layer):**
 
@@ -22,7 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN rm -rf /var/lib/apt/lists/*
 ```
 
-(Apt package lists, typically 20-40 MB, get baked into first layer.)
+(The apt package lists — typically 20-40 MB — are baked into the first layer. The second `RUN` creates a whiteout layer that hides the files but does not reclaim the space. The total image carries the full weight of both layers.)
 
 **Correct (cleanup in same layer):**
 
@@ -36,9 +36,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 ```
 
-(Lists are created and removed in same `RUN`, so never reach final layer.)
+(The package lists are created and removed within the same `RUN` instruction, so they never appear in the final layer. This saves 20-40 MB per image.)
 
-**Better (cache mount removes problem entirely):**
+**Better (cache mount eliminates the problem entirely):**
 
 ```dockerfile
 FROM ubuntu:24.04
@@ -55,9 +55,9 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     gnupg
 ```
 
-(Removing `docker-clean` is required. Without it, apt deletes cached `.deb` files before cache mount can persist them. Cache mounts live only in host build cache, never in image layer. No cleanup needed; later builds reuse cache.)
+(The `docker-clean` removal is required — without it, apt deletes cached `.deb` files before the cache mount can persist them. Cache mounts are not part of the image layer at all — they exist only in the build cache on the host. No cleanup command is needed, and the cached files are reused by subsequent builds. This is the best of both worlds: small images and fast rebuilds.)
 
-> **See also:** [`cache-mount-package`](cache-mount-package.md) (CRITICAL) for cache mounts across all package managers.
+> **See also:** [`cache-mount-package`](cache-mount-package.md) (CRITICAL) for full coverage of cache mounts across all package managers.
 
 ### pip — same principle applies
 
@@ -68,7 +68,7 @@ RUN pip install flask sqlalchemy requests
 RUN rm -rf /root/.cache/pip
 ```
 
-(Pip cache, which can reach hundreds of MB with compiled wheels, sits in first layer.)
+(The pip cache — which can be hundreds of MB for packages with compiled wheels — is stored in the first layer and cannot be reclaimed by the second.)
 
 **Correct (single layer with cache disabled):**
 
@@ -76,7 +76,7 @@ RUN rm -rf /root/.cache/pip
 RUN pip install --no-cache-dir flask sqlalchemy requests
 ```
 
-(`--no-cache-dir` stops pip writing cache. Simpler than manual cleanup, but rebuilds must re-download everything.)
+(The `--no-cache-dir` flag prevents pip from writing a cache at all. Simpler than manual cleanup, but rebuilds must re-download everything.)
 
 **Better (cache mount):**
 
@@ -85,6 +85,6 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     pip install flask sqlalchemy requests
 ```
 
-(Cache persists across builds for fast installs, never in image layer.)
+(The pip cache persists across builds for fast installs but never appears in the image layer.)
 
 Reference: [Building best practices](https://docs.docker.com/build/building/best-practices/)

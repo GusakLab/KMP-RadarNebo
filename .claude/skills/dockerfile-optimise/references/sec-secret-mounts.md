@@ -7,7 +7,7 @@ tags: sec, secrets, mount, buildkit
 
 ## Use Secret Mounts for Sensitive Data
 
-Secrets passed via `COPY` or `ARG` land in image layers, visible via `docker history` or extracted layer tarballs. Anyone with image access (registries, CI caches, downstream consumers) can recover plaintext. BuildKit secret mounts inject sensitive data into one `RUN` instruction, never writing it to layer.
+Secrets passed via `COPY` or `ARG` are written into image layers and become permanently visible through `docker history` or by extracting the layer tarballs. Anyone with access to the image -- including registries, CI caches, and downstream consumers -- can recover the plaintext credentials. BuildKit secret mounts inject sensitive data into a single `RUN` instruction without ever writing it to a layer.
 
 **Incorrect (secret baked into image layer via COPY):**
 
@@ -25,7 +25,7 @@ COPY . .
 CMD ["python", "app.py"]
 ```
 
-(Later `RUN rm credentials.json` does not remove it from earlier layer; `docker save` extracts it.)
+(The `credentials.json` file is embedded in a layer. Even if a subsequent `RUN rm credentials.json` deletes it, the file remains in the earlier layer and can be extracted with `docker save`.)
 
 **Incorrect (secret passed via build argument):**
 
@@ -44,7 +44,7 @@ COPY . .
 CMD ["node", "server.js"]
 ```
 
-(`ENV` also persists it into every running container.)
+(Running `docker history` on the built image reveals the `DB_PASSWORD` value in plain text. The `ENV` instruction also persists it into every running container.)
 
 **Correct (file-based secret mount):**
 
@@ -71,6 +71,8 @@ Build command:
 docker build --secret id=db_password,src=./db_password.txt -t myapp .
 ```
 
+(The secret file is available only during the `RUN` instruction and is never committed to a layer. After the instruction completes, `/run/secrets/db_password` no longer exists.)
+
 **Correct (environment variable-based secret mount):**
 
 ```dockerfile
@@ -92,10 +94,9 @@ CMD ["node", "server.js"]
 Build command:
 
 ```bash
-# API_KEY already exported from CI/secret store; never type the value inline (shell history)
-docker build --secret id=api-key,env=API_KEY -t myapp .
+API_KEY=sk-live-abc123 docker build --secret id=api-key,env=API_KEY -t myapp .
 ```
 
-(`API_KEY` not in `docker history`, not persisted in image metadata.)
+(The `API_KEY` environment variable exists only for the duration of the `RUN` instruction. It is not recorded in `docker history` and does not persist in the image metadata.)
 
 Reference: [Build secrets](https://docs.docker.com/build/building/secrets/)

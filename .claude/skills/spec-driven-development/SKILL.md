@@ -7,20 +7,20 @@ description: "Write and gate a specification (objective, constraints, boundaries
 
 ## Overview
 
-Write structured spec before any code. Spec is shared source of truth with human engineer: what we build, why, and how we know it's done.
+Write a structured specification before writing any code. The spec is the shared source of truth between you and the human engineer — it defines what we're building, why, and how we'll know it's done. Code without a spec is guessing.
 
 ## When to Use
 
-- New project or substantial feature
-- Ambiguous or incomplete requirements
-- Change spans several modules or services with boundaries not yet decided
-- Architectural decision ahead
+- Starting a new project or a substantial feature
+- Requirements are ambiguous or incomplete
+- The change spans several modules or services and the boundaries between them are not yet decided
+- You're about to make an architectural decision
 
-**When NOT to use:** Single-line fixes, typos, or well-specified edits (even multi-file) with unambiguous, self-contained requirements.
+**When NOT to use:** Single-line fixes, typo corrections, or well-specified edits, even multi-file ones, where the requirements are unambiguous and self-contained.
 
 ## The Gated Workflow
 
-Four phases, preceded by Phase 0 scope check that activates only when one request bundles several independently testable capabilities. Do not advance until current phase is validated.
+Spec-driven development has four phases, preceded by a scope check (Phase 0) that activates only when one request bundles several independently testable capabilities. Do not advance to the next phase until the current one is validated.
 
 ```
 SPECIFY ──→ PLAN ──→ TASKS ──→ IMPLEMENT
@@ -32,15 +32,15 @@ SPECIFY ──→ PLAN ──→ TASKS ──→ IMPLEMENT
 
 ### Phase 0: Scope Check
 
-Most requests describe one capability; if so, skip straight to Specify. Phase 0 is the exception and puts no hierarchy on single-capability features.
+Most requests describe one capability. If this one does, skip this phase and go straight to Specify — Phase 0 exists for the exception, not the rule, and it puts no hierarchy on single-capability features.
 
-**Detection.** Decompose before specifying when one requirement bundles several independently testable capabilities:
+**Detection.** Decompose before specifying when a single requirement bundles several independently testable capabilities:
 
-- Distinct capabilities with own consumers or data (e.g. identity, billing, notifications, reporting)
+- The requirement names distinct capabilities with their own consumers or data (e.g. identity, billing, notifications, reporting)
 - Acceptance criteria cluster into groups that could ship and be verified separately
-- One capability could be cut or replaced without rewriting others' requirements
+- One capability could be cut or replaced without rewriting the others' requirements
 
-**Propose a capability map before any spec.** Small, reviewable: module table plus build order, not project plan:
+**Propose a capability map before writing any spec.** Small and reviewable — a module table plus a build order, not a project plan:
 
 ```markdown
 # Capability Map: [Initiative Name]
@@ -55,19 +55,19 @@ Most requests describe one capability; if so, skip straight to Specify. Phase 0 
 Build order: identity → billing, notifications → reporting
 ```
 
-- **Stable module ids.** Kebab-case, chosen once, never renamed mid-initiative. Specs, plans and downstream commands select work by id, not by guessing which spec is active.
-- **Dependency direction, no cycles.** Dependencies point one way. Two modules needing each other are one module.
-- **Interfaces live at the boundary.** Map records that `billing` depends on `identity`. Their contract goes in provider module's spec (design it with `api-and-interface-design`).
+- **Stable module ids.** Kebab-case, chosen once, never renamed mid-initiative. Specs, plans, and downstream commands select work by these ids instead of guessing which spec is active.
+- **Dependency direction, no cycles.** Arrows point one way. If two modules each need the other, they are one module.
+- **Interfaces live at the boundary.** The map records that `billing` depends on `identity`; the contract between them belongs in the provider module's spec (see `api-and-interface-design` for designing it).
 
-**The map is gated like every phase.** Human reviews module boundaries, dependency direction and build order before any module spec.
+**The map is gated like every phase.** The human reviews module boundaries, dependency direction, and build order before any module spec is written. Getting the map wrong is expensive; reviewing ten lines is not.
 
-**Then recurse per module.** Run Specify → Plan → Tasks → Implement per module, in dependency order. Each gets own spec, scoped to its objective, boundaries and success criteria. Save approved map at project root, module specs beside it, named by module id (`SPEC-identity.md`, `SPEC-billing.md`). Map, not filename guessing, indexes what exists.
+**Then recurse per module.** Run Specify → Plan → Tasks → Implement for each module in dependency order. Each module gets its own spec, scoped to that module's objective, boundaries, and success criteria. Save the approved map at the project root and each module's spec alongside it, named by module id (`SPEC-identity.md`, `SPEC-billing.md`) — the map, not filename guessing, is the index of what exists.
 
 ### Phase 1: Specify
 
-Start from high-level vision. Ask human clarifying questions until requirements are concrete.
+Start with a high-level vision. Ask the human clarifying questions until requirements are concrete.
 
-**Surface assumptions immediately.** List them before any spec content:
+**Surface assumptions immediately.** Before writing any spec content, list what you're assuming:
 
 ```
 ASSUMPTIONS I'M MAKING:
@@ -78,13 +78,13 @@ ASSUMPTIONS I'M MAKING:
 → Correct me now or I'll proceed with these.
 ```
 
-Don't silently fill in ambiguous requirements.
+Don't silently fill in ambiguous requirements. The spec's entire purpose is to surface misunderstandings *before* code gets written — assumptions are the most dangerous form of misunderstanding.
 
-**Write spec covering six core areas:**
+**Write a spec document covering these six core areas:**
 
-1. **Objective** — What and why? Who is user? What is success?
+1. **Objective** — What are we building and why? Who is the user? What does success look like?
 
-2. **Commands** — Full executable commands with flags, not only tool names.
+2. **Commands** — Full executable commands with flags, not just tool names.
    ```
    Build: npm run build
    Test: npm test -- --coverage
@@ -92,7 +92,7 @@ Don't silently fill in ambiguous requirements.
    Dev: npm run dev
    ```
 
-3. **Project Structure** — Where source, tests and docs live.
+3. **Project Structure** — Where source code lives, where tests go, where docs belong.
    ```
    src/           → Application source code
    src/components → React components
@@ -102,11 +102,11 @@ Don't silently fill in ambiguous requirements.
    docs/          → Documentation
    ```
 
-4. **Code Style** — One real code snippet beats three paragraphs describing style. Include naming conventions, formatting rules, good-output examples.
+4. **Code Style** — One real code snippet showing your style beats three paragraphs describing it. Include naming conventions, formatting rules, and examples of good output.
 
-5. **Testing Strategy** — Framework, test locations, coverage expectations, test level per concern.
+5. **Testing Strategy** — What framework, where tests live, coverage expectations, which test levels for which concerns.
 
-6. **Boundaries** — Three tiers:
+6. **Boundaries** — Three-tier system:
    - **Always do:** Run tests before commits, follow naming conventions, validate inputs
    - **Ask first:** Database schema changes, adding dependencies, changing CI config
    - **Never do:** Commit secrets, edit vendor directories, remove failing tests without approval
@@ -146,9 +146,13 @@ Don't silently fill in ambiguous requirements.
 [Anything unresolved that needs human input]
 ```
 
-**External spec tools:** If project already uses OpenSpec or another specification system, keep its artifact format and storage conventions. Do not create duplicate `SPEC.md`. This skill owns clarification, content and approval gates; external tool owns how approved spec is represented.
+**External spec tools:** This workflow is format-agnostic. If the project
+already uses OpenSpec or another specification system, keep that system's
+artifact format and storage conventions instead of creating a duplicate
+`SPEC.md`. This skill owns the clarification, content, and approval gates; the
+external tool owns how the approved spec is represented.
 
-**Reframe instructions as success criteria.** Turn vague requirements into concrete conditions:
+**Reframe instructions as success criteria.** When receiving vague requirements, translate them into concrete conditions:
 
 ```
 REQUIREMENT: "Make the dashboard faster"
@@ -160,55 +164,62 @@ REFRAMED SUCCESS CRITERIA:
 → Are these the right targets?
 ```
 
-**Stop after writing the spec (CRITICAL).** Once spec is saved:
+This lets you loop, retry, and problem-solve toward a clear goal rather than guessing what "faster" means.
 
-1. Summarize it, list any Open Questions.
-2. Ask human to approve or request changes.
-3. **STOP YOUR TURN IMMEDIATELY.** Do NOT start Phase 2, invoke `planning-and-task-breakdown`, or write code this turn. Planning starts only after human approves spec in later turn.
+**Stop after writing the spec (CRITICAL).** Once the spec is saved:
+
+1. Summarize it and list any Open Questions.
+2. Ask the human to approve it or request changes.
+3. **STOP YOUR TURN IMMEDIATELY.** Do NOT start Phase 2, invoke `planning-and-task-breakdown`, or write code in this turn. Planning starts only after the human approves the spec in a later turn.
 
 ### Phases 2-4: Plan, Tasks, Implement
 
-After human approves spec (in later turn):
+After the human approves the spec (in a later turn):
 
-1. **Plan and tasks:** follow `planning-and-task-breakdown`. It owns dependency graph, vertical slicing, task sizing and template, and plan and task list storage (default `tasks/plan.md` and `tasks/todo.md`, unless project uses external tracker). Plan and tasks each get own human review gate.
-2. **Implement:** run tasks one at a time with `incremental-implementation` and `test-driven-development`. Use `context-engineering` to load only spec sections and source files current task needs.
+1. **Plan and tasks:** follow `planning-and-task-breakdown`. It owns the dependency graph, vertical slicing, task sizing and template, and where the plan and task list are stored (by default `tasks/plan.md` and `tasks/todo.md`, unless the project uses an external tracker). Each of these steps gets its own human review gate.
+2. **Implement:** run the tasks one at a time with `incremental-implementation` and `test-driven-development`. Use `context-engineering` to load only the spec sections and source files the current task needs.
 
 ## Keeping the Spec Alive
 
-Living document, not one-time artifact:
+The spec is a living document, not a one-time artifact:
 
-- **Update when decisions change** — Data model must change? Update spec first, then implement.
-- **Update when scope changes** — Reflect added or cut features in spec.
-- **Commit the spec** — Keep it in version control with code.
-- **Reference the spec in PRs** — Link each PR to spec section it implements.
+- **Update when decisions change** — If you discover the data model needs to change, update the spec first, then implement.
+- **Update when scope changes** — Features added or cut should be reflected in the spec.
+- **Commit the spec** — The spec belongs in version control alongside the code.
+- **Reference the spec in PRs** — Link back to the spec section that each PR implements.
 
 ## Common Rationalizations
 
 | Rationalization | Reality |
 |---|---|
-| "This is simple, I don't need a spec" | Simple tasks need no *long* spec, but still need acceptance criteria. Two lines is fine. |
-| "I'll write the spec after I code it" | That's documentation, not specification. Spec's value is forcing clarity *before* code. |
-| "The spec will slow us down" | 15-minute spec prevents hours of rework. Waterfall in 15 minutes beats debugging in 15 hours. |
-| "Requirements will change anyway" | Hence living document. Outdated spec still beats no spec. |
-| "The user knows what they want" | Clear requests still carry implicit assumptions. Spec surfaces them. |
-| "It's one big feature; splitting it is overhead" | If acceptance criteria cluster into independently testable groups, monolithic spec makes every downstream task reason over whole contract. Ten-line capability map is cheaper. |
-| "I'll decompose during planning" | Planning slices tasks within a spec, after oversized artifact exists. Decide module boundaries and dependency direction before writing spec, not after. |
+| "This is simple, I don't need a spec" | Simple tasks don't need *long* specs, but they still need acceptance criteria. A two-line spec is fine. |
+| "I'll write the spec after I code it" | That's documentation, not specification. The spec's value is in forcing clarity *before* code. |
+| "The spec will slow us down" | A 15-minute spec prevents hours of rework. Waterfall in 15 minutes beats debugging in 15 hours. |
+| "Requirements will change anyway" | That's why the spec is a living document. An outdated spec is still better than no spec. |
+| "The user knows what they want" | Even clear requests have implicit assumptions. The spec surfaces those assumptions. |
+| "It's one big feature; splitting it is overhead" | If acceptance criteria cluster into independently testable groups, a monolithic spec forces every downstream task to reason over the whole contract. A ten-line capability map is the cheap alternative. |
+| "I'll decompose during planning" | Planning slices tasks within a spec. By then the oversized artifact already exists — module boundaries and dependency direction must be decided before the spec is written, not after. |
 
 ## Red Flags
 
+- Starting to write code without any written requirements
 - Asking "should I just start building?" before clarifying what "done" means
-- Implementing features not in any spec or task list
-- Undocumented architectural decisions
+- Implementing features not mentioned in any spec or task list
+- Making architectural decisions without documenting them
+- Skipping the spec because "it's obvious what to build"
+- Writing the spec and starting the plan or code in the same turn
+- One spec whose requirements span several independently testable capabilities
+- Module boundaries or build order decided implicitly during implementation because no capability map was approved up front
 
 ## Verification
 
-Before implementation, confirm:
+Before proceeding to implementation, confirm:
 
-- [ ] Spec covers all six core areas
-- [ ] Human reviewed and approved spec
-- [ ] Turn ended after saving spec; approval came in later turn
-- [ ] Success criteria specific and testable
-- [ ] Boundaries (Always/Ask First/Never) defined
-- [ ] Spec saved to file in repository
-- [ ] If request bundles several independently testable capabilities, capability map (module ids, dependency direction, build order) approved before any module spec
-- [ ] Every module spec traces to module id in approved map
+- [ ] The spec covers all six core areas
+- [ ] The human has reviewed and approved the spec
+- [ ] The turn ended after saving the spec; approval came in a later turn
+- [ ] Success criteria are specific and testable
+- [ ] Boundaries (Always/Ask First/Never) are defined
+- [ ] The spec is saved to a file in the repository
+- [ ] If the request bundles several independently testable capabilities, a capability map (module ids, dependency direction, build order) was approved before any module spec was written
+- [ ] Every module spec traces to a module id in the approved map

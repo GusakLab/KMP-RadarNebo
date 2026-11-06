@@ -6,7 +6,7 @@ tags: couple, preserve-object, parameters, encapsulation
 
 ## Preserve Whole Object Instead of Fields
 
-When you extract several values from an object to pass as parameters, pass the whole object instead.
+When you extract several values from an object and pass them as parameters, pass the whole object instead. This reduces coupling to the object's internal structure.
 
 **Incorrect (extracting multiple fields):**
 
@@ -56,8 +56,8 @@ const canDeliver = isWithinDeliveryRange(customer.address)
 ```
 
 **When NOT to use this pattern:**
-- You need only one or two fields and don't want dependency on whole type
-- Receiving function would have to import the type from a distant module
-- Object is mutable and you want to work with a snapshot of values
+- You only need one or two fields and don't want to create a dependency on the whole type
+- The receiving function would have to import the type from a distant module
+- The object is mutable and you want to work with a snapshot of values
 
 Reference: [Preserve Whole Object](https://refactoring.com/catalog/preserveWholeObject.html)

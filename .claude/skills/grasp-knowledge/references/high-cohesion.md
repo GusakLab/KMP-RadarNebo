@@ -2,12 +2,12 @@
 
 ## Definition
 
-Assign responsibilities so cohesion stays high. Cohesion measures how strongly related and focused an element's responsibilities are.
+Assign responsibilities so that cohesion remains high. Cohesion is a measure of how strongly related and focused the responsibilities of an element are.
 
 ## When to Apply
 
 - Evaluating class responsibilities
-- Deciding whether to split a class
+- Deciding if a class should be split
 - Organizing related functionality
 
 ## Key Indicators
@@ -24,9 +24,9 @@ Assign responsibilities so cohesion stays high. Cohesion measures how strongly r
 ### Compliance Signs
 
 - All methods relate to single purpose
-- Class easily named (noun)
+- Class is easily named (noun)
 - Methods call each other
-- Fits one screen (~200 lines)
+- Fits in one screen (~200 lines)
 
 ## Types of Cohesion
 

@@ -7,7 +7,7 @@ tags: base, version-pinning, digest, reproducibility, security
 
 ## Pin Base Image Versions with Digests
 
-Mutable tags like `:latest` or `:3.12` can resolve to different image over time. Build that worked yesterday may break today after silent base image update. Worse, compromised tag could inject malicious code into supply chain with no Dockerfile change.
+Mutable tags like `:latest` or `:3.12` can resolve to a completely different image over time. A build that worked yesterday may break today because the base image was silently updated. Worse, a compromised tag could inject malicious code into your supply chain without any change to your Dockerfile.
 
 **Incorrect (mutable tag, non-deterministic builds):**
 
@@ -22,7 +22,7 @@ COPY . .
 CMD ["python", "app.py"]
 ```
 
-(`python:latest` moves with every new upstream Python release.)
+(The `python:latest` tag resolves to a different image every time the upstream publishes a new Python release. Builds are non-reproducible and can break without any Dockerfile change.)
 
 **Better (pinned minor version, still mutable):**
 
@@ -37,7 +37,7 @@ COPY . .
 CMD ["python", "app.py"]
 ```
 
-(`python:3.12-slim` limits drift to patch-level updates within 3.12 series. Image still changes when Debian packages update or security patches are applied.)
+(The `python:3.12-slim` tag limits drift to patch-level updates within the 3.12 series, but the underlying image still changes when Debian packages are updated or security patches are applied.)
 
 **Correct (immutable digest, fully reproducible):**
 
@@ -52,17 +52,17 @@ COPY . .
 CMD ["python", "app.py"]
 ```
 
-(`@sha256:...` digest is immutable: every build, anywhere, anytime, gets exact same base image. Tag `python:3.12-slim` stays for readability; digest takes precedence.)
+(The `@sha256:...` digest is immutable. Every build uses the exact same base image regardless of when or where it runs. The human-readable tag `python:3.12-slim` is kept for readability but the digest takes precedence.)
 
 ### The Trade-off: Reproducibility vs. Automatic Updates
 
-Pinned digest opts out of automatic security patches. If upstream fixes critical CVE, builds keep old, vulnerable image until you manually update digest.
+Pinning a digest means you opt out of automatic security patches. If the upstream publishes a fix for a critical CVE, your builds will continue using the old, vulnerable image until you manually update the digest.
 
-To manage it:
+To manage this trade-off:
 
-- **Use Docker Scout** or similar to monitor pinned images for new vulnerabilities and get automated remediation pull requests.
-- **Automate digest updates** in CI: periodically resolve latest digest for pinned tag, open PR when it changes.
-- **Pin in production Dockerfiles** where reproducibility matters most. Use mutable tags in development or CI images where freshness matters more.
+- **Use Docker Scout** or a similar tool to monitor pinned images for new vulnerabilities and receive automated remediation pull requests.
+- **Automate digest updates** in CI by periodically resolving the latest digest for your pinned tag and opening a PR when it changes.
+- **Pin in production Dockerfiles** where reproducibility matters most, and use mutable tags in development or CI images where freshness matters more.
 
 ### Finding the Digest
 

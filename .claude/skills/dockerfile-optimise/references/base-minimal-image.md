@@ -7,7 +7,7 @@ tags: base, alpine, slim, image-size
 
 ## Use Minimal Base Images
 
-Full distribution images like `ubuntu` or `debian` bundle hundreds of packages application never uses: compilers, man pages, documentation, system utilities. Result: bigger image, slower pull and deploy, wider attack surface.
+Full distribution images like `ubuntu` or `debian` bundle hundreds of packages your application never uses -- compilers, man pages, documentation, and system utilities. This bloats the image, increases pull and deploy times, and widens the attack surface with software that is present but never needed.
 
 **Incorrect (full distribution base image):**
 
@@ -22,9 +22,9 @@ COPY . .
 CMD ["python", "app.py"]
 ```
 
-(`python:3.12` builds on full Debian with gcc, make, man pages and hundreds of system packages. Exceeds 900MB before any application code.)
+(The `python:3.12` tag is built on full Debian and includes gcc, make, man pages, and hundreds of system packages. The resulting image exceeds 900MB before any application code is added.)
 
-**Correct (slim variant drops non-essential packages):**
+**Correct (slim variant removes non-essential packages):**
 
 ```dockerfile
 FROM python:3.12-slim
@@ -37,7 +37,7 @@ COPY . .
 CMD ["python", "app.py"]
 ```
 
-(`python:3.12-slim` strips compilers, documentation and rarely-used system packages. Base layer drops from ~900MB to ~150MB, no code changes.)
+(The `python:3.12-slim` tag strips compilers, documentation, and rarely-used system packages. The base layer drops from ~900MB to ~150MB with no code changes required.)
 
 **Correct (Alpine variant for maximum size reduction):**
 
@@ -52,7 +52,7 @@ COPY . .
 CMD ["python", "app.py"]
 ```
 
-(`python:3.12-alpine` uses Alpine Linux with musl libc. Base layer ~50MB, but some Python packages with C extensions may need extra build dependencies.)
+(The `python:3.12-alpine` tag uses Alpine Linux with musl libc. The base layer is ~50MB, but some Python packages with C extensions may require additional build dependencies.)
 
 ### Approximate Base Image Sizes
 
@@ -64,6 +64,6 @@ CMD ["python", "app.py"]
 
 ### When NOT to Use Minimal Images
 
-Alpine uses musl libc, not glibc. Libraries relying on glibc-specific behaviour (certain scientific computing packages, DNS resolution edge cases, pre-compiled binary wheels) may fail to build or behave differently there. Then use `-slim`: keeps glibc compatibility, still drops non-essential packages.
+Alpine uses musl libc instead of glibc. Libraries that depend on glibc-specific behaviour (such as certain scientific computing packages, DNS resolution edge cases, or pre-compiled binary wheels) may fail to build or behave differently on Alpine. In those cases, use the `-slim` variant, which retains glibc compatibility while still removing non-essential packages.
 
 Reference: [Building best practices](https://docs.docker.com/build/building/best-practices/)

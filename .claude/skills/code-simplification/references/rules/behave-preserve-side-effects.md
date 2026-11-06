@@ -6,7 +6,7 @@ tags: behave, side-effects, logging, io, state
 
 ## Preserve Side Effects (Logging, I/O, State Changes)
 
-Side effects are often a function's most important part. Removing or reordering them can cause silent failures that only surface in production.
+Side effects are often the most important part of a function. Logging enables debugging and auditing. I/O operations persist data. State mutations coordinate systems. Removing or reordering side effects during simplification can cause silent failures that only surface in production.
 
 **Incorrect (removes logging side effect):**
 
@@ -27,6 +27,17 @@ async function transferFunds(from: Account, to: Account, amount: number) {
 // Breaks: audit compliance, debugging capability
 ```
 
+**Correct (preserve all logging):**
+
+```typescript
+async function transferFunds(from: Account, to: Account, amount: number) {
+  logger.info(`Transfer initiated: ${from.id} -> ${to.id}, amount: ${amount}`);
+  await from.debit(amount);
+  await to.credit(amount);
+  logger.info(`Transfer completed: ${from.id} -> ${to.id}`);
+}
+```
+
 **Incorrect (changes I/O timing):**
 
 ```python
@@ -44,6 +55,15 @@ async def save_order(order: Order) -> None:
         search_index.update(order)
     )
 # Breaks: cache invalidation may happen before db.save completes
+```
+
+**Correct (preserve operation order):**
+
+```python
+def save_order(order: Order) -> None:
+    db.save(order)
+    cache.invalidate(f"order:{order.id}")
+    search_index.update(order)
 ```
 
 **Incorrect (changes state mutation order):**
@@ -68,3 +88,22 @@ func (s *Server) Shutdown() {
 }
 // Breaks: new connections may be accepted after listeners closed
 ```
+
+**Correct (preserve mutation order):**
+
+```go
+func (s *Server) Shutdown() {
+    s.mu.Lock()
+    s.accepting = false
+    s.mu.Unlock()
+    s.drainConnections()
+    s.closeListeners()
+}
+```
+
+### Benefits
+
+- Debugging and monitoring capabilities preserved
+- Data consistency maintained
+- Race conditions avoided
+- Audit trails remain intact

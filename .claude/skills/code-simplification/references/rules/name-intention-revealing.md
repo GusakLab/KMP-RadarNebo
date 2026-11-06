@@ -6,9 +6,9 @@ tags: name, readability, self-documenting, clarity
 
 ## Use Intention-Revealing Names
 
-Names answer why something exists, what it does, how it is used. If a name needs a comment to explain it, rename it.
+Names should answer why something exists, what it does, and how it is used. If a name requires a comment to explain its purpose, the name itself should be improved. Good names make code self-documenting, reducing cognitive load and preventing misuse.
 
-**Incorrect (names need comments):**
+**Incorrect (names require comments to understand):**
 
 ```typescript
 // Bad: What does 'd' represent?
@@ -85,6 +85,14 @@ func fetchUserProfile(ctx *RequestContext, request *ProfileRequest) (*ProfileRes
 
 ### When NOT to Apply
 
-- Loop indices (`i`, `j`, `k`) in simple iterations with tiny scope
-- Math formulas with conventional single-letter variables (e.g., `x`, `y` for coordinates)
-- Lambda parameters in very short, obvious transforms
+- Loop indices (`i`, `j`, `k`) in simple iterations where scope is tiny
+- Mathematical formulas where single-letter variables are conventional (e.g., `x`, `y` for coordinates)
+- Lambda parameters in very short, obvious transformations
+
+### Benefits
+
+- Code becomes self-documenting
+- Eliminates need for explanatory comments
+- Reduces onboarding time for new developers
+- Makes code review faster and more effective
+- Prevents bugs caused by misunderstanding variable purpose

@@ -6,7 +6,7 @@ tags: ctx, conventions, project-setup
 
 ## Always Read CLAUDE.md Before Simplifying
 
-CLAUDE.md holds project-specific instructions for writing, testing and structuring code. Read it first so simplifications match team practices.
+Project-specific instructions in CLAUDE.md define how code should be written, tested, and structured. Ignoring these instructions leads to simplifications that violate project standards, causing rework and rejected changes. Reading CLAUDE.md first ensures your simplifications align with the team's established practices.
 
 **Incorrect (simplifying without reading project instructions):**
 
@@ -18,7 +18,7 @@ function fetchUser(id: string) {
 }
 ```
 
-**Correct (read CLAUDE.md first, respect error handling requirement):**
+**Correct (reading CLAUDE.md first, respecting error handling requirement):**
 
 ```typescript
 // CLAUDE.md specifies: "All API calls must have explicit error handling"
@@ -33,8 +33,14 @@ function fetchUser(id: string) {
 
 **When NOT to use:**
 
-- CLAUDE.md does not exist in the project
-- Exploratory analysis where no changes will be made
+- When CLAUDE.md does not exist in the project
+- For exploratory analysis where no changes will be made
+
+**Benefits:**
+
+- Simplifications are accepted on first review
+- Maintains consistency with team expectations
+- Avoids introducing patterns the team has explicitly rejected
 
 **References:**
 

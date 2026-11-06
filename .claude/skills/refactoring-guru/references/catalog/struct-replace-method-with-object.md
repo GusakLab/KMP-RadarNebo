@@ -6,9 +6,9 @@ tags: struct, method-object, decomposition, local-variables
 
 ## Replace Method with Method Object
 
-If long method has many locals that block extraction, turn it into own class. Locals become instance fields; decomposition gets easy.
+When a long method has many local variables that make extraction difficult, turn the method into its own class. Local variables become instance fields, enabling easy decomposition.
 
-**Incorrect (many interdependent locals):**
+**Incorrect (method with many interdependent locals):**
 
 ```typescript
 class PriceCalculator {
@@ -49,7 +49,7 @@ class PriceCalculator {
 }
 ```
 
-**Correct (method object):**
+**Correct (extracted to method object):**
 
 ```typescript
 class PriceCalculator {
@@ -119,5 +119,10 @@ class PriceCalculation {
   }
 }
 ```
+
+**Benefits:**
+- Each calculation step can be tested independently
+- Easy to add new discount types without modifying existing code
+- Local variables become visible state that can be inspected during debugging
 
 Reference: [Replace Method with Method Object](https://refactoring.com/catalog/replaceFunctionWithCommand.html)

@@ -5,28 +5,32 @@ description: Turn an approved spec or clear requirements into a dependency-order
 
 # Planning and Task Breakdown
 
+## Overview
+
+Decompose work into small, verifiable tasks with explicit acceptance criteria. Good task breakdown is the difference between an agent that completes work reliably and one that produces a tangled mess. Every task should be small enough to implement, test, and verify in a single focused session.
+
 ## When to Use
 
-- Spec needs breaking into implementable units
-- Task too large or vague to start
-- Work needs parallelizing across multiple agents or sessions
-- Scope needs communicating to a human
-- Implementation order isn't obvious
+- You have a spec and need to break it into implementable units
+- A task feels too large or vague to start
+- Work needs to be parallelized across multiple agents or sessions
+- You need to communicate scope to a human
+- The implementation order isn't obvious
 
-**When NOT to use:** Single-file changes with obvious scope, or spec already has well-defined tasks.
+**When NOT to use:** Single-file changes with obvious scope, or when the spec already contains well-defined tasks.
 
 ## The Planning Process
 
 ### Step 1: Enter Plan Mode
 
-Before any code, work read-only:
+Before writing any code, operate in read-only mode:
 
-- Read spec and relevant codebase sections
-- Find existing patterns and conventions
+- Read the spec and relevant codebase sections
+- Identify existing patterns and conventions
 - Map dependencies between components
 - Note risks and unknowns
 
-**Do NOT write code during planning.** Output: plan document in `tasks/plan.md` plus task list in the task list target (see Output Files; default `tasks/todo.md`). Not implementation.
+**Do NOT write code during planning.** The output is a plan document saved to `tasks/plan.md` and a task list recorded in the task list target (see Output Files; default `tasks/todo.md`), not implementation.
 
 ### Step 2: Identify the Dependency Graph
 
@@ -48,11 +52,11 @@ Database schema
     └── Seed data / migrations
 ```
 
-Build bottom-up along dependency graph: foundations first.
+Implementation order follows the dependency graph bottom-up: build foundations first.
 
 ### Step 3: Slice Vertically
 
-Build one complete feature path at a time, not all database, then all API, then all UI:
+Instead of building all the database, then all the API, then all the UI — build one complete feature path at a time:
 
 **Bad (horizontal slicing):**
 ```
@@ -70,11 +74,11 @@ Task 3: User can create a task (task schema + API + UI for creation)
 Task 4: User can view task list (query + API + UI for list view)
 ```
 
-Each slice delivers working, testable functionality.
+Each vertical slice delivers working, testable functionality.
 
 ### Step 4: Write Tasks
 
-Task structure, for markdown task list or external tracker item (see Output Files):
+Each task follows this structure, whether it lands in the markdown task list or as an item in an external tracker (see Output Files):
 
 ```markdown
 ## Task [N]: [Short descriptive title]
@@ -101,14 +105,14 @@ Task structure, for markdown task list or external tracker item (see Output File
 
 ### Step 5: Order and Checkpoint
 
-Order tasks so:
+Arrange tasks so that:
 
-1. Dependencies satisfied (foundation first)
-2. Each task leaves system working
-3. Verification checkpoint after every 2-3 tasks
-4. High-risk tasks early (fail fast)
+1. Dependencies are satisfied (build foundation first)
+2. Each task leaves the system in a working state
+3. Verification checkpoints occur after every 2-3 tasks
+4. High-risk tasks are early (fail fast)
 
-Add explicit checkpoints to task list target:
+Add explicit checkpoints to the task list target:
 
 ```markdown
 ## Checkpoint: After Tasks 1-3
@@ -126,38 +130,38 @@ Add explicit checkpoints to task list target:
 | **S** | 1-2 | One component or endpoint | Add a new API endpoint |
 | **M** | 3-5 | One feature slice | User registration flow |
 | **L** | 5-8 | Multi-component feature | Search with filtering and pagination |
-| **XL** | 8+ | **Too large — break down further** | — |
+| **XL** | 8+ | **Too large — break it down further** | — |
 
-Break L or larger into smaller tasks. Agents do best on S and M.
+If a task is L or larger, it should be broken into smaller tasks. An agent performs best on S and M tasks.
 
 **When to break a task down further:**
-- Takes more than one focused session (roughly 2+ hours of agent work)
-- Acceptance criteria don't fit in 3 or fewer bullets
-- Touches two or more independent subsystems (e.g., auth and billing)
-- Title needs "and" (sign of two tasks)
+- It would take more than one focused session (roughly 2+ hours of agent work)
+- You cannot describe the acceptance criteria in 3 or fewer bullet points
+- It touches two or more independent subsystems (e.g., auth and billing)
+- You find yourself writing "and" in the task title (a sign it is two tasks)
 
 ## Output Files
 
-- **Plan document:** `tasks/plan.md`, always markdown. Design decisions, risks and open questions don't map cleanly onto tracker issues.
-- **Task list:** each task goes in **task list target** (defined below).
+- **Plan document:** Save the implementation plan to `tasks/plan.md`. This is always a markdown file — design decisions, risks, and open questions don't map cleanly onto individual tracker issues.
+- **Task list:** Record each task in the **task list target** (defined below).
 
-Create `tasks/` if it does not exist.
+Create the `tasks/` directory if it does not exist.
 
-**Never overwrite an incomplete plan.** Before writing `tasks/plan.md` or `tasks/todo.md`, check if they exist with unchecked tasks:
+**Never overwrite an incomplete plan.** Before writing `tasks/plan.md` or `tasks/todo.md`, check whether they already exist and still contain unchecked tasks:
 
-- Same work replanned (user asked to revise or extend this plan) → update existing files in place.
-- Different work → **stop and ask.** Unchecked tasks may be mid-build in another session. Do not delete, overwrite or rename existing files on your own. Present conflict; user decides: finish old plan first, explicitly discard it, or say where new plan goes.
+- Same work being replanned (the user asked to revise or extend this plan) → update the existing files in place.
+- Different work → **stop and ask.** The unchecked tasks may be mid-build in another session. Do not delete, overwrite, or rename the existing files on your own; present the conflict and let the user decide (finish the old plan first, explicitly discard it, or tell you where the new plan should go).
 
-Same for external task list target: never bulk-close or delete another plan's open tracker items to make room.
+The same rule applies to an external task list target: never bulk-close or delete another plan's open tracker items to make room for new ones.
 
 ### Task List Target
 
-Where tasks and checkpoints get recorded.
+The task list target is where tasks and checkpoints are recorded. It is defined once, here; every other reference in this skill defers to it.
 
-- **Default: checklist-style markdown file at `tasks/todo.md`.** Use unless project says otherwise.
-- **External tracker:** if project agent rules (`CLAUDE.md`, `AGENTS.md`, etc.) or user designate an issue tracker (e.g. GitHub Issues, Jira, Linear, `bd`/beads), create one tracker item per task instead of writing `tasks/todo.md`. Map Step 4 structure onto tracker fields. Acceptance criteria and verification steps go in item body. Dependencies use tracker's linking mechanism (`bd dep add`, "blocked by", etc.). Step 5 checkpoints become tracker items, or a plan-document checklist if tracker has no natural equivalent.
+- **Default: a checklist-style markdown file at `tasks/todo.md`.** Use it unless the project says otherwise.
+- **External tracker:** if the project's agent rules (`CLAUDE.md`, `AGENTS.md`, etc.) or the user designate an issue tracker (e.g. GitHub Issues, Jira, Linear, `bd`/beads), create one tracker item per task instead of writing `tasks/todo.md`. Map the Step 4 structure onto the tracker's fields: acceptance criteria and verification steps in the item body, dependencies via the tracker's linking mechanism (`bd dep add`, "blocked by", etc.). Record Step 5 checkpoints as tracker items too, or as a checklist in the plan document if the tracker has no natural equivalent.
 
-With external tracker, note it in `tasks/plan.md` (e.g. "Tasks tracked in Linear project FOO") so downstream steps and future sessions know where to look. Plan's Task List section then holds ordered index of tracker item IDs or links, not duplicate checklist.
+When using an external tracker, note it in `tasks/plan.md` (e.g. "Tasks tracked in Linear project FOO") so downstream steps and future sessions know where to look, and keep the plan document's Task List section as an ordered index of tracker item IDs or links rather than a duplicate checklist.
 
 ## Plan Document Template
 
@@ -204,33 +208,50 @@ With external tracker, note it in `tasks/plan.md` (e.g. "Tasks tracked in Linear
 - [Question needing human input]
 ```
 
+When tasks live in an external tracker, keep the Task List section above as an ordered index of tracker item IDs or links instead of a duplicate checklist.
+
 ## Parallelization Opportunities
 
-With multiple agents or sessions:
+When multiple agents or sessions are available:
 
-- **Safe to parallelize:** independent feature slices, tests for already-implemented features, documentation
-- **Must be sequential:** database migrations, shared state changes, dependency chains
-- **Needs coordination:** features sharing an API contract (define contract first, then parallelize)
+- **Safe to parallelize:** Independent feature slices, tests for already-implemented features, documentation
+- **Must be sequential:** Database migrations, shared state changes, dependency chains
+- **Needs coordination:** Features that share an API contract (define the contract first, then parallelize)
 
 ## Common Rationalizations
 
 | Rationalization | Reality |
 |---|---|
-| "The old `tasks/plan.md` is stale, I'll just replace it" | Unchecked tasks may be mid-build in another session. Overwriting destroys work state stored nowhere else. Stop and ask. |
+| "I'll figure it out as I go" | That's how you end up with a tangled mess and rework. 10 minutes of planning saves hours. |
+| "The tasks are obvious" | Write them down anyway. Explicit tasks surface hidden dependencies and forgotten edge cases. |
+| "Planning is overhead" | Planning is the task. Implementation without a plan is just typing. |
+| "I can hold it all in my head" | Context windows are finite. Written plans survive session boundaries and compaction. |
+| "The old `tasks/plan.md` is stale, I'll just replace it" | Unchecked tasks may be mid-build in another session. Overwriting them destroys work state that exists nowhere else. Stop and ask. |
+
+## Red Flags
+
+- Starting implementation without a written task list
+- Overwriting a `tasks/plan.md` or `tasks/todo.md` that still has unchecked tasks for different work, without asking
+- Writing `tasks/todo.md` when the project has designated an external tracker (or scattering tasks across both)
+- Tasks that say "implement the feature" without acceptance criteria
+- No verification steps in the plan
+- All tasks are XL-sized
+- No checkpoints between tasks
+- Dependency order isn't considered
 
 ## Verification
 
-Before implementing, confirm:
+Before starting implementation, confirm:
 
 - [ ] Every task has acceptance criteria
-- [ ] Every task has verification step
-- [ ] Task dependencies identified and correctly ordered
-- [ ] Tasks recorded in task list target (default `tasks/todo.md`)
-- [ ] No pre-existing incomplete plan overwritten without explicit user confirmation
+- [ ] Every task has a verification step
+- [ ] Task dependencies are identified and ordered correctly
+- [ ] Tasks are recorded in the task list target (default `tasks/todo.md`)
+- [ ] No pre-existing incomplete plan was overwritten without explicit user confirmation
 - [ ] No task touches more than ~5 files
 - [ ] Checkpoints exist between major phases
-- [ ] Human reviewed and approved plan
+- [ ] The human has reviewed and approved the plan
 
 ## Acceptance Criteria vs. Definition of Done
 
-Acceptance criteria are per-task and answer "did we build the right thing?". They sit on top of project-wide Definition of Done. Definition of Done is the standing bar every task clears before counting as done: repository's required checks (tests, lint, type-check, build) from its CI config or agent rules. Task is done only when both are met.
+Acceptance criteria are per-task and answer "did we build the right thing?". They sit on top of the project-wide Definition of Done: the standing bar every task clears before it counts as done (the repository's required checks - tests, lint, type-check, build - as listed in its CI config or agent rules). A task is done only when both are met.

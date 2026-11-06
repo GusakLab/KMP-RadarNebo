@@ -6,7 +6,7 @@ tags: error, separation, clean-code, try-catch
 
 ## Separate Error Handling from Business Logic
 
-Mixing error handling with business logic obscures both. Move error handling into wrappers or middleware.
+Functions should do one thing. Mixing error handling with business logic obscures both. Extract error handling to wrapper functions or middleware.
 
 **Incorrect (error handling mixed with logic):**
 
@@ -104,5 +104,10 @@ function handleUserCreationError(error: Error, data: UserData): null {
   return null
 }
 ```
+
+**Benefits:**
+- Business logic is clear and testable
+- Error handling is consistent and centralized
+- Easy to modify error handling without touching business logic
 
 Reference: [Clean Code - Error Handling](https://www.oreilly.com/library/view/clean-code-a/9780136083238/)

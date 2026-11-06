@@ -7,7 +7,7 @@ tags: sec, user, non-root, privilege
 
 ## Run as Non-Root User
 
-Container processes run as root (UID 0) by default. Attacker exploiting application and escaping container gains root on host. Non-root user confines process to unprivileged account, limiting damage from container escape, path traversal or arbitrary file write.
+By default, processes inside a container run as root (UID 0). If an attacker exploits a vulnerability in the application and escapes the container, they gain root access on the host. Running as a non-root user confines the process to an unprivileged account, significantly limiting the damage from container escape, path traversal, or arbitrary file write vulnerabilities.
 
 **Incorrect (no USER instruction -- container runs as root):**
 
@@ -22,6 +22,8 @@ COPY . .
 EXPOSE 3000
 CMD ["node", "server.js"]
 ```
+
+(Every process in this container runs as UID 0. A path traversal vulnerability in the application could read or overwrite any file in the container, including `/etc/shadow` and mounted volumes.)
 
 **Correct (dedicated non-root user with explicit UID/GID):**
 
@@ -47,6 +49,8 @@ EXPOSE 3000
 CMD ["node", "server.js"]
 ```
 
+(The application runs as `appuser` (UID 1001). Fixed UID/GID values ensure consistent file ownership across builds and make log attribution predictable in orchestrated environments.)
+
 **Correct (multi-stage build with non-root runtime user):**
 
 ```dockerfile
@@ -71,13 +75,13 @@ EXPOSE 8080
 ENTRYPOINT ["/bin/server"]
 ```
 
-(Distroless ships built-in `nonroot` user; no package install or user creation needed.)
+(Distroless images ship with a built-in `nonroot` user. No package installation or user creation is required.)
 
 ### Guidelines
 
-- **Assign explicit UID/GID**, not auto-assignment. Prevents UID drift across rebuilds; volume permissions stay predictable.
-- **Avoid installing `sudo`** in container. If process needs elevated privileges at startup (e.g., binding to port 80), drop them after initialization with [`gosu`](https://github.com/tianon/gosu). Do not keep `sudo` at runtime.
-- **Set `USER` as late as possible**, so earlier `RUN` instructions needing root (like `apt-get install`) avoid permission errors.
-- **Use `--chown` on COPY instructions**: assigns files to non-root user without separate `chown` layer.
+- **Assign explicit UID/GID** rather than relying on auto-assignment. This prevents UID drift between image rebuilds and ensures volume permissions are predictable.
+- **Avoid installing `sudo`** inside the container. If a process needs elevated privileges at startup (e.g., binding to port 80), use [`gosu`](https://github.com/tianon/gosu) to drop privileges after initialization instead of keeping `sudo` available at runtime.
+- **Set `USER` as late as possible** in the Dockerfile so that earlier `RUN` instructions that need root (like `apt-get install`) execute without permission errors.
+- **Use `--chown` on COPY instructions** to assign files directly to the non-root user, avoiding a separate `chown` layer.
 
 Reference: [Building best practices](https://docs.docker.com/build/building/best-practices/)

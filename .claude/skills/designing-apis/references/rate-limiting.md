@@ -1,5 +1,8 @@
 # Rate Limiting Strategies
 
+Guide to rate limiting algorithms, headers, and implementation patterns.
+
+
 ## Table of Contents
 
 - [Token Bucket Algorithm](#token-bucket-algorithm)
@@ -8,6 +11,7 @@
   - [Implementation](#implementation)
 - [Rate Limit Headers](#rate-limit-headers)
   - [Standard Headers](#standard-headers)
+  - [On Every Response](#on-every-response)
   - [When Limit Exceeded](#when-limit-exceeded)
 - [Rate Limiting Strategies](#rate-limiting-strategies)
   - [Per User](#per-user)
@@ -32,10 +36,10 @@
 
 ### Concept
 
-- Each user has bucket of tokens
+- Each user has a bucket with tokens
 - Each request consumes 1 token
 - Tokens refill at constant rate
-- Empty bucket rejects request
+- Empty bucket = reject request
 
 ### Example
 
@@ -43,9 +47,9 @@ Bucket capacity: 100 tokens
 Refill rate: 100 tokens/hour (1.67 tokens/minute)
 
 Sequence:
-1. User makes 50 requests: 50 tokens left
-2. Wait 30 minutes: 50 tokens refilled (100 total)
-3. User makes 120 requests: 100 succeed, 20 rejected
+1. User makes 50 requests → 50 tokens left
+2. Wait 30 minutes → 50 tokens refilled (100 total)
+3. User makes 120 requests → 100 succeed, 20 rejected
 
 ### Implementation
 
@@ -96,12 +100,21 @@ if (bucket.tryConsume(1)) {
 
 ### Standard Headers
 
-Send on every response (200 OK included):
-
 ```http
 X-RateLimit-Limit: 100           # Max requests per window
 X-RateLimit-Remaining: 73        # Requests remaining
 X-RateLimit-Reset: 1672531200    # Unix timestamp when limit resets
+```
+
+### On Every Response
+
+```http
+GET /api/v1/users
+
+200 OK
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 73
+X-RateLimit-Reset: 1672531200
 ```
 
 ### When Limit Exceeded
@@ -274,29 +287,32 @@ async function rateLimitMiddleware(req, res, next) {
 
 ### Transparent Limits
 
+- Document rate limits clearly
+- Include limits in response headers
 - Return clear error messages
+- Provide upgrade paths
 
 ### Graceful Degradation
 
 - Return 429 (not 403) for rate limits
 - Include `Retry-After` header
-- Say when to retry
-- Give caching guidance
+- Suggest when to retry
+- Offer caching guidance
 
 ### Monitoring
 
 - Track rate limit hits per user
 - Alert on unusual patterns
 - Log rejected requests
-- Watch quota usage trends
+- Monitor quota usage trends
 
 ### Checklist
 
-- [ ] Token bucket or sliding window implemented
-- [ ] Rate limit headers on all responses
-- [ ] 429 status code when exceeded
-- [ ] Retry-After header included
-- [ ] Rate limits documented
-- [ ] Tiered limits supported
-- [ ] Monitoring and alerts on limits
-- [ ] Upgrade options offered
+- [ ] Implement token bucket or sliding window
+- [ ] Return rate limit headers on all responses
+- [ ] Use 429 status code when exceeded
+- [ ] Include Retry-After header
+- [ ] Document rate limits
+- [ ] Support tiered limits
+- [ ] Monitor and alert on limits
+- [ ] Provide upgrade options

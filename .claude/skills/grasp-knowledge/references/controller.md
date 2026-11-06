@@ -2,7 +2,7 @@
 
 ## Definition
 
-Assign system-event handling to class representing overall system (facade controller) or one use-case scenario (use-case controller).
+Assign responsibility for handling system events to a class that represents the overall system (facade controller) or a use-case scenario (use-case controller).
 
 ## When to Apply
 

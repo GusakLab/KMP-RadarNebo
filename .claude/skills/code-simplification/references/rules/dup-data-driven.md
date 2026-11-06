@@ -6,7 +6,7 @@ tags: dup, data-driven, conditionals, maps, configuration
 
 ## Use Data-Driven Patterns Over Repetitive Conditionals
 
-Replace repetitive if/else or switch statements mapping inputs to outputs with data structures: maps, lookup tables, configuration objects.
+When you have repetitive if/else or switch statements that map inputs to outputs, replace them with data structures like maps, lookup tables, or configuration objects. Data-driven code is easier to extend (add a line, not a branch), easier to test (validate the data structure), and less prone to copy-paste errors.
 
 **Incorrect (repetitive conditionals):**
 
@@ -181,6 +181,14 @@ function calculateShipping(country) {
 
 ### When NOT to Use Data-Driven
 
-- Branches have complex logic, not just value mapping
-- Only 2-3 cases, unlikely to grow
-- The "data" would be as complex as the code it replaces
+- When branches have complex logic, not just value mapping
+- When there are only 2-3 cases and they're unlikely to grow
+- When the "data" would be as complex as the code it replaces
+
+### Benefits
+
+- Adding new cases is a configuration change, not code change
+- Data can be loaded from external sources (database, config files)
+- Easier to test - validate the data structure separately
+- Business rules are visible at a glance in the data structure
+- Reduces cyclomatic complexity significantly

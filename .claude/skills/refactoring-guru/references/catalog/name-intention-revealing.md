@@ -6,7 +6,7 @@ tags: name, intention, readability, self-documenting
 
 ## Use Intention-Revealing Names
 
-Names reveal why something exists, what it does, how it's used. Reader should grasp purpose without reading implementation.
+Names should reveal why something exists, what it does, and how it is used. A reader should understand the purpose without reading the implementation.
 
 **Incorrect (cryptic or generic names):**
 
@@ -49,9 +49,9 @@ if (isApproved) {
 ```
 
 **Naming guidelines:**
-- Variables: describe what they hold (`customerEmail`, not `str` or `data`)
-- Functions: describe what they do (`calculateShippingCost`, not `calc`)
-- Booleans: `is`, `has`, `can`, `should` prefixes (`isValid`, `hasPermission`)
-- Collections: plural nouns (`users`, `orderItems`)
+- Variables: Describe what they hold (`customerEmail`, not `str` or `data`)
+- Functions: Describe what they do (`calculateShippingCost`, not `calc`)
+- Booleans: Use `is`, `has`, `can`, `should` prefixes (`isValid`, `hasPermission`)
+- Collections: Use plural nouns (`users`, `orderItems`)
 
 Reference: [Clean Code - Meaningful Names](https://www.oreilly.com/library/view/clean-code-a/9780136083238/)

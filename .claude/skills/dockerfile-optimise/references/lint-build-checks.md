@@ -7,7 +7,7 @@ tags: lint, build-checks, validation, buildkit
 
 ## Enable Docker Build Checks
 
-Docker build checks catch common Dockerfile anti-patterns: shell-form CMD, secrets leaked through ARG, duplicate stage names and more. Without checks, these issues pass build silently. They surface as runtime failures or security vulnerabilities in production.
+Docker build checks analyze your Dockerfile for common anti-patterns -- shell-form CMD, secrets leaked through ARG, duplicate stage names, and more. Without checks enabled, these issues silently pass through the build and surface as runtime failures or security vulnerabilities in production.
 
 **Incorrect (building without checks -- anti-patterns silently pass):**
 
@@ -24,17 +24,17 @@ RUN apt-get update && apt-get install -y curl
 CMD node server.js
 ```
 
-(Secrets in `ARG`, missing apt list cleanup and shell-form `CMD` go undetected.)
+(Anti-patterns like secrets in `ARG`, missing cleanup of apt lists, and shell-form `CMD` go completely undetected. The build succeeds and the image ships with all of these issues intact.)
 
 **Correct (build checks enabled to catch anti-patterns before build):**
 
-Validation-only mode from CLI checks Dockerfile without producing image:
+Validation-only mode from the CLI -- checks the Dockerfile without producing an image:
 
 ```bash
 docker build --check .
 ```
 
-Or embed check directive in Dockerfile to enforce checks on every build:
+Or embed the check directive directly in the Dockerfile to enforce checks on every build:
 
 ```dockerfile
 # syntax=docker/dockerfile:1
@@ -49,11 +49,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 CMD ["node", "server.js"]
 ```
 
-(`# check=error=true` fails build on any check violation. Warnings become hard errors, so non-compliant images never build.)
+(The `# check=error=true` directive causes the build to fail if any check violations are found. This turns warnings into hard errors, preventing non-compliant images from being built.)
 
 ### Skipping Specific Checks
 
-Some checks may not fit your case. Skip individual ones with `skip` parameter:
+Some checks may not apply to your use case. Skip individual checks with the `skip` parameter:
 
 ```dockerfile
 # check=error=true;skip=JSONArgsRecommended
@@ -65,7 +65,7 @@ FROM ubuntu:24.04
 CMD echo "Starting $APP_NAME" && exec node server.js
 ```
 
-Skip several with comma-separated list:
+Skip multiple checks with a comma-separated list:
 
 ```dockerfile
 # check=error=true;skip=JSONArgsRecommended,SecretsUsedInArgOrEnv
@@ -73,7 +73,7 @@ Skip several with comma-separated list:
 
 ### Using the Build Arg
 
-Enable checks via `BUILDKIT_DOCKERFILE_CHECK` build argument, without editing Dockerfile:
+Enable checks via the `BUILDKIT_DOCKERFILE_CHECK` build argument without modifying the Dockerfile:
 
 ```bash
 # Run checks only (no image output)
@@ -85,6 +85,6 @@ docker build --build-arg BUILDKIT_DOCKERFILE_CHECK=error=true -t myapp .
 
 ### Requirements
 
-Build checks require Docker Engine 27.0+ or Docker Desktop 4.33+. Older versions silently ignore `# check` directive and `--check` flag.
+Docker build checks require Docker Engine 27.0+ or Docker Desktop 4.33+. Older versions silently ignore the `# check` directive and `--check` flag.
 
 Reference: [Docker Build Checks](https://docs.docker.com/build/checks/)

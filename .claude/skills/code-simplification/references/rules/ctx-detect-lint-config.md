@@ -6,7 +6,7 @@ tags: ctx, linting, formatting, tooling
 
 ## Check for Linting and Formatting Configs
 
-Simplifications ignoring lint and format configs fail CI or introduce inconsistent formatting. Before changing code, always detect and respect ESLint, Prettier, rustfmt, Biome and similar configs.
+Linting and formatting tools enforce project-wide code standards automatically. Simplifications that ignore these configs will fail CI checks or introduce inconsistent formatting. Always detect and respect ESLint, Prettier, rustfmt, Biome, and similar tool configurations before making changes.
 
 **Incorrect (ignoring project's Prettier config):**
 
@@ -39,4 +39,13 @@ function greet(name) {
 - Python: `pyproject.toml`, `.flake8`, `.black`, `ruff.toml`
 - Go: `.golangci.yml`
 
-Run `npm run lint` or equivalent before committing.
+**Benefits:**
+
+- CI passes on first push
+- Code matches existing project formatting
+- No manual reformatting required after review
+
+**References:**
+
+- Run `npm run lint` or equivalent before committing
+- Use editor integrations to auto-format on save

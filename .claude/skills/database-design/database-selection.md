@@ -1,5 +1,7 @@
 # Database Selection (2025)
 
+> Choose database based on context, not default.
+
 ## Decision Tree
 
 ```
@@ -34,8 +36,8 @@ What are your requirements?
 
 ## Questions to Ask
 
-1. Deployment environment?
-2. How complex are queries?
-3. Edge/serverless important?
+1. What's the deployment environment?
+2. How complex are the queries?
+3. Is edge/serverless important?
 4. Vector search needed?
 5. Global distribution required?

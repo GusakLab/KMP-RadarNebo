@@ -6,9 +6,9 @@ tags: micro, dead-code, cleanup, unused
 
 ## Remove Dead Code
 
-Delete never-executed code. Version control keeps history.
+Code that is never executed confuses readers and creates maintenance burden. Delete it; version control preserves history if needed.
 
-**Incorrect (dead code kept):**
+**Incorrect (dead code left in place):**
 
 ```typescript
 class UserService {
@@ -61,14 +61,14 @@ class UserService {
 
 **Signs of dead code:**
 - Methods with no callers (IDE can detect)
-- Commented-out code
-- Always-false feature flags
+- Commented-out code blocks
+- Feature flags that are always false
 - Catch blocks that can never execute
-- Always-true/false conditions
+- Conditions that are always true/false
 
 **When NOT to delete:**
-- API endpoints external systems might call
+- API endpoints that external systems might call
 - Hooks/callbacks registered with external frameworks
-- Code that looks dead but runs via reflection
+- Code that appears dead but is invoked via reflection
 
 Reference: [Remove Dead Code](https://refactoring.com/catalog/removeDeadCode.html)

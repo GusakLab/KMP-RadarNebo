@@ -6,7 +6,7 @@ tags: scope, focus, single-responsibility, pr-hygiene
 
 ## No Unrelated Refactors
 
-Give every PR exactly one purpose. When simplifying, resist "while you're in there" fixes. Unrelated changes pollute git history, complicate reviews, create deployment dependencies. Log other issues as separate tickets.
+Every PR should have exactly one purpose. When simplifying code, resist the urge to fix "while you're in there" issues. Unrelated changes pollute git history, complicate reviews, and create deployment dependencies. If you spot other issues, create separate tickets.
 
 **Incorrect (opportunistic refactoring):**
 
@@ -75,10 +75,17 @@ Common temptations to resist:
 - "The formatting here is inconsistent"
 - "This could use modern syntax"
 
-Each gets its own PR or ticket.
+Each of these deserves its own PR or ticket.
 
 ### When NOT to Apply
 
-- Main change needs the "unrelated" change to work
-- Typo fix in a comment you're already editing
-- Project explicitly allows bundled cleanup (rare)
+- When the "unrelated" change is required for the main change to work
+- When fixing a typo in a comment you're already modifying
+- When the project explicitly allows bundled cleanup (rare)
+
+### Benefits
+
+- PRs are easy to review, approve, or reject independently
+- Reverts are surgical, not catastrophic
+- git blame shows clear intent for each change
+- Deployment risk is isolated

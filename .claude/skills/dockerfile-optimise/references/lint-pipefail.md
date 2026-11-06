@@ -7,7 +7,7 @@ tags: lint, pipefail, shell, error-handling
 
 ## Use pipefail for Piped RUN Commands
 
-In pipeline (`cmd1 | cmd2`), shell checks only last command's exit code. If earlier command fails but last succeeds, whole `RUN` counts as success. Failed download, broken compile step or corrupted stream passes silently. Image ends up with missing or incomplete content.
+In a piped command (`cmd1 | cmd2`), the shell only evaluates the exit code of the last command in the pipeline. If an earlier command fails but the final command succeeds, the entire `RUN` instruction is considered successful. This means a failed download, a broken compilation step, or a corrupted data stream can silently pass through the build while producing an image with missing or incomplete content.
 
 **Incorrect (piped command without pipefail -- silent failure):**
 
@@ -21,6 +21,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends wget
 RUN wget -O - https://example.com/allowed-hosts.txt | sort -u > /etc/allowed-hosts
 ```
 
+(If `wget` fails due to a network error or 404, `sort` receives empty input and exits with code 0. The build continues without any indication that the download failed.)
+
 **Correct (pipefail causes the pipeline to fail on any command error):**
 
 ```dockerfile
@@ -32,6 +34,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends wget
 # first command that fails, not just the last command
 RUN set -o pipefail && wget -O - https://example.com/allowed-hosts.txt | sort -u > /etc/allowed-hosts
 ```
+
+(With `pipefail` enabled, if `wget` exits with a non-zero code, the entire pipeline fails immediately and the build stops with a clear error.)
 
 **Correct (explicit shell form for images where /bin/sh is dash):**
 
@@ -52,9 +56,9 @@ RUN echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesourc
     && rm -rf /var/lib/apt/lists/*
 ```
 
-Never pipe downloaded script straight into shell (`curl ... | bash`). Prefer package repository with signing key, or pinned release verified against published checksum.
+Never pipe a downloaded script straight into a shell (`curl ... | bash`): prefer a package repository with a signing key, or a pinned release verified against a published checksum.
 
-(Exec form `["/bin/bash", "-c", "..."]` guarantees bash, whatever `/bin/sh` points to.)
+(The exec form `["/bin/bash", "-c", "..."]` guarantees bash is the interpreter regardless of what `/bin/sh` points to.)
 
 ### Combining with set -e
 
@@ -72,7 +76,7 @@ RUN set -euo pipefail && \
 
 ### Shell Compatibility
 
-`set -o pipefail` is bash feature. Default `/bin/sh` on Debian-based and Ubuntu-based images is `dash`, which lacks it. Shell-form `RUN` (not exec form) uses `/bin/sh` by default. Use exec form with explicit bash, or set default shell for later instructions:
+`set -o pipefail` is a bash feature. The default `/bin/sh` in Debian-based and Ubuntu-based images is `dash`, which does not support it. If your `RUN` instructions use the shell form (not exec form), they run under `/bin/sh` by default. Either use the exec form with an explicit bash invocation, or set the default shell for subsequent instructions:
 
 ```dockerfile
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]

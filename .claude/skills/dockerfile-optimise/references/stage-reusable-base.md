@@ -7,7 +7,7 @@ tags: stage, base, reusable, dry
 
 ## Create Reusable Base Stages
 
-Repeating same tools, environment variables or configuration in several stages wastes build time and adds maintenance. Extract common setup into shared base stage; others inherit via `FROM ... AS`.
+When multiple stages need the same tools, environment variables, or configuration, repeating that setup in each stage wastes build time and creates a maintenance burden. Extract common setup into a shared base stage that other stages inherit from via `FROM ... AS`.
 
 **Incorrect (each stage independently installs the same tools):**
 

@@ -6,7 +6,7 @@ tags: behave, outputs, return-values, testing
 
 ## Preserve All Return Values and Outputs
 
-Simplification must never alter what a function returns. Even "equivalent" values (empty array vs null, reordered object keys) can break downstream consumers. Every output (return values, yielded items, emitted events) must stay byte-for-byte identical.
+Code simplification must never alter what a function returns. Even "equivalent" values like empty array vs null, or reordered object keys, can break downstream consumers. Every output - return values, yielded items, emitted events - must remain byte-for-byte identical.
 
 **Incorrect (changes return type from null to undefined):**
 
@@ -47,3 +47,17 @@ def get_config():
     return dict(sorted({"debug": True, "host": "localhost", "port": 8080}.items()))
 # Breaks: code that relies on iteration order or serialization
 ```
+
+**Correct (preserves original ordering):**
+
+```python
+def get_config():
+    return {"host": "localhost", "port": 8080, "debug": True}
+```
+
+### Benefits
+
+- Downstream code continues working without modification
+- Tests remain valid without updates
+- API contracts stay honored
+- Serialized outputs remain compatible

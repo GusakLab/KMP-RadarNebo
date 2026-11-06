@@ -6,7 +6,7 @@ tags: flow, nesting, readability, cognitive-load
 
 ## Use Early Returns to Reduce Nesting
 
-Early returns drop wrapper conditions: handle each edge case immediately and exit. Code reads linearly at one indentation level.
+Deep nesting forces readers to mentally track multiple conditions simultaneously. Early returns eliminate wrapper conditions by handling edge cases immediately and exiting. This creates a linear reading flow where each line is at the same indentation level, dramatically improving comprehension.
 
 **Incorrect (deeply nested logic):**
 
@@ -74,12 +74,20 @@ function processOrder(order: Order): Result {
 }
 ```
 
+### Benefits
+
+- Reading flow is top-to-bottom without mental stack
+- Error conditions are visually grouped at the top
+- Happy path is clearly visible at the bottom
+- Each condition can be understood in isolation
+- Easier to add new validations without restructuring
+
 ### Related
 
 - See also [`flow-guard-clauses`](flow-guard-clauses.md) for validating preconditions at function entry
 
 ### When NOT to Apply
 
-- Nesting mirrors meaningful domain hierarchy
-- Functional code where early return breaks composition
-- Exhaustive pattern matching that requires all branches
+- When the nested structure represents meaningful domain hierarchy
+- In functional programming contexts where early return breaks composition
+- When using exhaustive pattern matching that requires all branches

@@ -6,9 +6,9 @@ tags: pattern, factory, creation, encapsulation
 
 ## Use Factory for Complex Object Creation
 
-Encapsulate object creation with complex logic, validation, or conditional instantiation in factory. Keeps creation separate from business logic.
+When object creation involves complex logic, validation, or conditional instantiation, encapsulate it in a factory. This separates creation concerns from business logic.
 
-**Incorrect (creation logic scattered across codebase):**
+**Incorrect (complex creation scattered throughout codebase):**
 
 ```typescript
 class OrderService {
@@ -90,5 +90,10 @@ class OrderService {
   }
 }
 ```
+
+**Benefits:**
+- Creation logic centralized and testable
+- Easy to create test doubles (TestOrderFactory)
+- Services focus on business logic, not object construction
 
 Reference: [Factory Method Pattern](https://refactoring.guru/design-patterns/factory-method)

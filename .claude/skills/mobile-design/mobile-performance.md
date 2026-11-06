@@ -1,10 +1,22 @@
 # Mobile Performance Reference
 
-> React Native and Flutter performance: optimization, 60fps animations, memory management, battery.
+> Deep dive into React Native and Flutter performance optimization, 60fps animations, memory management, and battery considerations.
+> **This file covers the #1 area where AI-generated code FAILS.**
 
 ---
 
 ## 1. The Mobile Performance Mindset
+
+### Why Mobile Performance is Different
+
+```
+DESKTOP:                          MOBILE:
+├── Unlimited power               ├── Battery matters
+├── Abundant RAM                  ├── RAM is shared, limited
+├── Stable network                ├── Network is unreliable
+├── CPU always available          ├── CPU throttles when hot
+└── User expects fast anyway      └── User expects INSTANT
+```
 
 ### Performance Budget Concept
 
@@ -103,7 +115,7 @@ const getItemLayout = useCallback(
 | `useCallback renderItem` | New function every render | 🔴 Critical |
 | Stable `keyExtractor` | Wrong item recycling | 🔴 Critical |
 | `getItemLayout` | Async layout calculation | 🟡 High |
-| `removeClippedSubviews` | Off-screen memory | 🟡 High |
+| `removeClippedSubviews` | Memory from off-screen | 🟡 High |
 | `maxToRenderPerBatch` | Blocking main thread | 🟢 Medium |
 | `windowSize` | Memory usage | 🟢 Medium |
 
@@ -570,7 +582,7 @@ Flutter:
 | **Screen on** | 🔴 Highest | Dark mode on OLED |
 | **GPS continuous** | 🔴 Very high | Use significant change |
 | **Network requests** | 🟡 High | Batch, cache aggressively |
-| **Animations** | 🟡 Medium | Reduce on low battery |
+| **Animations** | 🟡 Medium | Reduce when low battery |
 | **Background work** | 🟡 Medium | Defer non-critical |
 | **CPU computation** | 🟢 Lower | Offload to backend |
 
@@ -696,3 +708,60 @@ COMPRESS: Reduce payload size
 - [ ] Animations tested at 60fps
 - [ ] Network tested on slow 3G
 ```
+
+---
+
+## 9. Quick Reference Card
+
+### React Native Essentials
+
+```javascript
+// List: Always use
+<FlatList
+  data={data}
+  renderItem={useCallback(({item}) => <MemoItem item={item} />, [])}
+  keyExtractor={useCallback(item => item.id, [])}
+  getItemLayout={useCallback((_, i) => ({length: H, offset: H*i, index: i}), [])}
+/>
+
+// Animation: native driver for transform/opacity (layout props need Reanimated)
+useNativeDriver: true
+
+// Cleanup: Always present
+useEffect(() => {
+  return () => cleanup();
+}, []);
+```
+
+### Flutter Essentials
+
+```dart
+// Widgets: Always const
+const MyWidget()
+
+// Lists: Always builder
+ListView.builder(itemBuilder: ...)
+
+// State: Always targeted
+ValueListenableBuilder() or ref.watch(provider.select(...))
+
+// Dispose: Always cleanup
+@override
+void dispose() {
+  controller.dispose();
+  super.dispose();
+}
+```
+
+### Animation Targets
+
+```
+Transform/Opacity only ← What to animate
+16.67ms per frame ← Time budget
+60fps minimum ← Target
+Low-end Android ← Test device
+```
+
+---
+
+> **Remember:** Performance is not optimization—it's baseline quality. A slow app is a broken app. Test on the worst device your users have, not the best device you have.

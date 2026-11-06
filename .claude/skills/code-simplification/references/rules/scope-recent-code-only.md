@@ -6,7 +6,7 @@ tags: scope, focus, recent-changes, risk-reduction, git-history
 
 ## Focus on Recently Modified Code Only
 
-Target recently modified code unless explicitly asked otherwise. Old, stable code survived production testing and carries hidden assumptions. Simplifying it adds risk without matching benefit. Reviewers lack fresh context to validate it.
+Code simplification should target recently modified code unless explicitly asked otherwise. Old, stable code has survived production testing and carries hidden assumptions. Simplifying it introduces risk without proportional benefit, and reviewers lack fresh context to validate changes.
 
 **Incorrect (simplifying unrelated legacy code):**
 
@@ -61,10 +61,10 @@ async function getUserProfile(id: string): Promise<Profile> {
 
 ### When NOT to Apply
 
-- Explicitly asked to audit or simplify legacy code
-- Bug fix requires touching old code
-- Old code blocks current feature and must change anyway
-- During a planned, scoped refactoring sprint
+- When explicitly asked to audit or simplify legacy code
+- When fixing a bug that requires touching old code
+- When old code blocks the current feature and must be modified anyway
+- When performing a planned, scoped refactoring sprint
 
 ### How to Identify Recent Code
 
@@ -81,4 +81,11 @@ git blame path/to/file.ts
 git log --since="90 days ago" --name-only --pretty=format: | sort | uniq -c | sort -rn
 ```
 
-Prioritize files in open PRs or recent issues, or with many recent commits.
+Prioritize files mentioned in open PRs, recent issues, or with many recent commits.
+
+### Benefits
+
+- PRs stay focused and reviewable
+- Reviewers have full context on changed code
+- Risk is contained to code already under active development
+- git blame remains meaningful for historical debugging

@@ -1,6 +1,7 @@
 # Mobile Navigation Reference
 
-> Navigation patterns, deep linking, back handling, tab/stack/drawer decisions.
+> Navigation patterns, deep linking, back handling, and tab/stack/drawer decisions.
+> **Navigation is the skeleton of your app—get it wrong and everything feels broken.**
 
 ---
 
@@ -207,7 +208,7 @@ USE MODAL for:
 | **Sheet** | `.sheet` | Bottom Sheet | Quick tasks |
 | **Full Screen** | `.fullScreenCover` | Full Activity | Complex forms |
 | **Alert** | Alert | Dialog | Confirmations |
-| **Action Sheet** | Action Sheet | Menu/Bottom Sheet | Pick from options |
+| **Action Sheet** | Action Sheet | Menu/Bottom Sheet | Choose from options |
 
 ### Modal Dismissal
 
@@ -226,7 +227,23 @@ RULE: Only block dismissal for unsaved data.
 
 ## 6. Deep Linking
 
-Plan deep links from day one; adding later forces navigation refactor. They drive push notification navigation, sharing, marketing campaigns, Spotlight/Search integration, widget navigation, external app integration.
+### Why Deep Links from Day One
+
+```
+Deep links enable:
+├── Push notification navigation
+├── Sharing content
+├── Marketing campaigns
+├── Spotlight/Search integration
+├── Widget navigation
+├── External app integration
+
+Building later is HARD:
+├── Requires navigation refactor
+├── Screen dependencies unclear
+├── Parameter passing complex
+└── Always plan deep links at start
+```
 
 ### URL Structure
 
@@ -383,7 +400,7 @@ Implementation:
 
 | Anti-Pattern | Problem | Solution |
 |--------------|---------|----------|
-| **Inconsistent back** | Confusing, unpredictable | Always pop stack |
+| **Inconsistent back** | User confused, can't predict | Always pop stack |
 | **Hidden navigation** | Features undiscoverable | Visible tabs/drawer trigger |
 | **Deep nesting** | User gets lost | Max 3-4 levels, breadcrumbs |
 | **Breaking swipe back** | iOS users frustrated | Never override gesture |
@@ -391,7 +408,20 @@ Implementation:
 | **Tab stack reset** | Work lost on switch | Preserve tab states |
 | **Modal for primary flow** | Can't back track | Use stack navigation |
 
-RULE: Use platform navigation patterns; don't reinvent navigation. No modals for everything, no ignoring predictive back (Android 14+).
+### ❌ AI Navigation Mistakes
+
+```
+AI tends to:
+├── Use modals for everything (wrong)
+├── Forget tab state preservation (wrong)
+├── Skip deep linking (wrong)
+├── Override platform back behavior (wrong)
+├── Reset stack on tab switch (wrong)
+└── Ignore predictive back (Android 14+)
+
+RULE: Use platform navigation patterns.
+Don't reinvent navigation.
+```
 
 ---
 
@@ -400,7 +430,7 @@ RULE: Use platform navigation patterns; don't reinvent navigation. No modals for
 ### Before Navigation Architecture
 
 - [ ] App type determined (tabs/drawer/stack)
-- [ ] Top-level destinations counted
+- [ ] Number of top-level destinations counted
 - [ ] Deep link URL scheme planned
 - [ ] Auth flow integrated with navigation
 - [ ] Tablet/large screen considered
@@ -410,7 +440,7 @@ RULE: Use platform navigation patterns; don't reinvent navigation. No modals for
 - [ ] Can user navigate back? (not dead end)
 - [ ] Deep link to this screen planned
 - [ ] State preserved on navigate away/back
-- [ ] Transition fits screen relationship
+- [ ] Transition appropriate for relationship
 - [ ] Auth required? Handled?
 
 ### Before Release
@@ -422,3 +452,7 @@ RULE: Use platform navigation patterns; don't reinvent navigation. No modals for
 - [ ] Predictive back works (Android 14+)
 - [ ] Universal/App links configured
 - [ ] Push notification deep links work
+
+---
+
+> **Remember:** Navigation is invisible when done right. Users shouldn't think about HOW to get somewhere—they just get there. If they notice navigation, something is wrong.

@@ -1,6 +1,6 @@
 # Review-Mode Checklist
 
-When user asks to **review, audit, critique, or rate code** (not write it), walk this checklist. Do not edit code unless asked. Output findings report.
+When the user asks you to **review, audit, critique, or rate code** (rather than write it), follow this structured walk-through. Do not edit the code unless asked. Produce a findings report.
 
 ## Contents
 
@@ -18,7 +18,7 @@ When user asks to **review, audit, critique, or rate code** (not write it), walk
 
 ## Output format
 
-Use template exactly.
+Use this template exactly. The headings make findings easy to triage.
 
 ```
 # Code review: <file or scope>
@@ -54,28 +54,28 @@ One line per section: the findings it produced, or `clean` (walked it, found not
 
 Severity:
 - **Critical** — security, correctness, data loss, swallowed exceptions, hardcoded "success" returns.
-- **Important** — design defects costing maintenance: SOLID violations, premature abstractions, parameter explosion, generic naming.
+- **Important** — design defects with maintenance cost: SOLID violations, premature abstractions, parameter explosion, generic naming.
 - **Nit** — style, single-letter names outside loops, missing docstring contracts on public APIs.
 
-Every finding needs quoted code or observed behavior plus named fix. Missing either means not a finding: drop it. Report only counted findings. Never estimated quality score, "X% cleaner," or maintainability index: no baseline exists, so number would be invented.
+Every finding carries its quoted code or observed behavior and a named fix — that is what lets the author contest it; with no quote or no fix it is not a finding, so drop it. Report only counted findings: never an estimated quality score, "X% cleaner," or a maintainability index — no baseline exists, so the number would be invented.
 
 ## Pre-flight: is this a refactor or a rewrite?
 
-Classify review before walking sections:
+Before walking the sections, classify the review:
 
-- **Refactor review:** user wants code cleaner, not different. **Observable behavior must not change** — same inputs, outputs, exceptions, side effects. If a suggestion alters behavior, mark it *separate finding* labelled "Behavior change — confirm with author". Do not bundle with refactor recommendations. Refactoring is *"a change made to the internal structure of software... without changing its observable behavior"* (Fowler, *Refactoring*).
-- **Code-review for correctness:** user wants bugs found. Behavior changes in scope. Flag Critical if they affect contract.
+- **Refactor review:** the user wants the code to be cleaner, not different. **Observable behavior must not change** — same inputs, same outputs, same exceptions, same side effects. If you'd suggest a change that alters behavior, mark it as a *separate finding* labelled "Behavior change — confirm with author" and do not bundle it with refactor recommendations. Refactoring is *"a change made to the internal structure of software... without changing its observable behavior"* (Fowler, *Refactoring*).
+- **Code-review for correctness:** the user wants you to find bugs. Behavior changes are in scope. Flag them at Critical severity if they affect the contract.
 
-If unclear which, ask before writing review.
+If you can't tell which one the user wants, ask before writing the review.
 
 ## Walk order
 
 ### Section A — naming and functions
 
-Pull [naming-and-functions.md](naming-and-functions.md) if source citations needed.
+Pull [naming-and-functions.md](naming-and-functions.md) if you need source citations.
 
 1. Scan all identifiers. Flag generic ones: `data`, `result`, `item`, `temp`, `value`, `obj`, `info`, `helper`, `manager`, `utils`, `handle_*`, `process_*`, `do_*` without qualifier.
-2. Per function: lines ≤20? params ≤4? one thing? one level of abstraction? Flag violations.
+2. For each function: lines ≤20? params ≤4? one thing? one level of abstraction? Flag violations.
 3. Flag boolean flag arguments.
 4. Flag functions that both return value *and* mutate observable state ambiguously (CQS violation).
 5. Flag getter-style or predicate-style functions that mutate.
@@ -84,67 +84,67 @@ Pull [naming-and-functions.md](naming-and-functions.md) if source citations need
 
 Pull [comments-and-formatting.md](comments-and-formatting.md) if needed.
 
-1. Flag every comment paraphrasing code below it.
+1. Flag every comment that paraphrases the code below it.
 2. Flag commented-out code blocks.
 3. Flag step-number, "First...", or "Then..." scaffolding comments.
-4. Flag docstrings restating signature with no contract.
-5. Flag style inconsistencies with surrounding file (casing, quoting, import order).
+4. Flag docstrings that restate the signature with no contract.
+5. Flag style inconsistencies with the surrounding file (casing, quoting, import order).
 
 ### Section C — SOLID
 
 Pull [solid.md](solid.md) if needed.
 
-1. (SRP) Class with methods serving two unrelated stakeholder groups?
-2. (OCP) Conditional or switch dispatch on type tag that grew with codebase?
-3. (LSP) Subclass with unimplemented/unsupported-operation failure, strengthened preconditions, or weakened postconditions?
-4. (ISP) Interface where concrete client uses only subset of methods?
-5. (DIP) High-level module importing concrete from low-level module? Abstractions in same package as concrete?
+1. (SRP) Any class with methods serving two unrelated stakeholder groups?
+2. (OCP) Conditional or switch dispatch on a type tag that grew with the codebase?
+3. (LSP) Any subclass with an unimplemented/unsupported-operation failure, strengthened preconditions, or weakened postconditions?
+4. (ISP) Any interface where the concrete client uses only a subset of methods?
+5. (DIP) High-level module importing a concrete from a low-level module? Abstractions living in the same package as the concrete?
 
 ### Section D — DRY, KISS, YAGNI
 
 Pull [dry-kiss-yagni.md](dry-kiss-yagni.md) if needed.
 
-1. (DRY) ≥5-line duplicated blocks. Confirm knowledge duplication before recommending extraction.
-2. (DRY-Metz) Wrong abstractions: per-caller branches and special-case flags piling up in shared function.
-3. (KISS) Function with cyclomatic >10 or nesting >5? (Estimate from branches and loops; exact metrics not needed.)
+1. (DRY) ≥5-line duplicated blocks. Confirm it's knowledge duplication before recommending extraction.
+2. (DRY-Metz) Wrong abstractions: per-caller branches and special-case flags accumulating in a shared function.
+3. (KISS) Any function with cyclomatic >10 or nesting >5? (Estimate from branches and loops; you don't need exact metrics.)
 4. (YAGNI) Optional parameters never called, config flags with one path, abstractions with one implementation, wrappers around libraries that "make them swappable."
 
 ### Section E — AI failure modes (highest leverage)
 
 Pull [ai-failure-modes.md](ai-failure-modes.md) for every check here.
 
-1. Catch-all error handler swallowing without recovery? Critical.
-2. Defensive guards for types/values system already excludes — *inside* trust boundary? (Validating external or untrusted input at boundary is not a defensive guard; do not flag it.)
-3. Premature abstraction — interface or factory with one implementation?
-4. Comment pollution — line-by-line restating, step-number scaffolding, or documentation comments paraphrasing signatures?
-5. Logic duplicating an existing helper in same repo?
-6. Imports or library methods to verify exist in installed version?
-7. Generic naming (cross-check with Section A).
-8. Long function mixing concerns (cross-check with Section A).
-9. 5+ parameter functions without config object (cross-check with Section A).
-10. Inconsistency with surrounding file style (cross-check with Section B).
-11. Dead code, unused imports, unreachable branches, half-implementations?
-12. **Hardcoded "success" returns, mock fixtures, fake values in production code?** Critical.
-13. Code that looks copy-pasted from similar function (off-by-one, wrong null semantic)?
-14. Speculative configurability — flags, env vars, optional params without callers?
-15. **"Simplification" that deleted boundary validation, or cleanup path (`finally`/`close`/`defer`/context-manager) the contract relied on?** Behavior change, not cleanup. Critical.
+1. Any catch-all error handler that swallows without recovery? Critical.
+2. Any defensive guards for types/values the system already excludes — *inside* a trust boundary? (Validation of external or untrusted input at the boundary is not a defensive guard; do not flag it.)
+3. Any premature abstraction — interface or factory with one implementation?
+4. Any comment pollution — line-by-line restating, step-number scaffolding, or documentation comments that paraphrase signatures?
+5. Any duplication of logic that already exists in a helper in the same repo?
+6. Any imports or library methods you should verify exist in the installed version?
+7. Any generic naming (cross-check with Section A).
+8. Any long function mixing concerns (cross-check with Section A).
+9. Any 5+ parameter functions without a config object (cross-check with Section A).
+10. Any inconsistency with surrounding file style (cross-check with Section B).
+11. Any dead code, unused imports, unreachable branches, half-implementations?
+12. **Any hardcoded "success" returns, mock fixtures, fake values in production code?** Critical.
+13. Any code that looks copy-pasted from a similar function (off-by-one, wrong null semantic)?
+14. Any speculative configurability — flags, env vars, optional params without callers?
+15. **Any "simplification" that deleted boundary validation, or a cleanup path (`finally`/`close`/`defer`/context-manager) the contract relied on?** That's a behavior change, not cleanup. Critical.
 
 ## What to do with each finding
 
-Finding must name its fix: code change OR specific structural action. "Nameable" is the bar, not "codeable."
+A finding must name its fix — a code change OR a specific structural action. "Nameable" is the bar, not "codeable." No named fix means it stays vague unease, not a finding — drop it.
 
 - ❌ "This error handling could perhaps be more specific." (no named replacement — drop it)
 - ✅ "`L42 except Exception` swallows the DB error → catch `OperationalError`, let the rest propagate."
 - ✅ "`L88–140 processOrder` mixes validation, pricing, persistence → extract `validate()` and `price()`."
 
-Per finding: quote offending code (file + line), name principle or AI failure mode in `references/`, give fix (code if small, else named structural action), assign severity (Critical / Important / Nit).
+For each finding: quote the offending code (file + line), name the principle or AI failure mode in `references/`, give the fix (code if small, a named structural action if not), and assign severity (Critical / Important / Nit).
 
 ## When the review is contested
 
-If user pushes back on finding, cite source from relevant `references/` file. If user has context-specific reason to override, record inline comment naming **the principle, the reason, and a revisit trigger**. Example: `// clean-code exception: 4-arg ceiling — config DTO, all fields required at construction; revisit when an optional field appears.` (prefix illustrative, not required tag). On later pass, well-formed marker downgrades finding to *Documented exception*. Do not re-flag it. Marker with **no revisit trigger is itself a finding**: exception with no exit is deferred debt. Name principle, not rule number.
+If the user pushes back on a finding, cite the source from the relevant `references/` file. The rules trace to primary sources (Uncle Bob, Fowler, Hunt & Thomas, McCabe, Metz) and published 2024–2026 research on LLM code generation. If the user has a context-specific reason to override, record it as an inline comment that names **the principle, the reason, and a revisit trigger** — e.g. `// clean-code exception: 4-arg ceiling — config DTO, all fields required at construction; revisit when an optional field appears.` (the prefix is illustrative, not a required tag). On a later pass a well-formed marker downgrades the finding to *Documented exception* — don't re-flag it; a marker with **no revisit trigger is itself a finding**, since an exception with no exit is just deferred debt. Name the principle, not a rule number — a number is meaningless to a future reader.
 
 ## What this review does not do
 
-- Run linters or formatters.
-- Execute code or run tests. Add finding instead: *"No tests for the new `charge` path — recommend adding."*
-- Enforce language-specific style (Black, Prettier, PHPCS). Defer to project style tooling unless user explicitly asks.
+- Run linters or formatters. That's tooling.
+- Execute the code or run tests. Add a finding instead: *"No tests for the new `charge` path — recommend adding."*
+- Enforce language-specific style (Black, Prettier, PHPCS). Defer to the project's style tooling unless the user explicitly asks.

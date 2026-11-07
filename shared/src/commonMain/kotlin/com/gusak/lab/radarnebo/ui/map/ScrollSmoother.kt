@@ -32,14 +32,14 @@ class ScrollSmoother(
         start()
     }
 
-    fun zoom(factor: Float, at: Offset) {
+    internal fun zoom(factor: Float, at: Offset) {
         pendingLogZoom += ln(factor)
         anchor = at
         start()
     }
 
     /** Drops any motion still pending, e.g. when the user grabs the map. */
-    fun stop() {
+    internal fun stop() {
         job?.cancel()
         pendingPan = Offset.Zero
         pendingLogZoom = 0f
@@ -53,7 +53,8 @@ class ScrollSmoother(
         val k = 1f - exp(-dtSeconds / tauSeconds)
         var pan = pendingPan * k
         var logZoom = pendingLogZoom * k
-        val settled = (pendingPan - pan).getDistance() < SETTLE_PX && abs(pendingLogZoom - logZoom) < SETTLE_LOG_ZOOM
+        val settled = (pendingPan - pan).getDistance() < SETTLE_PX &&
+            abs(pendingLogZoom - logZoom) < SETTLE_LOG_ZOOM
         if (settled) {
             pan = pendingPan
             logZoom = pendingLogZoom

@@ -27,14 +27,7 @@ private val lightScheme = lightColorScheme(
     surfaceContainerHigh = Color(0xFFFFFFFF),
 )
 
-/** Status colours, readable on both schemes. */
-object StatusColors {
-    val ok = Color(0xFF2EA866)
-    val warning = Color(0xFFD08A1F)
-    val danger = Color(0xFFD9443B)
-}
-
 @Composable
-fun MissionControlTheme(content: @Composable () -> Unit) {
+internal fun MissionControlTheme(content: @Composable () -> Unit) {
     MaterialTheme(colorScheme = if (isSystemInDarkTheme()) darkScheme else lightScheme, content = content)
 }

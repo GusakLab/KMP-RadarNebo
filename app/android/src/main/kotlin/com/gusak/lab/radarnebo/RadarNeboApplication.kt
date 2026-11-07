@@ -10,7 +10,7 @@ import org.koin.android.ext.koin.androidContext
 class RadarNeboApplication : Application() {
     override fun onCreate() {
         super.onCreate()
-        initKoin(androidModule) {
+        initKoin(androidModule()) {
             androidContext(this@RadarNeboApplication)
             if (BuildConfig.DEBUG) modules(trafficLogModule())
         }

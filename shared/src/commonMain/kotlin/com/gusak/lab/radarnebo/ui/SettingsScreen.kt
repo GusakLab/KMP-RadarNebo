@@ -1,200 +1,98 @@
 package com.gusak.lab.radarnebo.ui
 
-import com.gusak.lab.radarnebo.data.MapBackground
-import androidx.compose.material3.Surface
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.TextObfuscationMode
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedSecureTextField
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import com.gusak.lab.radarnebo.data.AppSettings
-import com.gusak.lab.radarnebo.data.ColorPalette
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.gusak.lab.radarnebo.data.AppSettings
+import com.gusak.lab.radarnebo.data.ColorPalette
+import com.gusak.lab.radarnebo.data.MapBackground
 import com.gusak.lab.radarnebo.data.ThemeMode
 import com.gusak.lab.radarnebo.tracking.TargetClassifier
 import com.gusak.lab.radarnebo.tracking.TargetProfile
 import com.gusak.lab.radarnebo.ui.map.TargetIcon
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.text.font.FontWeight
 import kotlin.math.roundToInt
+
+/** A change to the settings, as [SettingsScreen] hands it on: a function from the old settings to the new. */
+private typealias SettingsChange = ((AppSettings) -> AppSettings) -> Unit
 
 /**
  * Settings, grouped into categories: each a card of rows with a title, a description and the control. Scrolls
  * itself; shown in a [GlassDialog] over the map.
  */
 @Composable
-fun SettingsScreen(
+internal fun SettingsScreen(
     settings: AppSettings,
     onChange: ((AppSettings) -> AppSettings) -> Unit,
     modifier: Modifier = Modifier,
     /** Opens the request inspector; null hides the Developer section. */
     onOpenRequests: (() -> Unit)? = null,
 ) {
-    var serverUrl by remember(settings.serverUrl) { mutableStateOf(settings.serverUrl) }
-    var accessKey by remember(settings.accessKey) { mutableStateOf(settings.accessKey) }
-    val serverChanged = serverUrl.trim() != settings.serverUrl.trim() || accessKey.trim() != settings.accessKey.trim()
-
     Column(
         modifier.verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        SettingsSection("Appearance", "◐") {
-            SettingBlock("Theme", "System follows your device's light or dark setting.") {
-                Segmented(
-                    options = ThemeMode.entries,
-                    selected = settings.themeMode,
-                    label = {
-                        when (it) {
-                            ThemeMode.System -> "System"
-                            ThemeMode.Light -> "Light"
-                            ThemeMode.Dark -> "Dark"
-                        }
-                    },
-                    onSelect = { mode -> onChange { it.copy(themeMode = mode) } },
-                )
-            }
-            SectionDivider()
-            SettingBlock("Color scheme", "Colours of the whole app and the map. Every scheme has a light and a dark variant.") {
-                PalettePicker(settings.colorPalette, onSelect = { palette -> onChange { it.copy(colorPalette = palette) } })
-            }
-        }
-
-        SettingsSection("Map", "◎") {
-            SettingBlock("Background", "What the map shows under the oblasts. Map and satellite tiles are downloaded from Esri.") {
-                Segmented(
-                    options = MapBackground.entries,
-                    selected = settings.mapBackground,
-                    label = {
-                        when (it) {
-                            MapBackground.None -> "No map"
-                            MapBackground.Streets -> "Map"
-                            MapBackground.Satellite -> "Satellite"
-                        }
-                    },
-                    onSelect = { background -> onChange { it.copy(mapBackground = background) } },
-                )
-            }
-            SectionDivider()
-            SliderSetting(
-                title = "Drones on the map",
-                description = "The most drones drawn at once; fewer keeps the map readable and fast.",
-                value = settings.maxMapMarkers,
-                range = AppSettings.MAX_MARKERS_RANGE,
-                format = { "$it" },
-                onChange = { v -> onChange { it.copy(maxMapMarkers = v) } },
-            )
-        }
-
-        SettingsSection("Alerts & tracking", "⚠") {
-            SliderSetting(
-                title = "Warning radius",
-                description = "Threats this close to a favorite place raise a warning.",
-                value = settings.proximityRadiusKm,
-                range = AppSettings.RADIUS_RANGE,
-                format = { "$it km" },
-                onChange = { v -> onChange { it.copy(proximityRadiusKm = v) } },
-            )
-            SectionDivider()
-            SwitchSetting(
-                title = "Drones only",
-                description = "Hide missiles, aviation and other threat types.",
-                checked = settings.dronesOnly,
-                onCheckedChange = { v -> onChange { it.copy(dronesOnly = v) } },
-            )
-            SectionDivider()
-            TargetWindowSetting(settings.targetWindowMinutes, onChange = { v -> onChange { it.copy(targetWindowMinutes = v) } })
-            SectionDivider()
-            SliderSetting(
-                title = "Refresh interval",
-                description = "The server refreshes its data every 10–15 s; polling faster only uses more battery.",
-                value = settings.pollSeconds,
-                range = AppSettings.POLL_RANGE,
-                format = { "$it s" },
-                onChange = { v -> onChange { it.copy(pollSeconds = v) } },
-            )
-        }
-
-        SettingsSection("Server", "⇄") {
-            SettingBlock(
-                "Connection",
-                "RadarNebo gets alerts and tracked targets from a RadarNebo server, which keeps the history and does the " +
-                    "tracking. Run your own and enter its address; ask its operator for an access key if it needs one.",
-            ) {
-                OutlinedTextField(
-                    value = serverUrl,
-                    onValueChange = { serverUrl = it },
-                    label = { Text("Server URL") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Spacer(Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = accessKey,
-                    onValueChange = { accessKey = it },
-                    label = { Text("Access key (optional)") },
-                    singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Spacer(Modifier.height(12.dp))
-                Button(
-                    onClick = { onChange { it.copy(serverUrl = serverUrl.trim(), accessKey = accessKey.trim()) } },
-                    enabled = serverChanged,
-                    modifier = Modifier.align(Alignment.End),
-                ) { Text("Save & reconnect") }
-            }
-        }
-
+        AppearanceSection(settings, onChange)
+        MapSection(settings, onChange)
+        AlertsSection(settings, onChange)
+        ServerSection(settings, onChange)
         if (onOpenRequests != null) {
             SettingsSection("Developer", "{ }") {
-                SettingRow("Request inspector", "Every request the app sends to its server and the JSON it gets back.") {
+                SettingRow(
+                    "Request inspector",
+                    "Every request the app sends to its server and the JSON it gets back.",
+                ) {
                     OutlinedButton(onClick = onOpenRequests) { Text("Open") }
                 }
             }
         }
-
         SettingsSection("Target types", "✈") {
             Text(
                 "How each threat is drawn on the map. Red is a red-level alert, amber a yellow-level one.",
@@ -209,6 +107,138 @@ fun SettingsScreen(
     }
 }
 
+@Composable
+private fun AppearanceSection(settings: AppSettings, onChange: SettingsChange) {
+    SettingsSection("Appearance", "◐") {
+        SettingBlock("Theme", "System follows your device's light or dark setting.") {
+            Segmented(
+                options = ThemeMode.entries,
+                selected = settings.themeMode,
+                label = {
+                    when (it) {
+                        ThemeMode.System -> "System"
+                        ThemeMode.Light -> "Light"
+                        ThemeMode.Dark -> "Dark"
+                    }
+                },
+                onSelect = { mode -> onChange { it.copy(themeMode = mode) } },
+            )
+        }
+        SectionDivider()
+        SettingBlock(
+            "Color scheme",
+            "Colours of the whole app and the map. Every scheme has a light and a dark variant.",
+        ) {
+            PalettePicker(settings.colorPalette, onSelect = { palette -> onChange { it.copy(colorPalette = palette) } })
+        }
+    }
+}
+
+@Composable
+private fun MapSection(settings: AppSettings, onChange: SettingsChange) {
+    SettingsSection("Map", "◎") {
+        SettingBlock(
+            "Background",
+            "What the map shows under the oblasts. Map and satellite tiles are downloaded from Esri.",
+        ) {
+            Segmented(
+                options = MapBackground.entries,
+                selected = settings.mapBackground,
+                label = {
+                    when (it) {
+                        MapBackground.None -> "No map"
+                        MapBackground.Streets -> "Map"
+                        MapBackground.Satellite -> "Satellite"
+                    }
+                },
+                onSelect = { background -> onChange { it.copy(mapBackground = background) } },
+            )
+        }
+        SectionDivider()
+        SliderSetting(
+            title = "Drones on the map",
+            description = "The most drones drawn at once; fewer keeps the map readable and fast.",
+            value = settings.maxMapMarkers,
+            range = AppSettings.MAX_MARKERS_RANGE,
+            format = { "$it" },
+            onChange = { v -> onChange { it.copy(maxMapMarkers = v) } },
+        )
+    }
+}
+
+@Composable
+private fun AlertsSection(settings: AppSettings, onChange: SettingsChange) {
+    SettingsSection("Alerts & tracking", "⚠") {
+        SliderSetting(
+            title = "Warning radius",
+            description = "Threats this close to a favorite place raise a warning.",
+            value = settings.proximityRadiusKm,
+            range = AppSettings.RADIUS_RANGE,
+            format = { "$it km" },
+            onChange = { v -> onChange { it.copy(proximityRadiusKm = v) } },
+        )
+        SectionDivider()
+        SwitchSetting(
+            title = "Drones only",
+            description = "Hide missiles, aviation and other threat types.",
+            checked = settings.dronesOnly,
+            onCheckedChange = { v -> onChange { it.copy(dronesOnly = v) } },
+        )
+        SectionDivider()
+        TargetWindowSetting(
+            settings.targetWindowMinutes,
+            onChange = { v -> onChange { it.copy(targetWindowMinutes = v) } },
+        )
+        SectionDivider()
+        SliderSetting(
+            title = "Refresh interval",
+            description = "The server refreshes its data every 10–15 s; polling faster only uses more battery.",
+            value = settings.pollSeconds,
+            range = AppSettings.POLL_RANGE,
+            format = { "$it s" },
+            onChange = { v -> onChange { it.copy(pollSeconds = v) } },
+        )
+    }
+}
+
+@Composable
+private fun ServerSection(settings: AppSettings, onChange: SettingsChange) {
+    var serverUrl by remember(settings.serverUrl) { mutableStateOf(settings.serverUrl) }
+    val accessKey = remember(settings.accessKey) { TextFieldState(settings.accessKey) }
+    val serverChanged = serverUrl.trim() != settings.serverUrl.trim() ||
+        accessKey.text.toString().trim() != settings.accessKey.trim()
+    SettingsSection("Server", "⇄") {
+        SettingBlock(
+            "Connection",
+            "RadarNebo gets alerts and tracked targets from a RadarNebo server, which keeps the history and does the " +
+                "tracking. Run your own and enter its address; ask its operator for an access key if it needs one.",
+        ) {
+            OutlinedTextField(
+                value = serverUrl,
+                onValueChange = { serverUrl = it },
+                label = { Text("Server URL") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(8.dp))
+            OutlinedSecureTextField(
+                state = accessKey,
+                label = { Text("Access key (optional)") },
+                textObfuscationMode = TextObfuscationMode.Hidden,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(12.dp))
+            Button(
+                onClick = {
+                    onChange { it.copy(serverUrl = serverUrl.trim(), accessKey = accessKey.text.toString().trim()) }
+                },
+                enabled = serverChanged,
+                modifier = Modifier.align(Alignment.End),
+            ) { Text("Save & reconnect") }
+        }
+    }
+}
+
 /** A category: a glyph and title over a translucent card holding its settings. */
 @Composable
 private fun SettingsSection(title: String, glyph: String, content: @Composable ColumnScope.() -> Unit) {
@@ -216,7 +246,12 @@ private fun SettingsSection(title: String, glyph: String, content: @Composable C
         Row(Modifier.padding(start = 4.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(glyph, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.titleSmall)
             Spacer(Modifier.width(8.dp))
-            Text(title.uppercase(), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, letterSpacing = 1.sp)
+            Text(
+                title.uppercase(),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                letterSpacing = 1.sp,
+            )
         }
         Column(
             Modifier
@@ -231,7 +266,11 @@ private fun SettingsSection(title: String, glyph: String, content: @Composable C
 }
 
 @Composable
-private fun SectionDivider() = HorizontalDivider(Modifier.padding(vertical = 14.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+private fun SectionDivider() =
+    HorizontalDivider(
+        Modifier.padding(vertical = 14.dp),
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+    )
 
 @Composable
 private fun SettingTitle(title: String, description: String?, modifier: Modifier = Modifier) {
@@ -239,14 +278,23 @@ private fun SettingTitle(title: String, description: String?, modifier: Modifier
         Text(title, style = MaterialTheme.typography.titleSmall)
         if (description != null) {
             Spacer(Modifier.height(2.dp))
-            Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
 
 /** Title and description with the control beside them. */
 @Composable
-private fun SettingRow(title: String, description: String?, modifier: Modifier = Modifier, control: @Composable () -> Unit) {
+private fun SettingRow(
+    title: String,
+    description: String?,
+    modifier: Modifier = Modifier,
+    control: @Composable () -> Unit,
+) {
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         SettingTitle(title, description, Modifier.weight(1f))
         Spacer(Modifier.width(16.dp))
@@ -277,12 +325,20 @@ private fun SwitchSetting(title: String, description: String, checked: Boolean, 
 }
 
 @Composable
-private fun SliderSetting(title: String, description: String, value: Int, range: IntRange, format: (Int) -> String, onChange: (Int) -> Unit) {
-    var draft by remember(value) { mutableFloatStateOf(value.toFloat()) }
+private fun SliderSetting(
+    title: String,
+    description: String,
+    value: Int,
+    range: IntRange,
+    format: (Int) -> String,
+    onChange: (Int) -> Unit,
+) {
+    val valueRange = range.first.toFloat()..range.last.toFloat()
+    val slider = remember(value, valueRange) { SliderState(value.toFloat(), steps = 0, valueRange) }
     Column(Modifier.fillMaxWidth()) {
         SettingRow(title, description) {
             Text(
-                format(draft.roundToInt()),
+                format(slider.value.roundToInt()),
                 Modifier
                     .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(8.dp))
                     .padding(horizontal = 10.dp, vertical = 4.dp),
@@ -291,15 +347,17 @@ private fun SliderSetting(title: String, description: String, value: Int, range:
             )
         }
         Slider(
-            value = draft,
-            onValueChange = { draft = it },
-            onValueChangeFinished = { onChange(draft.roundToInt()) },
-            valueRange = range.first.toFloat()..range.last.toFloat(),
+            slider,
+            onValueChange = { slider.value = it },
+            onValueChangeFinished = { onChange(slider.value.roundToInt()) },
         )
     }
 }
 
-/** Stops of the targets timeline slider: fine steps for the last hour, coarser ones up to [AppSettings.TARGET_WINDOW_RANGE]. */
+/**
+ * Stops of the targets timeline slider: fine steps for the last hour, coarser ones up to
+ * [AppSettings.TARGET_WINDOW_RANGE].
+ */
 private val TARGET_WINDOW_STOPS = listOf(10, 15, 20, 30, 45, 60, 90, 120, 180, 240, 360, 480, 720, 960, 1200, 1500)
 
 /** The targets timeline on a stepped slider, so ten minutes and a day are both easy to pick. */
@@ -330,7 +388,7 @@ private fun <T> Segmented(options: List<T>, selected: T, label: (T) -> String, o
 }
 
 /** Display name of a colour scheme. */
-fun ColorPalette.label() = when (this) {
+internal fun ColorPalette.label(): String = when (this) {
     ColorPalette.Radar -> "Radar"
     ColorPalette.Nord -> "Nord"
     ColorPalette.Dracula -> "Dracula"
@@ -352,29 +410,41 @@ private fun PalettePicker(selected: ColorPalette, onSelect: (ColorPalette) -> Un
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         ColorPalette.entries.forEach { palette ->
-            val (accent, background) = paletteSwatch(palette, dark)
-            val isSelected = palette == selected
-            val shape = RoundedCornerShape(14.dp)
-            Row(
-                Modifier
-                    .clip(shape)
-                    .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
-                    .border(if (isSelected) 2.dp else 1.dp, if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant, shape)
-                    .selectable(isSelected, role = Role.RadioButton, onClick = { onSelect(palette) })
-                    .padding(start = 8.dp, top = 8.dp, end = 12.dp, bottom = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(Modifier.size(24.dp).clip(CircleShape).background(background).border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)) {
-                    Box(Modifier.size(12.dp).align(Alignment.Center).clip(CircleShape).background(accent))
-                }
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    palette.label(),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
-                )
-            }
+            PaletteTile(
+                palette,
+                paletteSwatch(palette, dark),
+                isSelected = palette == selected,
+                onClick = { onSelect(palette) },
+            )
         }
+    }
+}
+
+@Composable
+private fun PaletteTile(palette: ColorPalette, swatch: PaletteSwatch, isSelected: Boolean, onClick: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(14.dp)
+    Row(
+        Modifier
+            .clip(shape)
+            .background(if (isSelected) colors.primaryContainer else colors.surface.copy(alpha = 0.5f))
+            .border(if (isSelected) 2.dp else 1.dp, if (isSelected) colors.primary else colors.outlineVariant, shape)
+            .selectable(isSelected, role = Role.RadioButton, onClick = onClick)
+            .padding(start = 8.dp, top = 8.dp, end = 12.dp, bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier.size(24.dp).clip(CircleShape).background(swatch.background)
+                .border(1.dp, colors.outlineVariant, CircleShape),
+        ) {
+            Box(Modifier.size(12.dp).align(Alignment.Center).clip(CircleShape).background(swatch.accent))
+        }
+        Spacer(Modifier.width(8.dp))
+        Text(
+            palette.label(),
+            style = MaterialTheme.typography.labelLarge,
+            color = if (isSelected) colors.onPrimaryContainer else colors.onSurface,
+        )
     }
 }
 
@@ -390,10 +460,15 @@ private fun TargetTypeRow(profile: TargetProfile) {
         Column(Modifier.weight(1f)) {
             Text(profile.kind.label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
             Text(
-                listOfNotNull(profile.model, profile.cruiseSpeedKmh?.let { "${it.first}–${it.last} km/h" }).joinToString(" · "),
+                listOfNotNull(profile.model, profile.cruiseSpeedKmh?.let { "${it.first}–${it.last} km/h" })
+                    .joinToString(" · "),
                 style = MaterialTheme.typography.bodySmall,
             )
-            Text(profile.role, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                profile.role,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

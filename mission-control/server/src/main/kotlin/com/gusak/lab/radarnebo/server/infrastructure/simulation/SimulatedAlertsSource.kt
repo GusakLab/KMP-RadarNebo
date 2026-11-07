@@ -16,18 +16,21 @@ import kotlin.time.Duration.Companion.seconds
  * Unlike alerts.in.ua it has air surveillance: it reports a sighting of every target, so the server tracks
  * targets from their real flight paths rather than reconstructing them from alerts.
  */
-class SimulatedAlertsSource(
+internal class SimulatedAlertsSource(
     private val config: SimulationConfig = SimulationConfig(),
     private val clock: () -> Long = System::currentTimeMillis,
 ) : AlertsDataSource {
     // Ids only grow, also across restarts: they start from the time the replayed history begins.
-    private val simulator = AirSituationSimulator(config, firstAlertId = (clock() - config.warmUp.inWholeMilliseconds) / 100)
+    private val simulator = AirSituationSimulator(
+        config,
+        firstAlertId = (clock() - config.warmUp.inWholeMilliseconds) / 100,
+    )
 
-    override val kind = DataSourceKind.Simulation
-    override val description = "SIMULATION: combined drone and missile strikes every " +
+    override val kind: DataSourceKind = DataSourceKind.Simulation
+    override val description: String = "SIMULATION: combined drone and missile strikes every " +
         "${config.strikePeriod}, front-line guided bombs, aviation and reconnaissance drones"
     override val pollInterval: Duration get() = config.tick
-    override val providesObservations = true
+    override val providesObservations: Boolean = true
     override val locations: Collection<AlertLocation> get() = simulator.locations
 
     override suspend fun fetch(lastModified: String?): FetchResult = FetchResult.Fresh(simulator.reportAt(clock()))

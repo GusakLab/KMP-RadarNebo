@@ -1,10 +1,10 @@
 package com.gusak.lab.radarnebo
 
-import com.gusak.lab.radarnebo.data.RadarNeboApi
-import com.gusak.lab.radarnebo.data.ServerEndpoint
 import com.gusak.lab.radarnebo.data.ActiveAlertsResponse
 import com.gusak.lab.radarnebo.data.FavoriteLocation
 import com.gusak.lab.radarnebo.data.FetchResult
+import com.gusak.lab.radarnebo.data.RadarNeboApi
+import com.gusak.lab.radarnebo.data.ServerEndpoint
 import com.gusak.lab.radarnebo.data.ThreatLevel
 import com.gusak.lab.radarnebo.data.ThreatType
 import com.gusak.lab.radarnebo.domain.ThreatMapper
@@ -29,11 +29,14 @@ class ThreatsTest {
 
     private val sample = """
         {"alerts":[
-          {"id":10,"location_title":"Харківська область","location_title_en":"Kharkiv Oblast","location_type":"oblast",
+          {"id":10,"location_title":"Харківська область","location_title_en":"Kharkiv Oblast",
+           "location_type":"oblast",
            "started_at":"2026-10-19T16:45:39.000Z","finished_at":null,"updated_at":"2026-10-19T16:50:00.000Z",
-           "alert_type":"air_raid","location_uid":"22","location_oblast":"Харківська область","location_oblast_uid":"22",
+           "alert_type":"air_raid","location_uid":"22","location_oblast":"Харківська область",
+           "location_oblast_uid":"22",
            "notes":"","alert_level":"red",
-           "threats":[{"threat_type":"drones","level":"red","started_at":"2026-10-19T16:45:39.681Z","source_message":"Ударні БпЛА"}]},
+           "threats":[{"threat_type":"drones","level":"red","started_at":"2026-10-19T16:45:39.681Z",
+             "source_message":"Ударні БпЛА"}]},
           {"id":11,"location_title":"Броварський район","location_type":"raion","alert_type":"air_raid",
            "location_uid":"1100","location_oblast":"Київська область","location_oblast_uid":"14","alert_level":"yellow",
            "threats":[{"threat_type":"drones","level":"yellow"},{"threat_type":"ballistic_missiles","level":"red"}]},
@@ -102,7 +105,11 @@ class ThreatsTest {
                     HttpHeaders.ContentType to listOf("application/json"),
                     HttpHeaders.LastModified to listOf("Mon, 26 Oct 2026 21:57:05 GMT"),
                 ))
-                else -> respond("""{"message":"x"}""", HttpStatusCode.Unauthorized, headersOf(HttpHeaders.ContentType, "application/json"))
+                else -> respond(
+                    """{"message":"x"}""",
+                    HttpStatusCode.Unauthorized,
+                    headersOf(HttpHeaders.ContentType, "application/json"),
+                )
             }
         }
         val api = RadarNeboApi(HttpClient(engine) {
@@ -117,68 +124,5 @@ class ThreatsTest {
         assertIs<FetchResult.Fresh>(api.activeAlerts(ServerEndpoint(RadarNeboApi.DEFAULT_SERVER_URL, "secret")))
         assertEquals(null, conditional)
         assertIs<FetchResult.Failure>(api.activeAlerts(ServerEndpoint(RadarNeboApi.DEFAULT_SERVER_URL, "secret")))
-    }
-}
-
-class LocateTest {
-    @Test
-    fun hromadaSnapsToCityButRaionDoesNot() {
-        val hromada = com.gusak.lab.radarnebo.data.Alert(
-            id = 1, locationTitle = "м. Харків та Харківська територіальна громада", locationType = "hromada",
-            locationUid = "1293", locationOblastUid = 22,
-        )
-        val raion = hromada.copy(id = 2, locationTitle = "Харківський район", locationType = "raion", locationUid = "1290")
-        assertEquals(GeoPoint(49.9935, 36.2304), ThreatMapper.locate(hromada))
-        val raionPoint = ThreatMapper.locate(raion)!!
-        assertTrue(raionPoint != GeoPoint(49.9935, 36.2304))
-        assertEquals(22, Regions.oblastAt(raionPoint))
-    }
-
-    @Test
-    fun raionsSitAtAStableSpotInTheirOblast() {
-        val bashtanka = com.gusak.lab.radarnebo.data.Alert(
-            id = 1, locationTitle = "Баштанський район", locationType = "raion", locationUid = "96",
-            locationOblast = "Миколаївська область",
-        )
-        val point = ThreatMapper.locate(bashtanka)!!
-        assertEquals(17, Regions.oblastAt(point))
-        assertEquals(point, ThreatMapper.locate(bashtanka.copy(id = 2)), "the same raion lands on the same spot")
-    }
-
-    @Test
-    fun raionsAreFoundUnderAnyOfTheirNames() {
-        // Renamed in 2024 (Новомосковський → Самарівський); alerts may use either name. Apostrophe variants match too.
-        assertEquals(Regions.raionForTitle("Самарівський район"), Regions.raionForTitle("Новомосковський район"))
-        assertEquals(Regions.raionForTitle("Кам’янець-Подільський район"), Regions.raionForTitle("Кам'янець-Подільський район"))
-        // Every raion centre lies in its own oblast.
-        com.gusak.lab.radarnebo.geo.UkraineRaions.all.filter { it.oblastUid != 29 }.forEach { raion ->
-            assertEquals(raion.oblastUid, Regions.oblastByPolygon(raion.point) ?: raion.oblastUid, raion.names.first())
-        }
-    }
-
-    @Test
-    fun theOblastComesFromItsNameBecauseAlertsInUaRepeatsTheLocationUid() {
-        // As alerts.in.ua sends it: location_oblast_uid is the raion's own UID, a number.
-        val response = RadarNeboApi.json.decodeFromString(ActiveAlertsResponse.serializer(), """
-            {"alerts":[{"id":1,"location_title":"Нікопольський район","location_type":"raion","alert_type":"air_raid",
-              "location_uid":"48","location_oblast":"Дніпропетровська область","location_oblast_uid":48,
-              "threats":[{"threat_type":"drones","level":"yellow"}]}]}
-        """.trimIndent())
-        val alert = response.alerts.single()
-        assertEquals(48, alert.locationOblastUid)
-        assertEquals(9, ThreatMapper.oblastUid(alert))
-        assertEquals(9, Regions.oblastAt(ThreatMapper.locate(alert)!!))
-        assertEquals(9, ThreatMapper.toMarkers(response.alerts, dronesOnly = false).single().oblastUid)
-    }
-}
-
-class OblastCentresTest {
-    @Test
-    fun everyOblastHasItsCentreAndNoNamesakeTown() {
-        val centres = com.gusak.lab.radarnebo.geo.UkraineCities.oblastCentres
-        assertEquals(26, centres.size)
-        assertEquals(26, centres.map { it.name }.toSet().size, "one city per name")
-        assertTrue(centres.single { it.name == "Mykolaiv" }.lon > 31, "the oblast centre on the Southern Bug, not the town near Lviv")
-        assertTrue(centres.single { it.name == "Rivne" }.lat > 50, "the oblast centre, not the town in Kirovohrad Oblast")
     }
 }

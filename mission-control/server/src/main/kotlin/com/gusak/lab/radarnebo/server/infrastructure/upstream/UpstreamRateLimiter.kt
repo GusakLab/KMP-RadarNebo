@@ -31,7 +31,7 @@ class UpstreamRateLimiter(
     @Volatile
     private var recent: List<Long> = emptyList()
 
-    suspend fun acquire() = mutex.withLock {
+    internal suspend fun acquire(): Unit = mutex.withLock {
         while (true) {
             val now = clock()
             // Otherwise a step back would make the next wait as long as the step.
@@ -49,7 +49,7 @@ class UpstreamRateLimiter(
         }
     }
 
-    fun requestsInWindow(): Int {
+    internal fun requestsInWindow(): Int {
         val now = clock()
         return recent.count { now - it < windowMs }
     }

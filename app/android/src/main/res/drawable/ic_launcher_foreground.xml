@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The app's desktop icon (tools/make-icons.swift, appIcon): a radar sweep with targets, inside the adaptive-icon safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:pathData="M54,54m-10.08,0a10.08,10.08 0,1 1,20.16 0a10.08,10.08 0,1 1,-20.16 0" android:strokeColor="#614FD1E8" android:strokeWidth="0.84" />
+    <path android:pathData="M54,54m-19.04,0a19.04,19.04 0,1 1,38.08 0a19.04,19.04 0,1 1,-38.08 0" android:strokeColor="#614FD1E8" android:strokeWidth="0.84" />
+    <path android:pathData="M54,54m-28,0a28,28 0,1 1,56 0a28,28 0,1 1,-56 0" android:strokeColor="#614FD1E8" android:strokeWidth="0.84" />
+    <path android:pathData="M26,54h56M54,26v56" android:strokeColor="#334FD1E8" android:strokeWidth="0.56" />
+    <!-- The sweep fades clockwise from its leading edge at 40 degrees to 110 degrees, counter-clockwise from east. -->
+    <path android:pathData="M54,54L75.45,36A28,28 0,0 0,44.42 27.69Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:centerX="54"
+                android:centerY="54"
+                android:type="sweep">
+                <item android:color="#004FD1E8" android:offset="0.0" />
+                <item android:color="#004FD1E8" android:offset="0.694" />
+                <item android:color="#1B4FD1E8" android:offset="0.792" />
+                <item android:color="#6B4FD1E8" android:offset="0.889" />
+                <item android:color="#004FD1E8" android:offset="0.89" />
+                <item android:color="#004FD1E8" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M54,54L75.45,36" android:strokeColor="#FF4FD1E8" android:strokeWidth="0.98" android:strokeLineCap="round" />
+    <path android:fillColor="#FF4FD1E8" android:pathData="M54,54m-1.4,0a1.4,1.4 0,1 1,2.8 0a1.4,1.4 0,1 1,-2.8 0" />
+    <path android:fillColor="#38FF595E" android:pathData="M64.86,43.14m-4.89,0a4.89,4.89 0,1 1,9.78 0a4.89,4.89 0,1 1,-9.78 0" />
+    <path android:fillColor="#FFFF595E" android:pathData="M64.86,43.14m-2.04,0a2.04,2.04 0,1 1,4.08 0a2.04,2.04 0,1 1,-4.08 0" />
+    <path android:fillColor="#38F5A624" android:pathData="M42.12,46.53m-3.87,0a3.87,3.87 0,1 1,7.74 0a3.87,3.87 0,1 1,-7.74 0" />
+    <path android:fillColor="#FFF5A624" android:pathData="M42.12,46.53m-1.61,0a1.61,1.61 0,1 1,3.22 0a1.61,1.61 0,1 1,-3.22 0" />
+    <path android:fillColor="#38F5A624" android:pathData="M58.07,69.44m-3.05,0a3.05,3.05 0,1 1,6.1 0a3.05,3.05 0,1 1,-6.1 0" />
+    <path android:fillColor="#FFF5A624" android:pathData="M58.07,69.44m-1.27,0a1.27,1.27 0,1 1,2.54 0a1.27,1.27 0,1 1,-2.54 0" />
+</vector>

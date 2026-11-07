@@ -7,9 +7,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.gusak.lab.radarnebo.data.SettingsRepository
 import com.gusak.lab.radarnebo.debug.TrafficLog
 import com.gusak.lab.radarnebo.ui.RadarTheme
@@ -25,8 +25,8 @@ class RequestInspectorActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContent {
-            val exchanges by traffic.exchanges.collectAsState()
-            val appSettings by settings.settings.collectAsState()
+            val exchanges by traffic.exchanges.collectAsStateWithLifecycle()
+            val appSettings by settings.settings.collectAsStateWithLifecycle()
             RadarTheme(appSettings.themeMode, appSettings.colorPalette) {
                 RequestInspectorScreen(
                     exchanges,

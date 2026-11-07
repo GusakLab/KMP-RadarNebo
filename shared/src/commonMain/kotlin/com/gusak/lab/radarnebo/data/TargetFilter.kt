@@ -12,15 +12,15 @@ data class TargetFilter(
     /** Hides targets whose type is only inferred, not named in the alert. */
     val hideProbable: Boolean = false,
 ) {
-    val isActive get() = hiddenKinds.isNotEmpty() || hideProbable
+    internal val isActive: Boolean get() = hiddenKinds.isNotEmpty() || hideProbable
 
-    fun allows(profile: TargetProfile) =
+    internal fun allows(profile: TargetProfile): Boolean =
         profile.kind !in hiddenKinds && !(hideProbable && profile.source == TargetProfile.Source.Probable)
 
     /** [now] is server time; the speed at that moment can change a drone's probable type. */
-    fun allows(track: DroneTrack, now: Long) = !isActive || allows(profileAt(track, now))
+    internal fun allows(track: DroneTrack, now: Long): Boolean = !isActive || allows(profileAt(track, now))
 
-    companion object {
+    internal companion object {
         fun profileAt(track: DroneTrack, now: Long): TargetProfile =
             TargetClassifier.classify(track, TrackInterpolator.positionAt(track, now)?.speedKmh)
     }

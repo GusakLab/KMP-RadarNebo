@@ -8,7 +8,7 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performTouchInput
-import androidx.compose.ui.test.runDesktopComposeUiTest
+import androidx.compose.ui.test.v2.runDesktopComposeUiTest
 import com.gusak.lab.radarnebo.data.MapMode
 import com.gusak.lab.radarnebo.data.ThemeMode
 import com.gusak.lab.radarnebo.ui.preview.PreviewData

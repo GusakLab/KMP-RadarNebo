@@ -15,26 +15,35 @@ import com.gusak.lab.radarnebo.tracking.TrackSample
 import com.gusak.lab.radarnebo.ui.UiState
 import com.gusak.lab.radarnebo.ui.map.MapCamera
 import com.gusak.lab.radarnebo.ui.map.MapProjection
-import kotlin.time.Clock
 import kotlin.time.Instant
 
 /**
- * Sample data for Compose previews and README screenshots, hand-placed relative to the current time so a
- * preview always shows what its name says. The app itself has no simulation: that runs on the server.
+ * Sample data for Compose previews and README screenshots, hand-placed relative to [NOW], the fixed moment every
+ * preview shows (pass [nowMs] as their clock), so a preview always shows what its name says. The app itself has no
+ * simulation: that runs on the server.
  *
  * [scenario] shows every target state and threat class at once; [state] is the same picture as the app
  * shows it by default (drones only, the default favorites).
  */
 internal object PreviewData {
-    val favorites = listOf(
+    /** The moment previews show; a fixed instant keeps them the same from run to run. */
+    val NOW: Instant = Instant.parse("2026-03-14T15:00:00Z")
+
+    /** [NOW] in epoch milliseconds: the clock previews hand to the screens. */
+    fun nowMs(): Long = NOW.toEpochMilliseconds()
+
+    val favorites: List<FavoriteLocation> = listOf(
         FavoriteLocation("1", "Home", 50.4501, 30.5234),
         FavoriteLocation("2", "Kharkiv", 49.9935, 36.2304),
         FavoriteLocation("3", "Parents", 49.5883, 34.5514),
     )
 
     /** The scenario as the app shows it by default; with [dronesOnly] off it holds every threat class. */
-    fun state(theme: ThemeMode = ThemeMode.Dark, mapMode: MapMode = MapMode.Static, dronesOnly: Boolean = true): UiState =
-        scenario(theme, mapMode, dronesOnly, favorites = favorites).copy(lastUpdated = Clock.System.now())
+    fun state(
+        theme: ThemeMode = ThemeMode.Dark,
+        mapMode: MapMode = MapMode.Static,
+        dronesOnly: Boolean = true,
+    ): UiState = scenario(theme, mapMode, dronesOnly, favorites = favorites).copy(lastUpdated = NOW)
 
     /** The most interesting track to preview: active, with the longest history. */
     fun busiestTrackId(state: UiState): String? =
@@ -71,7 +80,7 @@ internal object PreviewData {
 
     /**
      * Every target state and threat class at once, around Kyiv, Chernihiv and Poltava, with favorites
-     * close enough to raise warnings. Times are relative to now, so the map treats it as live.
+     * close enough to raise warnings. Times are relative to [NOW], so the map treats it as live.
      */
     fun scenario(
         theme: ThemeMode = ThemeMode.Dark,
@@ -80,33 +89,19 @@ internal object PreviewData {
         favorites: List<FavoriteLocation> = scenarioFavorites,
         radiusKm: Int = 50,
     ): UiState {
-        val now = Clock.System.now().toEpochMilliseconds()
-        val tracks = listOf(
-            track(Targets.SHAHED, now, ThreatType.Drones, Messages.SHAHED, 41 to "Konotop", 31 to "Bakhmach", 7 to "Nizhyn"),
-            track(Targets.DECOY, now, ThreatType.Drones, Messages.GERBERA, 62 to "Lubny", 18 to "Pereiaslav", 5 to "Yahotyn"),
-            track(Targets.JET, now, ThreatType.Drones, Messages.JET_SHAHED, 20 to "Myrhorod", 6 to "Zolotonosha"),
-            track(Targets.RECON, now, ThreatType.Drones, Messages.RECON, 5 to "Koriukivka", level = ThreatLevel.Yellow),
-            track(Targets.CLEARED, now, ThreatType.Drones, Messages.SHAHED, 35 to "Fastiv", 24 to "Vasylkiv", active = false, clearedMinutesAgo = 3),
-            track(Targets.MISSILE, now, ThreatType.CruiseMissiles, Messages.KH101, 7 to "Berdychiv", 4 to "Zhytomyr"),
-        )
+        val now = nowMs()
+        val tracks = scenarioTracks(now)
         val trackMarkers = tracks.filter { it.active }.map { trackMarker(it, now) }
-        val areaMarkers = listOf(
-            area("ballistic", ThreatType.BallisticMissiles, Regions.KYIV_CITY_UID, "Швидкісна ціль — ракета «Кинджал» на Київ", now, minutesAgo = 2, city = true),
-            area("air-defense", ThreatType.AirDefense, 14, "Працює ППО", now, at = city("Boryspil"), location = "hromada"),
-            area("iskander", ThreatType.BallisticMissiles, 22, "Загроза балістичних ракет «Іскандер-М»", now),
-            area("kab", ThreatType.GuidedBombs, 22, "Пуски КАБ (УМПК) з Су-34", now, at = city("Kupiansk"), location = "hromada"),
-            area("tactical", ThreatType.TacticalAviation, 12, "Активність тактичної авіації (Су-34/Су-35)", now),
-            area("strategic", ThreatType.StrategicAviation, 17, "Активність стратегічної авіації (Ту-95МС)", now),
-            area("mig31k", ThreatType.Mig31k, 10, "Зліт МіГ-31К — загроза ракет «Кинджал»", now),
-            area("missiles", ThreatType.UnspecifiedMissiles, 19, "Ракетна небезпека", now, level = ThreatLevel.Yellow),
-            area("unknown", ThreatType.Unknown, 26, "Загроза", now, level = ThreatLevel.Yellow),
-            area("drones-wide", ThreatType.Drones, 25, "Групи ударних БпЛА", now, level = ThreatLevel.Yellow),
-        )
-        val threats = (trackMarkers + areaMarkers)
+        val threats = (trackMarkers + areaMarkers(now))
             .filter { !dronesOnly || it.type == ThreatType.Drones }
             .sortedWith(compareBy<ThreatMarker> { it.level }.thenByDescending { it.startedAt })
         return UiState(
-            settings = AppSettings(themeMode = theme, mapMode = mapMode, dronesOnly = dronesOnly, proximityRadiusKm = radiusKm),
+            settings = AppSettings(
+                themeMode = theme,
+                mapMode = mapMode,
+                dronesOnly = dronesOnly,
+                proximityRadiusKm = radiusKm,
+            ),
             favorites = favorites,
             threats = threats,
             mapThreats = threats,
@@ -118,36 +113,102 @@ internal object PreviewData {
         )
     }
 
-    val scenarioFavorites = listOf(
+    private fun scenarioTracks(now: Long): List<DroneTrack> = listOf(
+        track(
+            Targets.SHAHED, now, ThreatType.Drones, Messages.SHAHED,
+            Report(41, "Konotop"), Report(31, "Bakhmach"), Report(7, "Nizhyn"),
+        ),
+        track(
+            Targets.DECOY, now, ThreatType.Drones, Messages.GERBERA,
+            Report(62, "Lubny"), Report(18, "Pereiaslav"), Report(5, "Yahotyn"),
+        ),
+        track(
+            Targets.JET,
+            now,
+            ThreatType.Drones,
+            Messages.JET_SHAHED,
+            Report(20, "Myrhorod"),
+            Report(6, "Zolotonosha"),
+        ),
+        track(
+            Targets.RECON,
+            now,
+            ThreatType.Drones,
+            Messages.RECON,
+            Report(5, "Koriukivka"),
+            level = ThreatLevel.Yellow,
+        ),
+        track(
+            Targets.CLEARED, now, ThreatType.Drones, Messages.SHAHED, Report(35, "Fastiv"), Report(24, "Vasylkiv"),
+            active = false,
+            clearedMinutesAgo = 3,
+        ),
+        track(
+            Targets.MISSILE, now, ThreatType.CruiseMissiles, Messages.KH101,
+            Report(7, "Berdychiv"), Report(4, "Zhytomyr"),
+        ),
+    )
+
+    /** A target reported over [city] (a name in [Regions.cities]) [minutesAgo] minutes before now. */
+    private class Report(val minutesAgo: Int, val city: String)
+
+    private fun areaMarkers(now: Long): List<ThreatMarker> = listOf(
+        area(
+            "ballistic", ThreatType.BallisticMissiles, Regions.KYIV_CITY_UID,
+            "Швидкісна ціль — ракета «Кинджал» на Київ", now,
+            minutesAgo = 2,
+            city = true,
+        ),
+        area("air-defense", ThreatType.AirDefense, 14, "Працює ППО", now, at = city("Boryspil"), location = "hromada"),
+        area("iskander", ThreatType.BallisticMissiles, 22, "Загроза балістичних ракет «Іскандер-М»", now),
+        area(
+            "kab", ThreatType.GuidedBombs, 22, "Пуски КАБ (УМПК) з Су-34", now,
+            at = city("Kupiansk"),
+            location = "hromada",
+        ),
+        area("tactical", ThreatType.TacticalAviation, 12, "Активність тактичної авіації (Су-34/Су-35)", now),
+        area("strategic", ThreatType.StrategicAviation, 17, "Активність стратегічної авіації (Ту-95МС)", now),
+        area("mig31k", ThreatType.Mig31k, 10, "Зліт МіГ-31К — загроза ракет «Кинджал»", now),
+        area("missiles", ThreatType.UnspecifiedMissiles, 19, "Ракетна небезпека", now, level = ThreatLevel.Yellow),
+        area("unknown", ThreatType.Unknown, 26, "Загроза", now, level = ThreatLevel.Yellow),
+        area("drones-wide", ThreatType.Drones, 25, "Групи ударних БпЛА", now, level = ThreatLevel.Yellow),
+    )
+
+    val scenarioFavorites: List<FavoriteLocation> = listOf(
         FavoriteLocation("home", "Home", 50.4501, 30.5234),
         FavoriteLocation("dacha", "Dacha", 50.93, 31.62),
         FavoriteLocation("kharkiv", "Kharkiv", 49.9935, 36.2304),
     )
 
     /** A state with nothing happening: no alerts, no tracks. */
-    fun quiet(theme: ThemeMode = ThemeMode.Dark, mapMode: MapMode = MapMode.Static, favorites: List<FavoriteLocation> = scenarioFavorites) =
-        UiState(
-            settings = AppSettings(themeMode = theme, mapMode = mapMode),
-            favorites = favorites,
-            lastUpdated = Clock.System.now(),
-        )
+    fun quiet(
+        theme: ThemeMode = ThemeMode.Dark,
+        mapMode: MapMode = MapMode.Static,
+        favorites: List<FavoriteLocation> = scenarioFavorites,
+    ): UiState = UiState(
+        settings = AppSettings(themeMode = theme, mapMode = mapMode),
+        favorites = favorites,
+        lastUpdated = NOW,
+    )
 
     /** Camera looking at [center] at [zoom], e.g. close enough for city names (zoom 2.5 and more). */
-    fun camera(center: GeoPoint, zoom: Float) = MapCamera(MapProjection.toWorld(center), zoom)
+    fun camera(center: GeoPoint, zoom: Float): MapCamera = MapCamera(MapProjection.toWorld(center), zoom)
 
     private fun track(
         id: String,
         now: Long,
         type: ThreatType,
         message: String,
-        vararg reports: Pair<Int, String>,
+        vararg reports: Report,
         active: Boolean = true,
         clearedMinutesAgo: Int = 0,
         level: ThreatLevel = ThreatLevel.Red,
     ): DroneTrack {
-        val samples = reports.map { (minutesAgo, name) ->
-            val city = Regions.cities.first { it.name == name }
-            TrackSample(now - minutesAgo * 60_000L, city.point.lat, city.point.lon, name, city.oblastUid, message)
+        val samples = reports.map { report ->
+            val city = Regions.cities.first { it.name == report.city }
+            TrackSample(
+                now - report.minutesAgo * 60_000L, city.point.lat, city.point.lon, report.city, city.oblastUid, message,
+            )
         }
         return DroneTrack(
             id = id,
@@ -192,7 +253,7 @@ internal object PreviewData {
         location: String = "oblast",
         city: Boolean = false,
     ): ThreatMarker {
-        val oblast = Regions.oblast(oblastUid)!!
+        val oblast = requireNotNull(Regions.oblast(oblastUid)) { "No oblast has UID $oblastUid" }
         return ThreatMarker(
             id = "$id:${type.apiValue}",
             type = type,
@@ -201,7 +262,7 @@ internal object PreviewData {
             oblastUid = oblastUid,
             oblastName = oblast.nameEn,
             locationType = if (city) "city" else location,
-            point = at ?: Regions.center(oblastUid)!!,
+            point = at ?: requireNotNull(Regions.center(oblastUid)) { "Oblast $oblastUid has no centre" },
             startedAt = Instant.fromEpochMilliseconds(now - minutesAgo * 60_000L),
             message = message,
         )

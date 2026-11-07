@@ -1,7 +1,6 @@
 package com.gusak.lab.radarnebo.desktop
 
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -10,6 +9,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.gusak.lab.radarnebo.App
 import com.gusak.lab.radarnebo.data.SettingsRepository
 import com.gusak.lab.radarnebo.debug.TrafficLog
@@ -66,8 +66,8 @@ fun main() {
                 icon = icon,
                 state = rememberWindowState(width = 1100.dp, height = 760.dp),
             ) {
-                val exchanges by traffic.exchanges.collectAsState()
-                val appSettings by settings.settings.collectAsState()
+                val exchanges by traffic.exchanges.collectAsStateWithLifecycle()
+                val appSettings by settings.settings.collectAsStateWithLifecycle()
                 RadarTheme(appSettings.themeMode, appSettings.colorPalette) {
                     RequestInspectorScreen(exchanges, onClear = traffic::clear)
                 }

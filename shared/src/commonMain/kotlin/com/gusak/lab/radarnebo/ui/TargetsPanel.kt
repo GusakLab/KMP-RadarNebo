@@ -1,8 +1,6 @@
 package com.gusak.lab.radarnebo.ui
 
-import com.gusak.lab.radarnebo.data.ThemeMode
-import com.gusak.lab.radarnebo.ui.preview.PreviewData
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -24,12 +22,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.ui.zIndex
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FilterChip
@@ -52,9 +48,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import com.gusak.lab.radarnebo.data.TargetFilter
+import com.gusak.lab.radarnebo.data.ThemeMode
 import com.gusak.lab.radarnebo.data.ThreatLevel
 import com.gusak.lab.radarnebo.data.ThreatType
 import com.gusak.lab.radarnebo.domain.ThreatMarker
@@ -64,35 +63,37 @@ import com.gusak.lab.radarnebo.tracking.DroneTrack
 import com.gusak.lab.radarnebo.tracking.InterpolatedPosition
 import com.gusak.lab.radarnebo.tracking.Place
 import com.gusak.lab.radarnebo.tracking.PositionMode
-import com.gusak.lab.radarnebo.tracking.TrackInterpolator
-import com.gusak.lab.radarnebo.tracking.TrackPredictor
-import com.gusak.lab.radarnebo.tracking.TrackSample
 import com.gusak.lab.radarnebo.tracking.TargetClassifier
 import com.gusak.lab.radarnebo.tracking.TargetKind
 import com.gusak.lab.radarnebo.tracking.TargetProfile
+import com.gusak.lab.radarnebo.tracking.TrackInterpolator
 import com.gusak.lab.radarnebo.tracking.TrackMetrics
+import com.gusak.lab.radarnebo.tracking.TrackPredictor
+import com.gusak.lab.radarnebo.tracking.TrackSample
 import com.gusak.lab.radarnebo.ui.map.TargetIcon
+import com.gusak.lab.radarnebo.ui.preview.PreviewData
 import kotlinx.coroutines.delay
-import kotlin.time.Clock
 import kotlin.time.Instant
 
 /** Short, stable display name for a track id such as `trk-12`. */
-fun targetName(trackId: String) = "T-" + trackId.substringAfter("trk-")
+internal fun targetName(trackId: String): String = "T-" + trackId.substringAfter("trk-")
 
 /**
  * Tracked drone targets: a list of every target with its latest report and predicted arrival, and a
  * detail view with the timestamped history of reported positions. [tracks] includes targets [filter]
  * hides, so the list can count them and offer to show them again. [selectedThreat] shows a threat
- * picked on the map that has no track yet; [onSelect] with null leaves either detail view.
+ * picked on the map that has no track yet; [onSelect] with null leaves either detail view. [clock] is the
+ * local time in epoch milliseconds; the server's is that plus [clockOffsetMs].
  */
 @Composable
-fun TargetsPanel(
+internal fun TargetsPanel(
     tracks: List<DroneTrack>,
     clockOffsetMs: Long,
     places: List<Place>,
     selectedTrackId: String?,
     onSelect: (String?) -> Unit,
     onClose: () -> Unit,
+    clock: () -> Long,
     modifier: Modifier = Modifier,
     /** A list row gained (true) or lost (false) the mouse pointer. */
     onHover: (trackId: String, hovered: Boolean) -> Unit = { _, _ -> },
@@ -101,12 +102,13 @@ fun TargetsPanel(
     selectedThreat: ThreatMarker? = null,
 ) {
     // Positions and ETAs move continuously; refresh the panel once a second.
-    val now by produceState(Clock.System.now().toEpochMilliseconds() + clockOffsetMs, clockOffsetMs) {
+    val now by produceState(clock() + clockOffsetMs, clockOffsetMs) {
         while (true) {
-            value = Clock.System.now().toEpochMilliseconds() + clockOffsetMs
+            value = clock() + clockOffsetMs
             delay(1_000)
         }
     }
+    val time = PanelTime(now, Instant.fromEpochMilliseconds(now - clockOffsetMs))
     val selected = tracks.firstOrNull { it.id == selectedTrackId }
 
     Surface(
@@ -116,21 +118,36 @@ fun TargetsPanel(
         shadowElevation = 12.dp,
     ) {
         when {
-            selected != null -> TargetDetail(selected, now, places, onBack = { onSelect(null) }, onClose = onClose)
-            selectedThreat != null -> ThreatDetail(selectedThreat, onBack = { onSelect(null) }, onClose = onClose)
-            else -> TargetList(tracks, now, places, filter, onFilterChange, onSelect, onClose, onHover)
+            selected != null -> TargetDetail(selected, time, places, onBack = { onSelect(null) }, onClose = onClose)
+            selectedThreat != null -> ThreatDetail(selectedThreat, time, onBack = { onSelect(null) }, onClose = onClose)
+            else -> TargetList(tracks, time, places, ListFilter(filter, onFilterChange), onSelect, onClose, onHover)
         }
     }
 }
 
+/** The panel's latest tick: [now] in server time, for positions and ETAs, and [local], the device's time then. */
+private class PanelTime(val now: Long, val local: Instant)
+
+/** The target filter and where its changes go. */
+private class ListFilter(val filter: TargetFilter, val onChange: (TargetFilter) -> Unit)
+
 @Composable
-private fun PanelHeader(title: String, subtitle: String, onClose: () -> Unit, leading: (@Composable () -> Unit)? = null) {
+private fun PanelHeader(
+    title: String,
+    subtitle: String,
+    onClose: () -> Unit,
+    leading: (@Composable () -> Unit)? = null,
+) {
     Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 8.dp)) {
         leading?.invoke()
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(title, style = MaterialTheme.typography.titleLarge)
-                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
             TextButton(onClick = onClose) { Text("✕", fontSize = 18.sp) }
         }
@@ -152,7 +169,11 @@ private fun StickyHeaderList(
     val elevation by animateDpAsState(if (scrolled) 6.dp else 0.dp)
     Column {
         // Above the list, so the shadow falls on the rows rather than under them.
-        Surface(Modifier.zIndex(1f), color = MaterialTheme.colorScheme.surfaceContainerHigh, shadowElevation = elevation) {
+        Surface(
+            Modifier.zIndex(1f),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            shadowElevation = elevation,
+        ) {
             Column(Modifier.fillMaxWidth()) { header() }
         }
         LazyColumn(Modifier.weight(1f), state = listState, contentPadding = contentPadding, content = content)
@@ -162,60 +183,90 @@ private fun StickyHeaderList(
 @Composable
 private fun TargetList(
     tracks: List<DroneTrack>,
-    now: Long,
+    time: PanelTime,
     places: List<Place>,
-    filter: TargetFilter,
-    onFilterChange: (TargetFilter) -> Unit,
+    filter: ListFilter,
     onSelect: (String?) -> Unit,
     onClose: () -> Unit,
     onHover: (trackId: String, hovered: Boolean) -> Unit,
 ) {
     var activeOnly by remember { mutableStateOf(true) }
-    var filterOpen by remember { mutableStateOf(false) }
-    val profiles = tracks.associate { it.id to TargetFilter.profileAt(it, now) }
-    val allowed = tracks.filter { filter.allows(profiles.getValue(it.id)) }
+    val profiles = tracks.associate { it.id to TargetFilter.profileAt(it, time.now) }
+    val allowed = tracks.filter { filter.filter.allows(profiles.getValue(it.id)) }
     val hidden = tracks.size - allowed.size
-    val active = allowed.count { it.active }
     val shown = allowed
         .filter { !activeOnly || it.active }
         .sortedWith(compareByDescending<DroneTrack> { it.active }.thenByDescending { it.samples.last().t })
 
     StickyHeaderList(
         header = {
-            PanelHeader("Targets", "$active active · ${allowed.size} tracked" + if (hidden > 0) " · $hidden hidden" else "", onClose)
-            Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(activeOnly, onClick = { activeOnly = true }, label = { Text("Active ($active)") })
-                FilterChip(!activeOnly, onClick = { activeOnly = false }, label = { Text("All (${allowed.size})") })
-                FilterChip(
-                    filterOpen || filter.isActive,
-                    onClick = { filterOpen = !filterOpen },
-                    label = { Text(if (filter.isActive) "Filter · $hidden" else "Filter") },
-                )
-            }
-            if (filterOpen) {
-                TargetFilterOptions(filter, profiles.values.toList(), onFilterChange)
-            }
-            Spacer(Modifier.height(8.dp))
+            TargetListHeader(
+                counts = ListCounts(active = allowed.count { it.active }, tracked = allowed.size, hidden = hidden),
+                activeOnly = activeOnly,
+                onActiveOnlyChange = { activeOnly = it },
+                filter = filter,
+                profiles = profiles.values.toList(),
+                onClose = onClose,
+            )
         },
         contentPadding = PaddingValues(start = 12.dp, end = 12.dp, bottom = 12.dp),
     ) {
         if (shown.isEmpty()) {
-            item {
-                Text(
-                    if (hidden > 0 && tracks.any { !activeOnly || it.active }) {
-                        "Every target here is hidden by the filter."
-                    } else {
-                        "No drone targets tracked yet. Targets appear when a drone alert is followed by another one nearby."
-                    },
-                    Modifier.padding(4.dp),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
+            item { EmptyTargetList(everyTargetHidden = hidden > 0 && tracks.any { !activeOnly || it.active }) }
         }
         items(shown, key = { it.id }) { track ->
-            TargetRow(track, now, TrackPredictor.predict(track, now, places), onHover = { onHover(track.id, it) }) { onSelect(track.id) }
+            TargetRow(
+                track,
+                time,
+                TrackPredictor.predict(track, time.now, places),
+                onHover = { onHover(track.id, it) },
+            ) { onSelect(track.id) }
         }
     }
+}
+
+/** How many targets the list holds: active and tracked ones the filter lets through, and how many it hides. */
+private class ListCounts(val active: Int, val tracked: Int, val hidden: Int)
+
+@Composable
+private fun TargetListHeader(
+    counts: ListCounts,
+    activeOnly: Boolean,
+    onActiveOnlyChange: (Boolean) -> Unit,
+    filter: ListFilter,
+    profiles: List<TargetProfile>,
+    onClose: () -> Unit,
+) {
+    var filterOpen by remember { mutableStateOf(false) }
+    val hidden = counts.hidden
+    val subtitle = "${counts.active} active · ${counts.tracked} tracked" + if (hidden > 0) " · $hidden hidden" else ""
+    PanelHeader("Targets", subtitle, onClose)
+    Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FilterChip(activeOnly, onClick = { onActiveOnlyChange(true) }, label = { Text("Active (${counts.active})") })
+        FilterChip(!activeOnly, onClick = { onActiveOnlyChange(false) }, label = { Text("All (${counts.tracked})") })
+        FilterChip(
+            filterOpen || filter.filter.isActive,
+            onClick = { filterOpen = !filterOpen },
+            label = { Text(if (filter.filter.isActive) "Filter · $hidden" else "Filter") },
+        )
+    }
+    if (filterOpen) {
+        TargetFilterOptions(filter.filter, profiles, filter.onChange)
+    }
+    Spacer(Modifier.height(8.dp))
+}
+
+@Composable
+private fun EmptyTargetList(everyTargetHidden: Boolean) {
+    Text(
+        if (everyTargetHidden) {
+            "Every target here is hidden by the filter."
+        } else {
+            "No drone targets tracked yet. Targets appear when a drone alert is followed by another one nearby."
+        },
+        Modifier.padding(4.dp),
+        style = MaterialTheme.typography.bodyMedium,
+    )
 }
 
 /** Chips that show or hide probable types and each kind of target present (or already hidden). */
@@ -238,9 +289,20 @@ private fun TargetFilterOptions(filter: TargetFilter, profiles: List<TargetProfi
             val shown = kind !in filter.hiddenKinds
             FilterChip(
                 shown,
-                onClick = { onChange(filter.copy(hiddenKinds = if (shown) filter.hiddenKinds + kind else filter.hiddenKinds - kind)) },
+                onClick = {
+                    onChange(
+                        filter.copy(hiddenKinds = if (shown) filter.hiddenKinds + kind else filter.hiddenKinds - kind),
+                    )
+                },
                 label = { Text("${kind.label} (${counts[kind] ?: 0})") },
-                leadingIcon = { TargetIcon(kind = kind, headingDeg = 270f, color = MaterialTheme.colorScheme.onSurfaceVariant, size = 16.dp) },
+                leadingIcon = {
+                    TargetIcon(
+                        kind = kind,
+                        headingDeg = 270f,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        size = 16.dp,
+                    )
+                },
             )
         }
         if (filter.isActive) {
@@ -252,19 +314,18 @@ private fun TargetFilterOptions(filter: TargetFilter, profiles: List<TargetProfi
 @Composable
 private fun TargetRow(
     track: DroneTrack,
-    now: Long,
+    time: PanelTime,
     prediction: ArrivalPrediction?,
     onHover: (Boolean) -> Unit,
     onClick: () -> Unit,
 ) {
-    val colors = radarColors
     val hoverSource = remember { MutableInteractionSource() }
     val hovered by hoverSource.collectIsHoveredAsState()
     LaunchedEffect(hovered) { onHover(hovered) }
     // A row scrolled away or replaced by the detail view no longer reports its exit.
     DisposableEffect(Unit) { onDispose { onHover(false) } }
     val last = track.samples.last()
-    val motion = TrackInterpolator.positionAt(track, now)
+    val motion = TrackInterpolator.positionAt(track, time.now)
     Column(
         Modifier
             .fillMaxWidth()
@@ -274,64 +335,80 @@ private fun TargetRow(
             .padding(horizontal = 8.dp, vertical = 10.dp),
     ) {
         val profile = TargetClassifier.classify(track, motion?.speedKmh)
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            TargetIcon(
-                kind = profile.kind,
-                headingDeg = (motion?.headingDeg ?: 270.0).toFloat(),
-                color = levelColor(track.level),
-                size = 26.dp,
-            )
-            Spacer(Modifier.width(8.dp))
-            Text(targetName(track.id), fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
-            Spacer(Modifier.width(8.dp))
-            StatusTag(track.active)
-            Spacer(Modifier.weight(1f))
-            Text(formatTime(Instant.fromEpochMilliseconds(last.t)), style = MaterialTheme.typography.labelLarge)
-        }
+        TargetRowTitle(track, profile, motion)
         Row {
             Text(locationLabel(last), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-            Text(formatAgo(Instant.fromEpochMilliseconds(last.t)), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                formatAgo(Instant.fromEpochMilliseconds(last.t), time.local),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
-        Text(
-            listOfNotNull(profile.model + if (profile.source == TargetProfile.Source.Probable) " (probable)" else "", motionLabel(motion), reportsLabel(track.samples.size)).joinToString(" · "),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        TargetRowDetails(track, profile, motion)
         prediction?.let {
             Text(
                 "→ ${it.place.name} in ~${it.etaMinutes} min (${it.distanceKm.toInt()} km)",
                 style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.SemiBold,
-                color = colors.warningText,
+                color = radarColors.warningText,
             )
         }
     }
-    HorizontalDivider(Modifier.padding(horizontal = 8.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+    HorizontalDivider(
+        Modifier.padding(horizontal = 8.dp),
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+    )
+}
+
+/** The target's model (and whether it is only probable), how it moves and how many reports it has. */
+@Composable
+private fun TargetRowDetails(track: DroneTrack, profile: TargetProfile, motion: InterpolatedPosition?) {
+    val model = profile.model + if (profile.source == TargetProfile.Source.Probable) " (probable)" else ""
+    Text(
+        listOfNotNull(model, motionLabel(motion), reportsLabel(track.samples.size)).joinToString(" · "),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+/** A row's first line: the target's icon, name and status, and when it was last reported. */
+@Composable
+private fun TargetRowTitle(track: DroneTrack, profile: TargetProfile, motion: InterpolatedPosition?) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        TargetIcon(
+            kind = profile.kind,
+            headingDeg = (motion?.headingDeg ?: 270.0).toFloat(),
+            color = levelColor(track.level),
+            size = 26.dp,
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(targetName(track.id), fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+        Spacer(Modifier.width(8.dp))
+        StatusTag(track.active)
+        Spacer(Modifier.weight(1f))
+        Text(
+            formatTime(Instant.fromEpochMilliseconds(track.samples.last().t)),
+            style = MaterialTheme.typography.labelLarge,
+        )
+    }
 }
 
 @Composable
-private fun TargetDetail(track: DroneTrack, now: Long, places: List<Place>, onBack: () -> Unit, onClose: () -> Unit) {
-    val colors = radarColors
+private fun TargetDetail(
+    track: DroneTrack,
+    time: PanelTime,
+    places: List<Place>,
+    onBack: () -> Unit,
+    onClose: () -> Unit,
+) {
+    val now = time.now
     val position = TrackInterpolator.positionAt(track, now)
     val prediction = TrackPredictor.predict(track, now, places)
     val route = TrackPredictor.route(track, now, places)
     val profile = TargetClassifier.classify(track, position?.speedKmh)
-    val trackedMinutes = ((now.coerceAtLeast(track.samples.last().t) - track.samples.first().t) / 60_000).coerceAtLeast(0)
-    val flownKm = TrackMetrics.distanceFlownKm(track, position)
 
     StickyHeaderList(
-        header = {
-            PanelHeader(
-                title = "Target ${targetName(track.id)}",
-                subtitle = listOfNotNull(
-                    track.oblastUid?.let { Regions.oblast(it)?.nameEn },
-                    "${track.level.name} level",
-                    if (track.active) "active" else "cleared",
-                ).joinToString(" · "),
-                onClose = onClose,
-                leading = { TextButton(onClick = onBack) { Text("‹ All targets") } },
-            )
-        },
+        header = { TargetDetailHeader(track, onBack, onClose) },
         contentPadding = PaddingValues(bottom = 16.dp),
     ) {
         item {
@@ -343,91 +420,148 @@ private fun TargetDetail(track: DroneTrack, now: Long, places: List<Place>, onBa
                 alertIds = track.markerIds.map { it.substringBefore(':') }.distinct(),
             )
         }
-        item {
-            Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Stat("Speed", position?.speedKmh?.let { "~${it.toInt()} km/h" } ?: "–", Modifier.weight(1f))
-                    Stat("Direction", position?.headingDeg?.let { "${compass(it)} · ${it.toInt()}°" } ?: "–", Modifier.weight(1f))
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Stat("Distance flown", "${flownKm.toInt()} km", Modifier.weight(1f))
-                    Stat("Tracked for", "$trackedMinutes min", Modifier.weight(1f))
-                }
-                profile.kind.typicalAltitudeM?.let { altitude ->
-                    Stat("Altitude (typical for its class)", "~${formatAltitude(altitude)}", Modifier.fillMaxWidth())
-                }
-            }
-        }
-        item {
-            Column(
-                Modifier
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
-                    .fillMaxWidth()
-                    .background(
-                        if (prediction != null) colors.warning.copy(alpha = 0.18f) else MaterialTheme.colorScheme.surfaceContainer,
-                        RoundedCornerShape(12.dp),
-                    )
-                    .padding(12.dp),
-            ) {
-                Text("Prediction", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (prediction != null) {
-                    Text(
-                        "${prediction.place.name} in ~${prediction.etaMinutes} min",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Text(
-                        "${prediction.distanceKm.toInt()} km ahead at ~${prediction.speedKmh.toInt()} km/h" +
-                            if (prediction.place.isFavorite) " · one of your favorites" else "",
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                } else {
-                    Text(
-                        if (track.active) "No settlement within ${TrackPredictor.DEFAULT_RANGE_KM.toInt()} km on its current heading"
-                        else "Target cleared",
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                }
-            }
-        }
+        item { TargetStats(track, profile, position, now) }
+        item { PredictionCard(prediction, active = track.active) }
         if (route.isNotEmpty()) {
-            item {
-                Text(
-                    "Predicted route",
-                    Modifier.padding(start = 16.dp, top = 16.dp, bottom = 4.dp),
-                    style = MaterialTheme.typography.titleSmall,
-                )
-            }
+            item { SectionTitle("Predicted route") }
             items(route.size) { index -> RouteStopRow(index, route[index], now) }
         }
+        timeline(track, position, time)
         item {
-            Text(
-                "Timeline",
-                Modifier.padding(start = 16.dp, top = 16.dp, bottom = 4.dp),
-                style = MaterialTheme.typography.titleSmall,
-            )
-        }
-        if (track.active && position != null) {
-            item { EstimatedNowRow(position, now) }
-        }
-        val samples = track.samples.asReversed()
-        items(samples.size) { index ->
-            TimelineRow(samples[index], isLatest = index == 0, isOldest = index == samples.lastIndex, level = track.level)
-        }
-        item {
-            Text(
-                "Positions are inferred from area alerts, not radar. Predictions assume the target keeps its current heading and speed.",
-                Modifier.padding(16.dp),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            Footnote(
+                "Positions are inferred from area alerts, not radar. Predictions assume the target keeps its current " +
+                    "heading and speed.",
             )
         }
     }
 }
 
+/** The target's name and where and how alarming it is, with the way back to the list. */
+@Composable
+private fun TargetDetailHeader(track: DroneTrack, onBack: () -> Unit, onClose: () -> Unit) {
+    PanelHeader(
+        title = "Target ${targetName(track.id)}",
+        subtitle = listOfNotNull(
+            track.oblastUid?.let { Regions.oblast(it)?.nameEn },
+            "${track.level.name} level",
+            if (track.active) "active" else "cleared",
+        ).joinToString(" · "),
+        onClose = onClose,
+        leading = { TextButton(onClick = onBack) { Text("‹ All targets") } },
+    )
+}
+
+/** Speed, heading, distance flown, time tracked and, where its class says, the typical altitude. */
+@Composable
+private fun TargetStats(track: DroneTrack, profile: TargetProfile, position: InterpolatedPosition?, now: Long) {
+    val trackedMinutes = ((now.coerceAtLeast(track.samples.last().t) - track.samples.first().t) / 60_000)
+        .coerceAtLeast(0)
+    val flownKm = TrackMetrics.distanceFlownKm(track, position)
+    Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Stat("Speed", position?.speedKmh?.let { "~${it.toInt()} km/h" } ?: "–", Modifier.weight(1f))
+            Stat(
+                "Direction",
+                position?.headingDeg?.let { "${compass(it)} · ${it.toInt()}°" } ?: "–",
+                Modifier.weight(1f),
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Stat("Distance flown", "${flownKm.toInt()} km", Modifier.weight(1f))
+            Stat("Tracked for", "$trackedMinutes min", Modifier.weight(1f))
+        }
+        profile.kind.typicalAltitudeM?.let { altitude ->
+            Stat("Altitude (typical for its class)", "~${formatAltitude(altitude)}", Modifier.fillMaxWidth())
+        }
+    }
+}
+
+/** Where the target is predicted to arrive next, or why there is no prediction. */
+@Composable
+private fun PredictionCard(prediction: ArrivalPrediction?, active: Boolean) {
+    Column(
+        Modifier
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .fillMaxWidth()
+            .background(
+                if (prediction != null) {
+                    radarColors.warning.copy(alpha = 0.18f)
+                } else {
+                    MaterialTheme.colorScheme.surfaceContainer
+                },
+                RoundedCornerShape(12.dp),
+            )
+            .padding(12.dp),
+    ) {
+        Text(
+            "Prediction",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (prediction != null) {
+            Text(
+                "${prediction.place.name} in ~${prediction.etaMinutes} min",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                "${prediction.distanceKm.toInt()} km ahead at ~${prediction.speedKmh.toInt()} km/h" +
+                    if (prediction.place.isFavorite) " · one of your favorites" else "",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        } else {
+            Text(
+                if (active) {
+                    "No settlement within ${TrackPredictor.DEFAULT_RANGE_KM.toInt()} km on its current heading"
+                } else {
+                    "Target cleared"
+                },
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+    }
+}
+
+/** The track's timeline, newest first: where it is estimated now (while active), then every report. */
+private fun LazyListScope.timeline(track: DroneTrack, position: InterpolatedPosition?, time: PanelTime) {
+    item { SectionTitle("Timeline") }
+    if (track.active && position != null) {
+        item { EstimatedNowRow(position, time.now) }
+    }
+    val samples = track.samples.asReversed()
+    items(samples.size) { index ->
+        TimelineRow(
+            samples[index],
+            isLatest = index == 0,
+            isOldest = index == samples.lastIndex,
+            level = track.level,
+            localNow = time.local,
+        )
+    }
+}
+
+@Composable
+private fun SectionTitle(title: String) {
+    Text(
+        title,
+        Modifier.padding(start = 16.dp, top = 16.dp, bottom = 4.dp),
+        style = MaterialTheme.typography.titleSmall,
+    )
+}
+
+@Composable
+private fun Footnote(text: String) {
+    Text(
+        text,
+        Modifier.padding(16.dp),
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
 /** A threat on the map that no track follows yet, e.g. a single alert over a city. */
 @Composable
-private fun ThreatDetail(marker: ThreatMarker, onBack: () -> Unit, onClose: () -> Unit) {
+private fun ThreatDetail(marker: ThreatMarker, time: PanelTime, onBack: () -> Unit, onClose: () -> Unit) {
     val profile = remember(marker.id, marker.message) { TargetClassifier.classify(marker) }
     StickyHeaderList(
         header = {
@@ -450,48 +584,52 @@ private fun ThreatDetail(marker: ThreatMarker, onBack: () -> Unit, onClose: () -
             )
         }
         item {
-            Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Stat("Since", marker.startedAt?.let(::formatTime) ?: "–", Modifier.weight(1f))
-                Stat("Reported", marker.startedAt?.let(::formatAgo) ?: "–", Modifier.weight(1f))
-            }
-        }
-        item {
-            Column(
-                Modifier
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
-                    .fillMaxWidth()
-                    .background(levelColor(marker.level).copy(alpha = 0.18f), RoundedCornerShape(12.dp))
-                    .padding(12.dp),
+            Row(
+                Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text("Location", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(marker.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text(
-                    listOf(marker.oblastName, marker.locationType).distinct().joinToString(" · "),
-                    style = MaterialTheme.typography.bodySmall,
-                )
-                Text(coordinates(marker.point.lat, marker.point.lon), style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
-                if (marker.isRegionWide) {
-                    Text("Region-wide: position shown at the oblast center", style = MaterialTheme.typography.labelSmall)
-                }
+                Stat("Since", marker.startedAt?.let(::formatTime) ?: "–", Modifier.weight(1f))
+                Stat("Reported", marker.startedAt?.let { formatAgo(it, time.local) } ?: "–", Modifier.weight(1f))
             }
         }
+        item { ThreatLocationCard(marker) }
         marker.message?.let { message ->
             item {
-                Text(
-                    "Message",
-                    Modifier.padding(start = 16.dp, top = 16.dp, bottom = 4.dp),
-                    style = MaterialTheme.typography.titleSmall,
-                )
+                SectionTitle("Message")
                 Text(message, Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.bodyMedium)
             }
         }
-        item {
-            Text(
-                "Not tracked yet: a target gets a path and predictions once another alert follows nearby.",
-                Modifier.padding(16.dp),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        item { Footnote("Not tracked yet: a target gets a path and predictions once another alert follows nearby.") }
+    }
+}
+
+/** Where a threat was reported, tinted with its alert level. */
+@Composable
+private fun ThreatLocationCard(marker: ThreatMarker) {
+    Column(
+        Modifier
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .fillMaxWidth()
+            .background(levelColor(marker.level).copy(alpha = 0.18f), RoundedCornerShape(12.dp))
+            .padding(12.dp),
+    ) {
+        Text(
+            "Location",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(marker.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Text(
+            listOf(marker.oblastName, marker.locationType).distinct().joinToString(" · "),
+            style = MaterialTheme.typography.bodySmall,
+        )
+        Text(
+            coordinates(marker.point.lat, marker.point.lon),
+            style = MaterialTheme.typography.bodySmall,
+            fontFamily = FontFamily.Monospace,
+        )
+        if (marker.isRegionWide) {
+            Text("Region-wide: position shown at the oblast center", style = MaterialTheme.typography.labelSmall)
         }
     }
 }
@@ -513,12 +651,22 @@ private fun EstimatedNowRow(position: InterpolatedPosition, now: Long) {
             },
             style = MaterialTheme.typography.bodySmall,
         )
-        Text(coordinates(position.lat, position.lon), style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
+        Text(
+            coordinates(position.lat, position.lon),
+            style = MaterialTheme.typography.bodySmall,
+            fontFamily = FontFamily.Monospace,
+        )
     }
 }
 
 @Composable
-private fun TimelineRow(sample: TrackSample, isLatest: Boolean, isOldest: Boolean, level: ThreatLevel) {
+private fun TimelineRow(
+    sample: TrackSample,
+    isLatest: Boolean,
+    isOldest: Boolean,
+    level: ThreatLevel,
+    localNow: Instant,
+) {
     TimelineItem(
         dotColor = levelColor(level),
         hollow = false,
@@ -528,14 +676,26 @@ private fun TimelineRow(sample: TrackSample, isLatest: Boolean, isOldest: Boolea
         Row {
             Text(formatClock(sample.t), fontWeight = FontWeight.SemiBold, fontFamily = FontFamily.Monospace)
             Spacer(Modifier.width(8.dp))
-            Text(formatAgo(Instant.fromEpochMilliseconds(sample.t)), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                formatAgo(Instant.fromEpochMilliseconds(sample.t), localNow),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             if (isLatest) {
                 Spacer(Modifier.width(8.dp))
-                Text("latest report", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                Text(
+                    "latest report",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
             }
         }
         Text(locationLabel(sample), style = MaterialTheme.typography.bodyMedium)
-        Text(coordinates(sample.lat, sample.lon), style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
+        Text(
+            coordinates(sample.lat, sample.lon),
+            style = MaterialTheme.typography.bodySmall,
+            fontFamily = FontFamily.Monospace,
+        )
     }
 }
 
@@ -556,7 +716,13 @@ private fun TimelineItem(
                 Box(
                     Modifier
                         .size(12.dp)
-                        .then(if (hollow) Modifier.border(2.dp, dotColor, CircleShape) else Modifier.background(dotColor, CircleShape)),
+                        .then(
+                            if (hollow) {
+                                Modifier.border(2.dp, dotColor, CircleShape)
+                            } else {
+                                Modifier.background(dotColor, CircleShape)
+                            },
+                        ),
                 )
                 Box(Modifier.width(2.dp).weight(1f).background(if (drawLineBelow) lineColor else Color.Transparent))
             }
@@ -583,7 +749,9 @@ private fun StatusTag(active: Boolean) {
     val color = if (active) radarColors.dangerText else MaterialTheme.colorScheme.onSurfaceVariant
     Text(
         if (active) "ACTIVE" else "CLEARED",
-        Modifier.background(color.copy(alpha = STATUS_TINT), RoundedCornerShape(4.dp)).padding(horizontal = 6.dp, vertical = 1.dp),
+        Modifier
+            .background(color.copy(alpha = STATUS_TINT), RoundedCornerShape(4.dp))
+            .padding(horizontal = 6.dp, vertical = 1.dp),
         color = color,
         fontSize = 10.sp,
         fontWeight = FontWeight.Bold,
@@ -595,7 +763,13 @@ private fun levelColor(level: ThreatLevel) = if (level == ThreatLevel.Red) radar
 
 /** Target type card: icon, model, maker, role and whether the model was reported or is inferred. */
 @Composable
-private fun ProfileCard(profile: TargetProfile, level: ThreatLevel, headingDeg: Float, id: String?, alertIds: List<String>) {
+private fun ProfileCard(
+    profile: TargetProfile,
+    level: ThreatLevel,
+    headingDeg: Float,
+    id: String?,
+    alertIds: List<String>,
+) {
     Row(
         Modifier
             .padding(horizontal = 16.dp, vertical = 4.dp)
@@ -612,20 +786,7 @@ private fun ProfileCard(profile: TargetProfile, level: ThreatLevel, headingDeg: 
         )
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(profile.model, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f, fill = false))
-                Spacer(Modifier.width(8.dp))
-                val reported = profile.source == TargetProfile.Source.Reported
-                Text(
-                    if (reported) "REPORTED" else "PROBABLE",
-                    Modifier
-                        .background((if (reported) radarColors.ok else radarColors.warning).copy(alpha = STATUS_TINT), RoundedCornerShape(4.dp))
-                        .padding(horizontal = 6.dp, vertical = 1.dp),
-                    color = if (reported) radarColors.okText else radarColors.warningText,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
+            ProfileTitle(profile)
             LabelValue("Class", profile.kind.label)
             LabelValue("Make", profile.make)
             LabelValue("Role", profile.role)
@@ -640,6 +801,33 @@ private fun ProfileCard(profile: TargetProfile, level: ThreatLevel, headingDeg: 
                 )
             }
         }
+    }
+}
+
+/** The model's name, tagged with whether an alert reported it or it is inferred. */
+@Composable
+private fun ProfileTitle(profile: TargetProfile) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            profile.model,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.weight(1f, fill = false),
+        )
+        Spacer(Modifier.width(8.dp))
+        val reported = profile.source == TargetProfile.Source.Reported
+        Text(
+            if (reported) "REPORTED" else "PROBABLE",
+            Modifier
+                .background(
+                    (if (reported) radarColors.ok else radarColors.warning).copy(alpha = STATUS_TINT),
+                    RoundedCornerShape(4.dp),
+                )
+                .padding(horizontal = 6.dp, vertical = 1.dp),
+            color = if (reported) radarColors.okText else radarColors.warningText,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold,
+        )
     }
 }
 
@@ -670,7 +858,11 @@ private fun RouteStopRow(index: Int, stop: ArrivalPrediction, now: Long) {
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
             )
-            Text("${stop.distanceKm.toInt()} km ahead", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                "${stop.distanceKm.toInt()} km ahead",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
         Column(horizontalAlignment = Alignment.End) {
             Text("~${stop.etaMinutes} min", fontWeight = FontWeight.Bold, color = radarColors.warningText)
@@ -696,69 +888,65 @@ private fun reportsLabel(count: Int) = if (count == 1) "1 report" else "$count r
 
 private fun coordinates(lat: Double, lon: Double) = "${formatCoord(lat)}° N, ${formatCoord(lon)}° E"
 
-fun compass(deg: Double): String = listOf("N", "NE", "E", "SE", "S", "SW", "W", "NW")[(((deg % 360) + 382.5) / 45).toInt() % 8]
+internal fun compass(deg: Double): String =
+    listOf("N", "NE", "E", "SE", "S", "SW", "W", "NW")[(((deg % 360) + 382.5) / 45).toInt() % 8]
+
+@Composable
+private fun PreviewPanel(selectedTrackId: String?, dronesOnly: Boolean = true, theme: ThemeMode = ThemeMode.Dark) {
+    val state = PreviewData.state(theme, dronesOnly = dronesOnly)
+    RadarTheme(theme) {
+        TargetsPanel(
+            state.tracks, 0, TrackPredictor.cityPlaces, selectedTrackId,
+            onSelect = {},
+            onClose = {},
+            clock = PreviewData::nowMs,
+        )
+    }
+}
 
 @Preview(name = "Targets · list · dark", widthDp = 380, heightDp = 640)
 @Composable
-private fun TargetsListDarkPreview() {
-    val state = PreviewData.state()
-    RadarTheme(ThemeMode.Dark) {
-        TargetsPanel(state.tracks, 0, TrackPredictor.cityPlaces, selectedTrackId = null, onSelect = {}, onClose = {})
-    }
-}
+private fun TargetsListDarkPreview() = PreviewPanel(selectedTrackId = null)
 
 @Preview(name = "Targets · list · light", widthDp = 380, heightDp = 640)
 @Composable
-private fun TargetsListLightPreview() {
-    val state = PreviewData.state(ThemeMode.Light)
-    RadarTheme(ThemeMode.Light) {
-        TargetsPanel(state.tracks, 0, TrackPredictor.cityPlaces, selectedTrackId = null, onSelect = {}, onClose = {})
-    }
-}
+private fun TargetsListLightPreview() = PreviewPanel(selectedTrackId = null, theme = ThemeMode.Light)
 
 @Preview(name = "Targets · list · all types", widthDp = 380, heightDp = 900)
 @Composable
-private fun TargetsListAllTypesPreview() {
-    val state = PreviewData.state(dronesOnly = false)
-    RadarTheme(ThemeMode.Dark) {
-        TargetsPanel(state.tracks, 0, TrackPredictor.cityPlaces, selectedTrackId = null, onSelect = {}, onClose = {})
-    }
-}
+private fun TargetsListAllTypesPreview() = PreviewPanel(selectedTrackId = null, dronesOnly = false)
 
 @Preview(name = "Targets · detail · cruise missile", widthDp = 380, heightDp = 1100)
 @Composable
 private fun TargetDetailMissilePreview() {
     val state = PreviewData.state(dronesOnly = false)
     val missile = state.tracks.filter { it.type == ThreatType.CruiseMissiles }.maxByOrNull { it.samples.size }?.id
-    RadarTheme(ThemeMode.Dark) {
-        TargetsPanel(state.tracks, 0, TrackPredictor.cityPlaces, missile ?: PreviewData.busiestTrackId(state), onSelect = {}, onClose = {})
-    }
+    PreviewPanel(missile ?: PreviewData.busiestTrackId(state), dronesOnly = false)
 }
 
 @Preview(name = "Targets · detail · dark", widthDp = 380, heightDp = 1100)
 @Composable
-private fun TargetDetailDarkPreview() {
-    val state = PreviewData.state()
-    RadarTheme(ThemeMode.Dark) {
-        TargetsPanel(state.tracks, 0, TrackPredictor.cityPlaces, PreviewData.busiestTrackId(state), onSelect = {}, onClose = {})
-    }
-}
+private fun TargetDetailDarkPreview() = PreviewPanel(PreviewData.busiestTrackId(PreviewData.state()))
 
 @Preview(name = "Targets · detail · light", widthDp = 380, heightDp = 1100)
 @Composable
-private fun TargetDetailLightPreview() {
-    val state = PreviewData.state(ThemeMode.Light)
-    RadarTheme(ThemeMode.Light) {
-        TargetsPanel(state.tracks, 0, TrackPredictor.cityPlaces, PreviewData.busiestTrackId(state), onSelect = {}, onClose = {})
-    }
-}
+private fun TargetDetailLightPreview() =
+    PreviewPanel(PreviewData.busiestTrackId(PreviewData.state(ThemeMode.Light)), theme = ThemeMode.Light)
 
 @Preview(name = "Targets · untracked threat", widthDp = 380, heightDp = 640)
 @Composable
 private fun ThreatDetailPreview() {
     val state = PreviewData.state()
-    val threat = state.threats.firstOrNull { marker -> state.allTracks.none { marker.id in it.markerIds } } ?: state.threats.first()
+    val threat = state.threats.firstOrNull { marker -> state.allTracks.none { marker.id in it.markerIds } }
+        ?: state.threats.first()
     RadarTheme(ThemeMode.Dark) {
-        TargetsPanel(state.tracks, 0, TrackPredictor.cityPlaces, selectedTrackId = null, onSelect = {}, onClose = {}, selectedThreat = threat)
+        TargetsPanel(
+            state.tracks, 0, TrackPredictor.cityPlaces,
+            selectedTrackId = null,
+            onSelect = {},
+            onClose = {},
+            clock = PreviewData::nowMs,
+            selectedThreat = threat,
+        )
     }
 }

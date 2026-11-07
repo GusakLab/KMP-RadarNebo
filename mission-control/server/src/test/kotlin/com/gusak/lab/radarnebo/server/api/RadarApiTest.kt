@@ -36,13 +36,16 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.yield
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -58,7 +61,7 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
 /** A data source that reports whatever the test sets, like alerts.in.ua would; [failure], when set, instead. */
-private class ScriptedSource(var clock: () -> Long) : AlertsDataSource {
+private class ScriptedSource(private val clock: () -> Long) : AlertsDataSource {
     var alerts: List<AirAlert> = emptyList()
     var failure: FetchResult.Failed? = null
     var hang = false
@@ -79,7 +82,7 @@ private class ScriptedSource(var clock: () -> Long) : AlertsDataSource {
 }
 
 class RadarApiTest {
-    private var now = Fixtures.t0.toEpochMilliseconds()
+    private var now = Fixtures.T0.toEpochMilliseconds()
     private val source = ScriptedSource { now }
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -88,7 +91,13 @@ class RadarApiTest {
         traffic: TrafficRecorder? = null,
         archives: Archives = Archives.inMemory(),
     ): ServerComponents {
-        val components = ServerComponents.create(ServerConfig(clients = clients), clock = { now }, traffic = traffic, source = source, archives = archives)
+        val components = ServerComponents.create(
+            ServerConfig(clients = clients),
+            clock = { now },
+            traffic = traffic,
+            source = source,
+            archives = archives,
+        )
         application { radarServer(components, startPoller = false) }
         return components
     }
@@ -97,8 +106,10 @@ class RadarApiTest {
 
     /** Runs the poll loop, as the server does, until it has scheduled a poll, then [block], then stops it. */
     private suspend fun ServerComponents.whilePolling(block: suspend () -> Unit) = coroutineScope {
-        val loop = launch { poller.run() }
-        withTimeout(5_000) { while (poller.status.nextPollAt == null) delay(10) }
+        // Undispatched, the loop runs its first poll right away, up to where it waits for the next one; yielding
+        // covers a poll that suspends on the way. No sleeping: the test runs on real time.
+        val loop = launch(start = CoroutineStart.UNDISPATCHED) { poller.run() }
+        withTimeout(5_000) { while (poller.status.nextPollAt == null) yield() }
         block()
         loop.cancel()
     }
@@ -106,7 +117,11 @@ class RadarApiTest {
     private suspend fun ApplicationTestBuilder.health() =
         RadarNeboApi.json.decodeFromString(Health.serializer(), client.get("/health").bodyAsText())
 
-    private suspend fun ApplicationTestBuilder.text(path: String) = client.get(path).let { it.status to it.bodyAsText() }
+    private suspend fun ApplicationTestBuilder.text(path: String) =
+        client.get(path).let { it.status to it.bodyAsText() }
+
+    /** The field [name] of a JSON object, failing the test when it is missing. */
+    private fun JsonObject.field(name: String): JsonElement = assertNotNull(this[name], "no '$name' in $this")
 
     @Test
     fun clientsNeedAKeyWhenKeysAreConfiguredAndGetJsonErrors() = testApplication {
@@ -121,7 +136,11 @@ class RadarApiTest {
         assertEquals("5", warmingUp.headers[HttpHeaders.RetryAfter])
 
         server.poll()
-        assertEquals(HttpStatusCode.OK, client.get("/v1/alerts/active.json?token=app-key").status, "the key also works as ?token=")
+        assertEquals(
+            HttpStatusCode.OK,
+            client.get("/v1/alerts/active.json?token=app-key").status,
+            "the key also works as ?token=",
+        )
         assertEquals("ok", health().status, "health needs no key")
         assertEquals("""{"message":"Not found"}""", client.get("/v1/nope?token=app-key").bodyAsText())
     }
@@ -131,7 +150,11 @@ class RadarApiTest {
         val server = server(ClientApiConfig(requestsPerMinute = 10_000))
         server.poll()
         assertEquals(HttpStatusCode.OK, client.get("/v1/alerts/active.json").status)
-        assertEquals(HttpStatusCode.OK, client.get("/v1/alerts/active.json?token=anything").status, "a stray key is ignored")
+        assertEquals(
+            HttpStatusCode.OK,
+            client.get("/v1/alerts/active.json?token=anything").status,
+            "a stray key is ignored",
+        )
     }
 
     @Test
@@ -141,7 +164,10 @@ class RadarApiTest {
         for (path in listOf("/v1/alerts/active.json?token=", "/v1/alerts/active.json?token=bad!key")) {
             val response = client.get(path)
             assertEquals(HttpStatusCode.BadRequest, response.status, path)
-            assertTrue(json.parseToJsonElement(response.bodyAsText()).jsonObject["message"] != null, "a JSON error for $path")
+            assertTrue(
+                json.parseToJsonElement(response.bodyAsText()).jsonObject["message"] != null,
+                "a JSON error for $path",
+            )
         }
         assertEquals(HttpStatusCode.OK, client.get("/v1/alerts/active.json?token=app-key").status)
     }
@@ -150,7 +176,10 @@ class RadarApiTest {
     fun callersWithoutAValidKeyAreRateLimitedToo() = testApplication {
         server(ClientApiConfig(keys = setOf("app-key"), requestsPerMinute = 2))
         val statuses = List(3) { client.get("/v1/alerts/active.json?token=wrong").status }
-        assertEquals(listOf(HttpStatusCode.Unauthorized, HttpStatusCode.Unauthorized, HttpStatusCode.TooManyRequests), statuses)
+        assertEquals(
+            listOf(HttpStatusCode.Unauthorized, HttpStatusCode.Unauthorized, HttpStatusCode.TooManyRequests),
+            statuses,
+        )
     }
 
     @Test
@@ -169,7 +198,11 @@ class RadarApiTest {
             client.get("/v1/alerts/active.json") { header(HttpHeaders.XForwardedFor, forwardedFor) }.status
         assertEquals(HttpStatusCode.OK, from("203.0.113.1"))
         assertEquals(HttpStatusCode.OK, from("203.0.113.2"), "another client behind the same proxy")
-        assertEquals(HttpStatusCode.TooManyRequests, from("198.51.100.9, 203.0.113.1"), "a client-supplied entry doesn't count")
+        assertEquals(
+            HttpStatusCode.TooManyRequests,
+            from("198.51.100.9, 203.0.113.1"),
+            "a client-supplied entry doesn't count",
+        )
     }
 
     @Test
@@ -182,10 +215,12 @@ class RadarApiTest {
         assertEquals(HttpStatusCode.TooManyRequests, from("203.0.113.2"), "a spoofed header must not reset the limit")
     }
 
+    @Test
     fun alertsInUaBodyIsServedExactlyAsReceived() = testApplication {
         val server = server()
         // Unknown keys, alerts.in.ua's own meta and its key order all pass through.
-        val upstream = """{"alerts":[],"meta":{"last_updated_at":"2026/10/26 21:58:07 +0000","type":"full"},"disclaimer":"x","new_key":1}"""
+        val upstream = """{"alerts":[],"meta":{"last_updated_at":"2026/10/26 21:58:07 +0000","type":"full"},""" +
+            """"disclaimer":"x","new_key":1}"""
         source.raw = upstream
         server.poll()
         assertEquals(upstream, client.get(RadarNeboApi.ACTIVE_ALERTS_PATH).bodyAsText())
@@ -194,20 +229,12 @@ class RadarApiTest {
     @Test
     fun activeAlertsAreServedInTheAlertsInUaFormatWithoutCaching() = testApplication {
         val server = server()
-        source.alerts = listOf(alert(42, Fixtures.brovary))
+        source.alerts = listOf(alert(42, Fixtures.BROVARY))
         server.poll()
 
         val response = client.get(RadarNeboApi.ACTIVE_ALERTS_PATH)
         val body = response.bodyAsText()
-        val alert = json.parseToJsonElement(body).jsonObject["alerts"]!!.jsonArray.single().jsonObject
-        assertEquals("1100", alert["location_uid"]!!.jsonPrimitive.content)
-        assertEquals("hromada", alert["location_type"]!!.jsonPrimitive.content)
-        assertEquals(14, alert["location_oblast_uid"]!!.jsonPrimitive.int, "a number, as alerts.in.ua sends it")
-        assertEquals("2026-10-19T10:00:00.000Z", alert["started_at"]!!.jsonPrimitive.content)
-        assertTrue("\"finished_at\":null" in body, "nulls are written out, as alerts.in.ua does")
-        assertEquals("drones", alert["threats"]!!.jsonArray.single().jsonObject["threat_type"]!!.jsonPrimitive.content)
-        // The app's own client reads it.
-        assertEquals(42, RadarNeboApi.json.decodeFromString(ActiveAlertsResponse.serializer(), body).alerts.single().id)
+        assertIsBrovaryAlert42InTheAlertsInUaFormat(body)
 
         // No validators, and conditional requests still get the whole list.
         assertEquals(null, response.headers[HttpHeaders.ETag])
@@ -221,20 +248,47 @@ class RadarApiTest {
         assertEquals(body, conditional.bodyAsText())
 
         now += 30.seconds.inWholeMilliseconds
-        assertEquals("30", client.get(RadarNeboApi.ACTIVE_ALERTS_PATH).headers[DATA_AGE_HEADER], "seconds since the source confirmed the data")
+        assertEquals(
+            "30",
+            client.get(RadarNeboApi.ACTIVE_ALERTS_PATH).headers[DATA_AGE_HEADER],
+            "seconds since the source confirmed the data",
+        )
         now += 30.seconds.inWholeMilliseconds
         source.alerts = emptyList()
         server.poll()
         val changed = client.get(RadarNeboApi.ACTIVE_ALERTS_PATH)
         assertEquals(HttpStatusCode.OK, changed.status)
         // Like alerts.in.ua: the alerts and when they last changed (now, in the test's clock).
-        assertEquals("""{"alerts":[],"meta":{"last_updated_at":"2026/10/19 10:01:00 +0000","type":"full"}}""", changed.bodyAsText())
+        assertEquals(
+            """{"alerts":[],"meta":{"last_updated_at":"2026/10/19 10:01:00 +0000","type":"full"}}""",
+            changed.bodyAsText(),
+        )
+    }
+
+    /** [body] holds alert 42 over Brovary, field by field as alerts.in.ua writes it. */
+    private fun assertIsBrovaryAlert42InTheAlertsInUaFormat(body: String) {
+        val alert = json.parseToJsonElement(body).jsonObject.field("alerts").jsonArray.single().jsonObject
+        assertEquals("1100", alert.field("location_uid").jsonPrimitive.content)
+        assertEquals("hromada", alert.field("location_type").jsonPrimitive.content)
+        assertEquals(14, alert.field("location_oblast_uid").jsonPrimitive.int, "a number, as alerts.in.ua sends it")
+        assertEquals("2026-10-19T10:00:00.000Z", alert.field("started_at").jsonPrimitive.content)
+        assertTrue("\"finished_at\":null" in body, "nulls are written out, as alerts.in.ua does")
+        assertEquals(
+            "drones",
+            alert.field("threats").jsonArray.single().jsonObject.field("threat_type").jsonPrimitive.content,
+        )
+        // The app's own client reads it.
+        assertEquals(
+            42,
+            RadarNeboApi.json.decodeFromString(ActiveAlertsResponse.serializer(), body).alerts.single().id,
+        )
     }
 
     @Test
     fun iotEndpointsEncodeAirRaidStatusAsDocumented() = testApplication {
         val server = server()
-        source.alerts = listOf(alert(1, Fixtures.region(22)), alert(2, Fixtures.brovary, level = ThreatLevel.Yellow))
+        source.alerts =
+            listOf(alert(1, Fixtures.region(22)), alert(2, Fixtures.BROVARY, level = ThreatLevel.Yellow))
         server.poll()
         val kharkiv = AirRaidStatusMap.OBLAST_ORDER.indexOf(22)
         val kyivOblast = AirRaidStatusMap.OBLAST_ORDER.indexOf(14)
@@ -263,10 +317,10 @@ class RadarApiTest {
     @Test
     fun historyComesFromTheArchiveIncludingFinishedAlerts() = testApplication {
         val server = server(ClientApiConfig(requestsPerMinute = 10_000, historyRequestsPerMinute = 3))
-        source.alerts = listOf(alert(1, Fixtures.brovary), alert(2, Fixtures.kharkiv))
+        source.alerts = listOf(alert(1, Fixtures.BROVARY), alert(2, Fixtures.KHARKIV))
         server.poll()
         now += 30.minutes.inWholeMilliseconds
-        source.alerts = listOf(alert(2, Fixtures.kharkiv))
+        source.alerts = listOf(alert(2, Fixtures.KHARKIV))
         server.poll()
 
         fun alerts(body: String) = RadarNeboApi.json.decodeFromString(ActiveAlertsResponse.serializer(), body).alerts
@@ -280,31 +334,46 @@ class RadarApiTest {
         assertEquals(HttpStatusCode.BadRequest, client.get("/v1/regions/14/alerts/year_ago.json").status)
         val limited = client.get("/v1/regions/14/alerts/month_ago.json")
         assertEquals(HttpStatusCode.TooManyRequests, limited.status, "history has its own, stricter limit")
-        assertEquals(HttpStatusCode.OK, client.get(RadarNeboApi.ACTIVE_ALERTS_PATH).status, "which leaves the other endpoints alone")
+        assertEquals(
+            HttpStatusCode.OK,
+            client.get(RadarNeboApi.ACTIVE_ALERTS_PATH).status,
+            "which leaves the other endpoints alone",
+        )
     }
 
     @Test
     fun tracksAreBuiltOnTheServerAndPositionsInterpolated() = testApplication {
         val server = server()
-        source.alerts = listOf(alert(1, Fixtures.brovary))
+        source.alerts = listOf(alert(1, Fixtures.BROVARY))
         server.poll()
         // Twenty minutes later the threat moves on from Brovary to Kyiv.
         now += 20.minutes.inWholeMilliseconds
-        source.alerts = listOf(alert(2, Fixtures.region(31), startedAt = Fixtures.t0 + 20.minutes))
+        source.alerts = listOf(alert(2, Fixtures.region(31), startedAt = Fixtures.T0 + 20.minutes))
         server.poll()
 
-        val tracks = RadarNeboApi.json.decodeFromString(DroneTracksResponse.serializer(), text(RadarNeboApi.TRACKS_PATH).second)
+        val tracks =
+            RadarNeboApi.json.decodeFromString(DroneTracksResponse.serializer(), text(RadarNeboApi.TRACKS_PATH).second)
         assertEquals(now, tracks.serverTime)
         assertEquals(false, tracks.simulated)
         val track = tracks.tracks.single()
-        assertEquals(listOf("Brovary", "Kyiv City"), track.samples.map { it.title }, "the new alert continues the track")
+        assertEquals(
+            listOf("Brovary", "Kyiv City"),
+            track.samples.map { it.title },
+            "the new alert continues the track",
+        )
 
         val midpoint = (track.samples[0].t + track.samples[1].t) / 2
-        val positions = RadarNeboApi.json.decodeFromString(DronePositionsResponse.serializer(), text("${RadarNeboApi.POSITIONS_PATH}?at=$midpoint").second)
+        val positions = RadarNeboApi.json.decodeFromString(
+            DronePositionsResponse.serializer(),
+            text("${RadarNeboApi.POSITIONS_PATH}?at=$midpoint").second,
+        )
         val p = positions.positions.single()
         // Between reports the target follows the server's smoothed path, not a straight line through them.
         assertEquals(PositionMode.Interpolated, p.mode)
-        assertTrue(track.path.size > 2 && track.path.minOf { GeoMath.distanceKm(it.point, p.point) } < 3.0, "on the smoothed path")
+        assertTrue(
+            track.path.size > 2 && track.path.minOf { GeoMath.distanceKm(it.point, p.point) } < 3.0,
+            "on the smoothed path",
+        )
         assertNotNull(track.estimate)
         assertEquals(HttpStatusCode.BadRequest, client.get("${RadarNeboApi.POSITIONS_PATH}?at=yesterday").status)
 
@@ -312,7 +381,8 @@ class RadarApiTest {
         now += 40.minutes.inWholeMilliseconds
         source.alerts = emptyList()
         server.poll()
-        val archive = json.decodeFromString(TrackHistoryResponse.serializer(), text("${RadarNeboApi.TRACK_ARCHIVE_PATH}?from=${Fixtures.t0.toEpochMilliseconds()}&type=drones").second)
+        val archivePath = "${RadarNeboApi.TRACK_ARCHIVE_PATH}?from=${Fixtures.T0.toEpochMilliseconds()}&type=drones"
+        val archive = json.decodeFromString(TrackHistoryResponse.serializer(), text(archivePath).second)
         assertEquals(listOf(track.id), archive.tracks.map { it.id })
         assertEquals(HttpStatusCode.BadRequest, client.get("${RadarNeboApi.TRACK_ARCHIVE_PATH}?type=balloons").status)
         assertEquals(HttpStatusCode.BadRequest, client.get("${RadarNeboApi.TRACK_ARCHIVE_PATH}?from=2&to=1").status)
@@ -329,15 +399,21 @@ class RadarApiTest {
         assertTrue("at most 7 days" in body, body)
         assertEquals(HttpStatusCode.OK, client.get("$archive?limit=200").status)
         assertEquals(HttpStatusCode.TooManyRequests, client.get(archive).status, "the archive has its own limit")
-        assertEquals(HttpStatusCode.OK, client.get(RadarNeboApi.TRACKS_PATH).status, "which leaves the other endpoints alone")
+        assertEquals(
+            HttpStatusCode.OK,
+            client.get(RadarNeboApi.TRACKS_PATH).status,
+            "which leaves the other endpoints alone",
+        )
     }
 
     @Test
     fun largeResponsesAreCompressed() = testApplication {
         val server = server()
-        source.alerts = (1L..40L).map { alert(it, Fixtures.region(listOf(3, 4, 5, 8, 9, 10, 11, 12)[(it % 8).toInt()]).copy(uid = "region-$it")) }
+        val oblasts = listOf(3, 4, 5, 8, 9, 10, 11, 12)
+        source.alerts = (1L..40L).map { alert(it, Fixtures.region(oblasts[(it % 8).toInt()]).copy(uid = "region-$it")) }
         server.poll()
-        val response: HttpResponse = client.get(RadarNeboApi.ACTIVE_ALERTS_PATH) { header(HttpHeaders.AcceptEncoding, "gzip") }
+        val response: HttpResponse =
+            client.get(RadarNeboApi.ACTIVE_ALERTS_PATH) { header(HttpHeaders.AcceptEncoding, "gzip") }
         assertEquals("gzip", response.headers[HttpHeaders.ContentEncoding])
     }
 
@@ -345,7 +421,7 @@ class RadarApiTest {
     fun theConsoleSeesEachCallWithItsUncompressedBodyAndMaskedKey() = testApplication {
         val log = TrafficLog()
         val server = server(ClientApiConfig(keys = setOf("app-key"), requestsPerMinute = 10_000), traffic = log)
-        source.alerts = (1L..40).map { alert(it, Fixtures.brovary) }
+        source.alerts = (1L..40).map { alert(it, Fixtures.BROVARY) }
         server.poll()
 
         client.get(RadarNeboApi.ACTIVE_ALERTS_PATH + "?token=app-key") { header(HttpHeaders.AcceptEncoding, "gzip") }
@@ -354,7 +430,7 @@ class RadarApiTest {
         assertEquals(HttpExchange.Direction.Incoming, exchange.direction)
         assertEquals(RadarNeboApi.ACTIVE_ALERTS_PATH + "?token=***", exchange.url)
         assertEquals(200, exchange.status)
-        assertTrue(exchange.responseBody!!.startsWith("{\"alerts\""), "recorded before compression")
+        assertTrue(assertNotNull(exchange.responseBody).startsWith("{\"alerts\""), "recorded before compression")
     }
 
     @Test
@@ -370,13 +446,18 @@ class RadarApiTest {
         assertEquals("degraded", health.status)
         assertEquals("boom", health.lastError)
         assertEquals(DataSourceKind.AlertsInUa.key, health.source)
-        assertEquals(UpstreamConfig().effectivePerMinute, health.upstreamBudgetPerMinute, "the source in use is alerts.in.ua")
+        assertEquals(
+            UpstreamConfig().effectivePerMinute,
+            health.upstreamBudgetPerMinute,
+            "the source in use is alerts.in.ua",
+        )
     }
 
     @Test
     fun anUnexpectedFailureIsAGenericJsonErrorThatRevealsNothing() = testApplication {
         val failingArchive = object : AlertArchive by InMemoryAlertArchive() {
-            override suspend fun history(uid: String, since: Instant, limit: Int): List<AirAlert> = throw IllegalStateException("db path /secret")
+            override suspend fun history(uid: String, since: Instant, limit: Int): List<AirAlert> =
+                throw IllegalStateException("db path /secret")
         }
         val server = server(archives = Archives(failingArchive, InMemoryTrackArchive()))
         server.poll()

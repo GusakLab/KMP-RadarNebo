@@ -15,12 +15,14 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import java.io.IOException
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
@@ -48,29 +50,40 @@ class AlertsInUaSourceTest {
             UpstreamRateLimiter(upstream.effectivePerMinute, clock = { now }, sleep = { now += it }),
             clock = { now },
         )
-        val server = ServerComponents.create(ServerConfig(upstream = upstream), clock = { now }, source = source, archives = Archives.inMemory())
+        val server = ServerComponents.create(
+            ServerConfig(upstream = upstream),
+            clock = { now },
+            source = source,
+            archives = Archives.inMemory(),
+        )
         while (now < 30 * 60_000L) now += server.poller.pollOnce()
 
         hits.forEach { start -> assertTrue(hits.count { it in start until start + 60_000 } <= 8) }
-        // From the 7.5 s poll interval (the clamped budget), doubling on every failure up to the 1-minute cap for 5xx.
+        // From the 7.5 s poll interval (the clamped budget), doubling on every failure up to the 1-minute cap for
+        // 5xx.
         val gaps = hits.zipWithNext { a, b -> b - a }
         assertEquals(listOf(7_500L, 15_000L, 30_000L, 60_000L), gaps.take(4), "failures back off exponentially")
         assertTrue(gaps.drop(4).all { it == 60_000L }, "a server error never backs off past a minute: $gaps")
-        assertTrue(server.poller.status.lastError!!.contains("500"))
+        assertTrue(assertNotNull(server.poller.status.lastError).contains("500"))
     }
 
-    @Test
-    fun pollerUsesConditionalRequestsAndBacksOffOn429() = runTest {
-        val sentIfModifiedSince = mutableListOf<String?>()
+    /**
+     * alerts.in.ua answering, in turn: Brovary with a validator, 304, 429 with Retry-After, Brovary without a
+     * validator, then 304s. Every request's `If-Modified-Since` goes to [sentIfModifiedSince].
+     */
+    private fun conditionalUpstream(sentIfModifiedSince: MutableList<String?>): MockEngine {
         var call = 0
-        val engine = MockEngine { request ->
+        return MockEngine { request ->
             sentIfModifiedSince += request.headers[HttpHeaders.IfModifiedSince]
             assertEquals("Bearer secret", request.headers[HttpHeaders.Authorization])
             when (call++) {
                 0 -> respond(
                     alertsJson("1100", "Броварська територіальна громада", 14, "2026-10-19T10:00:00Z"),
                     HttpStatusCode.OK,
-                    headersOf(HttpHeaders.LastModified to listOf("Mon, 19 Oct 2026 10:00:00 GMT"), HttpHeaders.ContentType to listOf("application/json")),
+                    headersOf(
+                        HttpHeaders.LastModified to listOf("Mon, 19 Oct 2026 10:00:00 GMT"),
+                        HttpHeaders.ContentType to listOf("application/json"),
+                    ),
                 )
                 1 -> respond("", HttpStatusCode.NotModified)
                 2 -> respond("", HttpStatusCode.TooManyRequests, headersOf(HttpHeaders.RetryAfter, "120"))
@@ -82,13 +95,25 @@ class AlertsInUaSourceTest {
                 else -> respond("", HttpStatusCode.NotModified)
             }
         }
+    }
+
+    @Test
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun pollerUsesConditionalRequestsAndBacksOffOn429() = runTest {
+        val sentIfModifiedSince = mutableListOf<String?>()
+        val engine = conditionalUpstream(sentIfModifiedSince)
         val upstream = UpstreamConfig(token = "secret")
         val source = AlertsInUaSource(
             upstream, HttpClient(engine) { expectSuccess = false },
             UpstreamRateLimiter(upstream.effectivePerMinute, clock = { testScheduler.currentTime }),
             clock = { testScheduler.currentTime },
         )
-        val server = ServerComponents.create(ServerConfig(upstream = upstream), clock = { testScheduler.currentTime }, source = source, archives = Archives.inMemory())
+        val server = ServerComponents.create(
+            ServerConfig(upstream = upstream),
+            clock = { testScheduler.currentTime },
+            source = source,
+            archives = Archives.inMemory(),
+        )
         val situation = server.situation
 
         assertEquals(15_000, server.poller.pollOnce())
@@ -97,8 +122,11 @@ class AlertsInUaSourceTest {
         assertEquals(15_000, server.poller.pollOnce())
         assertEquals(1, situation.board?.version, "304 keeps the cached version")
         assertEquals(120_000, server.poller.pollOnce(), "Retry-After is honoured")
-        assertEquals(listOf(null, "Mon, 19 Oct 2026 10:00:00 GMT", "Mon, 19 Oct 2026 10:00:00 GMT"), sentIfModifiedSince)
-        assertTrue(server.poller.status.lastError!!.contains("429"))
+        assertEquals(
+            listOf(null, "Mon, 19 Oct 2026 10:00:00 GMT", "Mon, 19 Oct 2026 10:00:00 GMT"),
+            sentIfModifiedSince,
+        )
+        assertTrue(assertNotNull(server.poller.status.lastError).contains("429"))
         assertEquals(1, situation.tracks.size, "tracked from the alerts")
         assertTrue(situation.tracks.single().id.startsWith("trk-"), situation.tracks.single().id)
 
@@ -108,7 +136,11 @@ class AlertsInUaSourceTest {
         assertEquals("Mon, 19 Oct 2026 10:00:00 GMT", sentIfModifiedSince.last())
     }
 
-    private class FailureCase(val name: String, val reply: MockRequestHandler, val expect: (FetchResult.Failed) -> Unit)
+    private class FailureCase(
+        val name: String,
+        val reply: MockRequestHandler,
+        val expect: (FetchResult.Failed) -> Unit,
+    )
 
     @Test
     fun everyUpstreamFailureIsReportedWithItsWait() = runBlocking {
@@ -131,7 +163,13 @@ class AlertsInUaSourceTest {
                 assertEquals(60_000, it.maxWaitMs, "a transient failure is retried within a minute")
             },
             // Only delay-seconds is understood; an HTTP-date falls back to the 1-minute minimum.
-            FailureCase("429 with an HTTP-date", { respond("", HttpStatusCode.TooManyRequests, headersOf(HttpHeaders.RetryAfter, "Wed, 21 Oct 2026 07:28:00 GMT")) }) {
+            FailureCase(
+                "429 with an HTTP-date",
+                {
+                    val httpDate = "Wed, 21 Oct 2026 07:28:00 GMT"
+                    respond("", HttpStatusCode.TooManyRequests, headersOf(HttpHeaders.RetryAfter, httpDate))
+                },
+            ) {
                 assertEquals(null, it.retryAfterMs)
                 assertEquals(60_000, it.minWaitMs)
                 assertEquals(600_000, it.maxWaitMs)
@@ -155,30 +193,43 @@ class AlertsInUaSourceTest {
     fun upstreamTrafficIsRecordedAndTheBodyStillParses() = runBlocking {
         val log = TrafficLog()
         val engine = MockEngine {
-            respond(alertsJson("7", "Бровари", 14, "2026-10-25T10:00:00.000Z"), headers = headersOf(HttpHeaders.ContentType, "application/json"))
+            respond(
+                alertsJson("7", "Бровари", 14, "2026-10-25T10:00:00.000Z"),
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
         }
         val upstream = UpstreamConfig(token = "secret-token")
+        // A fixed clock: the one request never waits, and nothing here depends on the time.
         val source = AlertsInUaSource(
             upstream, HttpClient(engine) { expectSuccess = false; install(httpTrafficCapture(log)) },
-            UpstreamRateLimiter(upstream.effectivePerMinute, sleep = {}),
+            UpstreamRateLimiter(upstream.effectivePerMinute, clock = { 0L }, sleep = {}),
+            clock = { 0L },
         )
         val result = source.fetch(null)
         assertIs<FetchResult.Fresh>(result, "the source still reads the body")
         val exchange = log.exchanges.value.single()
         assertEquals(HttpExchange.Direction.Outgoing, exchange.direction)
         assertEquals(200, exchange.status)
-        assertTrue("Бровари" in exchange.responseBody!!)
-        assertEquals("***", exchange.requestHeaders.single { it.first == HttpHeaders.Authorization }.second, "the token is masked")
+        assertTrue("Бровари" in assertNotNull(exchange.responseBody))
+        assertEquals(
+            "***",
+            exchange.requestHeaders.single { it.name == HttpHeaders.Authorization }.value,
+            "the token is masked",
+        )
     }
 
     @Test
+    @OptIn(ExperimentalCoroutinesApi::class)
     fun upstreamOutcomesAreCountedForHealth() = runTest {
         var call = 0
         val engine = MockEngine {
             when (call++) {
                 0 -> respond("", HttpStatusCode.TooManyRequests)
                 1 -> respond("", HttpStatusCode.Forbidden)
-                else -> respond(alertsJson("1100", "Броварська територіальна громада", 14, "2026-10-19T10:00:00Z"), HttpStatusCode.OK)
+                else -> respond(
+                    alertsJson("1100", "Броварська територіальна громада", 14, "2026-10-19T10:00:00Z"),
+                    HttpStatusCode.OK,
+                )
             }
         }
         val upstream = UpstreamConfig(token = "secret")

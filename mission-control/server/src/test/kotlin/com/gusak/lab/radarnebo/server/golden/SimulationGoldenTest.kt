@@ -6,6 +6,7 @@ import com.gusak.lab.radarnebo.server.application.SituationReport
 import com.gusak.lab.radarnebo.server.config.SimulationConfig
 import com.gusak.lab.radarnebo.server.domain.alert.AirAlert
 import com.gusak.lab.radarnebo.server.domain.tracking.TargetObservation
+import com.gusak.lab.radarnebo.server.golden.Golden.Check
 import com.gusak.lab.radarnebo.server.golden.Golden.assertDigest
 import com.gusak.lab.radarnebo.server.golden.Golden.assertDigests
 import com.gusak.lab.radarnebo.server.golden.Golden.coord
@@ -37,19 +38,25 @@ class SimulationGoldenTest {
             "cd64c7446b799218bf72a9eadb39aa3623deb4d2aeb592496173b778bc6d1f40",
             "bd197d430513b4818a9ad2c50384f8a0fa1b80b6c396dd706eff390fd67225d3",
         )
-        assertDigests(cases.mapIndexed { i, case ->
-            val config = SimulationConfig(seed = case.seed)
-            val period = config.strikePeriod.inWholeMilliseconds
-            val strikes = CombinedStrikePlanner(case.seed)
-            val frontline = FrontlinePlanner(case.seed)
-            val firstStrike = case.startMs / period
-            val firstFrontline = case.startMs / frontline.slotMs
-            val text = buildString {
-                (firstStrike until firstStrike + 3).forEach { slot -> appendPlan("strike $slot", strikes.plan(slot, slot * period)) }
-                (firstFrontline until firstFrontline + 12).forEach { slot -> appendPlan("frontline $slot", frontline.plan(slot)) }
-            }
-            Triple("plans-seed-${case.seed}", expected[i], text)
-        })
+        assertDigests(
+            cases.mapIndexed { i, case ->
+                val config = SimulationConfig(seed = case.seed)
+                val period = config.strikePeriod.inWholeMilliseconds
+                val strikes = CombinedStrikePlanner(case.seed)
+                val frontline = FrontlinePlanner(case.seed)
+                val firstStrike = case.startMs / period
+                val firstFrontline = case.startMs / frontline.slotMs
+                val text = buildString {
+                    (firstStrike until firstStrike + 3).forEach { slot ->
+                        appendPlan("strike $slot", strikes.plan(slot, slot * period))
+                    }
+                    (firstFrontline until firstFrontline + 12).forEach { slot ->
+                        appendPlan("frontline $slot", frontline.plan(slot))
+                    }
+                }
+                Check("plans-seed-${case.seed}", expected[i], text)
+            },
+        )
     }
 
     @Test
@@ -64,17 +71,21 @@ class SimulationGoldenTest {
             "37d64b5f956bd804566d210aaa0d652b085748703bd331a8ab8dad542e810d5c",
             "b556e04ac972a8d828f33d7a9b3b362f3e7a4bcc00f34ddad18aa6a958376a9a",
         )
-        assertDigests(cases.flatMapIndexed { i, case ->
-            val simulator = AirSituationSimulator(SimulationConfig(seed = case.seed), firstAlertId = 1)
-            // Eight hours, one report every two minutes: always spans a strike start (strikes are six hours apart).
-            val reports = (0 until 8 * 30).map { simulator.reportAt(case.startMs + it * 120_000L) }
-            val ids = CanonicalIds()
-            val alerts = reports.joinToString("") { ids.alertsText(it) }
-            listOf(
-                Triple("feed-alerts-seed-${case.seed}", expectedAlerts[i], alerts),
-                Triple("feed-observations-seed-${case.seed}", expectedObservations[i], reports.joinToString("") { ids.observationsText(it) }),
-            )
-        })
+        assertDigests(
+            cases.flatMapIndexed { i, case ->
+                val simulator = AirSituationSimulator(SimulationConfig(seed = case.seed), firstAlertId = 1)
+                // Eight hours, one report every two minutes: always spans a strike start (strikes are six hours
+                // apart).
+                val reports = (0 until 8 * 30).map { simulator.reportAt(case.startMs + it * 120_000L) }
+                val ids = CanonicalIds()
+                val alerts = reports.joinToString("") { ids.alertsText(it) }
+                val observations = reports.joinToString("") { ids.observationsText(it) }
+                listOf(
+                    Check("feed-alerts-seed-${case.seed}", expectedAlerts[i], alerts),
+                    Check("feed-observations-seed-${case.seed}", expectedObservations[i], observations),
+                )
+            },
+        )
     }
 
     @Test
@@ -85,21 +96,27 @@ class SimulationGoldenTest {
         val live = (source.fetch(null) as FetchResult.Fresh).report
         val ids = CanonicalIds()
         val text = (history + live).joinToString("") { ids.alertsText(it) + ids.observationsText(it) }
-        assertDigest("source-default", "d811f8a872a4a03824f9145e77ab22526636e4733d0bf5780e573b60f29f89f1", "${history.size} reports\n$text")
+        assertDigest(
+            "source-default",
+            "d811f8a872a4a03824f9145e77ab22526636e4733d0bf5780e573b60f29f89f1",
+            "${history.size} reports\n$text",
+        )
     }
 
     private fun StringBuilder.appendPlan(name: String, plan: AttackPlan) {
         append("# ").append(name).append('\n')
         plan.flights.forEach { f ->
-            append("F ").append(f.id).append('|').append(f.munition).append('|').append(f.departAt).append('|').append(f.detectedAt)
-                .append('|').append(f.endAt).append('|').append(f.path.arriveAt).append('|').append(f.outcome).append('|').append(f.count)
-                .append('|').append(f.targetOblastUid).append('|').append(f.level).append('|').append(coord(f.path.speedKmh))
+            append("F ").append(f.id).append('|').append(f.munition).append('|').append(f.departAt)
+                .append('|').append(f.detectedAt).append('|').append(f.endAt).append('|').append(f.path.arriveAt)
+                .append('|').append(f.outcome).append('|').append(f.count)
+                .append('|').append(f.targetOblastUid).append('|').append(f.level)
+                .append('|').append(coord(f.path.speedKmh))
                 .append('|').append(f.message).append('|').append(f.targetName)
                 .append('|').append(f.path.waypoints.joinToString(";") { point(it) }).append('\n')
         }
         plan.areas.forEach { a ->
-            append("A ").append(a.type).append('|').append(a.oblastUids.joinToString(",")).append('|').append(a.from).append('|')
-                .append(a.until).append('|').append(a.level).append('|').append(a.message).append('\n')
+            append("A ").append(a.type).append('|').append(a.oblastUids.joinToString(",")).append('|').append(a.from)
+                .append('|').append(a.until).append('|').append(a.level).append('|').append(a.message).append('\n')
         }
     }
 
@@ -115,7 +132,9 @@ class SimulationGoldenTest {
 
         fun alertsText(report: SituationReport): String = buildString {
             val new = report.alerts.filter { it.id !in canonical }
-            new.sortedBy { it.location.uid }.zip(new.map { it.id }.sorted()).forEach { (alert, id) -> canonical[alert.id] = id }
+            new.sortedBy { it.location.uid }
+                .zip(new.map { it.id }.sorted())
+                .forEach { (alert, id) -> canonical[alert.id] = id }
             append("@").append(report.observedAt).append('\n')
             report.alerts.sortedBy { it.location.uid }.forEach { append(alert(it)).append('\n') }
         }
@@ -126,7 +145,8 @@ class SimulationGoldenTest {
         }
 
         private fun alert(a: AirAlert): String =
-            "${canonical.getValue(a.id)}|${a.location.uid}|${a.type}|${a.level}|${a.startedAt}|${a.updatedAt}|${a.finishedAt}|" +
+            "${canonical.getValue(a.id)}|${a.location.uid}|${a.type}|${a.level}|" +
+                "${a.startedAt}|${a.updatedAt}|${a.finishedAt}|" +
                 a.threats.joinToString(";") { "${it.type}:${it.level}:${it.startedAt}:${it.sourceMessage}" }
 
         private fun observation(o: TargetObservation): String {
@@ -134,7 +154,8 @@ class SimulationGoldenTest {
                 val (id, type) = marker.split(':', limit = 2)
                 "${canonical.getValue(id.toLong())}:$type"
             }.sorted()
-            return "${o.targetId}|${o.type}|${o.observedAt}|${point(o.position)}|${o.level}|${o.outcome}|${markers.joinToString(",")}|${o.message}"
+            return "${o.targetId}|${o.type}|${o.observedAt}|${point(o.position)}|${o.level}|${o.outcome}|" +
+                "${markers.joinToString(",")}|${o.message}"
         }
     }
 

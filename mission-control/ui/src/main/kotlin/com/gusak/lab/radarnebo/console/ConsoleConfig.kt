@@ -5,11 +5,11 @@ import com.gusak.lab.radarnebo.server.config.ServerConfig
 import java.io.File
 
 /**
- * The server's settings as `:mission-control:server:run` gets them: the environment, then `.env` in the server's directory
- * (the `radarnebo.server.dir` system property the build passes), with the archive kept under that directory.
+ * The server's settings as `:mission-control:server:run` gets them: the environment, then `.env` in the server's
+ * directory (the `radarnebo.server.dir` system property the build passes), with the archive kept under that directory.
  * Variables set in the environment win over the file.
  */
-fun consoleConfig(
+internal fun consoleConfig(
     serverDir: File? = System.getProperty("radarnebo.server.dir")?.let(::File),
     environment: Map<String, String> = System.getenv(),
 ): ServerConfig {

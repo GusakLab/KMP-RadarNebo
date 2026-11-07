@@ -101,7 +101,10 @@ class MapGesturesTest {
         val s = smoother(applied)
         s.pan(Offset(0f, -120f))
         s.step(1 / 60f)
-        assertTrue(abs(applied.last().y) in 10f..60f, "first frame applies only part of the scroll, got ${applied.last()}")
+        assertTrue(
+            abs(applied.last().y) in 10f..60f,
+            "first frame applies only part of the scroll, got ${applied.last()}",
+        )
         var frames = 1
         while (s.step(1 / 60f)) frames++
         assertTrue(frames in 5..40, "glide settles within a fraction of a second, took $frames frames")
@@ -115,7 +118,9 @@ class MapGesturesTest {
         s.pan(Offset(0f, -50f))
         s.step(1 / 60f)
         s.pan(Offset(0f, -50f))
-        while (s.step(1 / 60f)) Unit
+        do {
+            val gliding = s.step(1 / 60f)
+        } while (gliding)
         assertEquals(-100f, applied.fold(0f) { acc, o -> acc + o.y }, 1e-3f)
     }
 

@@ -40,10 +40,11 @@ internal fun AppPreviewHost(
         val storage = InMemoryStorage().apply {
             putString("theme_mode", theme.name)
             putString("map_mode", mapMode.name)
-            putString("favorites", RadarNeboApi.json.encodeToString(ListSerializer(FavoriteLocation.serializer()), favorites))
+            val serializer = ListSerializer(FavoriteLocation.serializer())
+            putString("favorites", RadarNeboApi.json.encodeToString(serializer, favorites))
         }
         isolatedKoin(storage).apply {
-            if (map) modules(module { single { MapTiles(client = null, blocking = true) } })
+            if (map) modules(module { single { MapTiles(client = null) } })
         }
     }
     val owner = remember(koin) {
@@ -77,13 +78,17 @@ private fun AppTabletPreview() = AppPreviewHost(ThemeMode.Dark)
 @Preview(name = "Favorites · threats near favorites", widthDp = 420, heightDp = 860)
 @Composable
 private fun FavoritesWithWarningsPreview() {
-    RadarTheme(ThemeMode.Dark) { Surface { FavoritesScreen(PreviewData.scenario(), onAdd = { _, _ -> }, onRemove = {}) } }
+    RadarTheme(ThemeMode.Dark) {
+        Surface { FavoritesScreen(PreviewData.scenario(), onAdd = { _, _ -> }, onRemove = {}) }
+    }
 }
 
 @Preview(name = "Favorites · all clear · light", widthDp = 420, heightDp = 860)
 @Composable
 private fun FavoritesClearPreview() {
-    RadarTheme(ThemeMode.Light) { Surface { FavoritesScreen(PreviewData.quiet(ThemeMode.Light), onAdd = { _, _ -> }, onRemove = {}) } }
+    RadarTheme(ThemeMode.Light) {
+        Surface { FavoritesScreen(PreviewData.quiet(ThemeMode.Light), onAdd = { _, _ -> }, onRemove = {}) }
+    }
 }
 
 @Preview(name = "Settings · every section", widthDp = 420, heightDp = 2300)
@@ -95,5 +100,7 @@ private fun SettingsFullPreview() {
 @Preview(name = "Settings · every section · light", widthDp = 420, heightDp = 2300)
 @Composable
 private fun SettingsFullLightPreview() {
-    RadarTheme(ThemeMode.Light) { Surface { SettingsScreen(PreviewData.scenario(ThemeMode.Light).settings, onChange = {}) } }
+    RadarTheme(ThemeMode.Light) {
+        Surface { SettingsScreen(PreviewData.scenario(ThemeMode.Light).settings, onChange = {}) }
+    }
 }

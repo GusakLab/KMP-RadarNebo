@@ -6,7 +6,7 @@ import kotlin.time.Instant
  * The alerts active right now. [version] changes exactly when the content does; [confirmedAt] is when the
  * source last vouched for the content.
  */
-data class AlertBoard(
+internal data class AlertBoard(
     val alerts: List<AirAlert>,
     val version: Long,
     val changedAt: Instant,
@@ -35,16 +35,6 @@ data class AlertBoard(
     fun confirmed(at: Instant): AlertBoard = copy(confirmedAt = at)
 
     companion object {
-        fun empty(at: Instant) = AlertBoard(emptyList(), version = 0, changedAt = at, confirmedAt = at)
+        fun empty(at: Instant): AlertBoard = AlertBoard(emptyList(), version = 0, changedAt = at, confirmedAt = at)
     }
-}
-
-/** What changed between two boards. */
-data class BoardChange(
-    val board: AlertBoard,
-    val opened: List<AirAlert> = emptyList(),
-    val updated: List<AirAlert> = emptyList(),
-    val finished: List<AirAlert> = emptyList(),
-) {
-    val changed: Boolean get() = opened.isNotEmpty() || updated.isNotEmpty() || finished.isNotEmpty()
 }

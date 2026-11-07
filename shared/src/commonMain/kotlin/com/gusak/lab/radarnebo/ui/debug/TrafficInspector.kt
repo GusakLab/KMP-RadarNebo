@@ -53,12 +53,14 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.gusak.lab.radarnebo.debug.HttpExchange
+import com.gusak.lab.radarnebo.debug.HttpHeader
 import com.gusak.lab.radarnebo.ui.STATUS_TINT
 import com.gusak.lab.radarnebo.ui.formatClock
 import com.gusak.lab.radarnebo.ui.radarColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 
@@ -79,7 +81,8 @@ fun TrafficInspector(
     var direction by rememberSaveable { mutableStateOf<HttpExchange.Direction?>(null) }
     var query by rememberSaveable { mutableStateOf("") }
     val shown = exchanges.asReversed().filter { e ->
-        (direction == null || e.direction == direction) && (query.isBlank() || query.trim().lowercase() in e.url.lowercase())
+        val matchesQuery = query.isBlank() || query.trim().lowercase() in e.url.lowercase()
+        (direction == null || e.direction == direction) && matchesQuery
     }
     val selected = exchanges.firstOrNull { it.id == selectedId }
 
@@ -88,70 +91,120 @@ fun TrafficInspector(
         val list = @Composable { listModifier: Modifier ->
             Column(listModifier) {
                 header?.invoke()
-                Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    OutlinedTextField(
-                        query,
-                        onValueChange = { query = it },
-                        placeholder = { Text("Filter by URL") },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f),
-                    )
-                    TextButton(onClick = {
+                FilterRow(
+                    query,
+                    onQueryChange = { query = it },
+                    onClear = {
                         onClear()
                         selectedId = null
-                    }) { Text("Clear") }
-                }
+                    },
+                )
                 if (showDirections) {
-                    Row(Modifier.padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(direction == null, onClick = { direction = null }, label = { Text("All (${exchanges.size})") })
-                        FilterChip(
-                            direction == HttpExchange.Direction.Incoming,
-                            onClick = { direction = HttpExchange.Direction.Incoming },
-                            label = { Text("From clients (${exchanges.count { it.direction == HttpExchange.Direction.Incoming }})") },
-                        )
-                        FilterChip(
-                            direction == HttpExchange.Direction.Outgoing,
-                            onClick = { direction = HttpExchange.Direction.Outgoing },
-                            label = { Text("Upstream (${exchanges.count { it.direction == HttpExchange.Direction.Outgoing }})") },
-                        )
-                    }
+                    DirectionChips(exchanges, direction, onDirectionChange = { direction = it })
                 }
-                if (shown.isEmpty()) {
-                    Text(
-                        if (exchanges.isEmpty()) "No requests yet." else "No requests match.",
-                        Modifier.padding(16.dp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                LazyColumn(contentPadding = PaddingValues(vertical = 4.dp)) {
-                    items(shown, key = { it.id }) { exchange ->
-                        ExchangeRow(exchange, selected = exchange.id == selectedId, showDirection = showDirections) { selectedId = exchange.id }
-                    }
-                }
+                ExchangeList(exchanges, shown, selectedId, showDirections, onSelect = { selectedId = it })
             }
         }
 
         if (wide) {
-            Row(Modifier.fillMaxSize()) {
-                list(Modifier.weight(0.42f).fillMaxHeight())
-                VerticalDivider()
-                Box(Modifier.weight(0.58f).fillMaxHeight()) {
-                    if (selected != null) {
-                        ExchangeDetail(selected, onBack = null)
-                    } else {
-                        Text("Select a request to see its details.", Modifier.padding(24.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-            }
+            SideBySide(list, selected)
         } else if (selected != null) {
             ExchangeDetail(selected, onBack = { selectedId = null })
         } else {
             list(Modifier.fillMaxSize())
         }
+    }
+}
+
+/** The [list] beside the [selected] exchange's details, or a hint to pick one. */
+@Composable
+private fun SideBySide(list: @Composable (Modifier) -> Unit, selected: HttpExchange?) {
+    Row(Modifier.fillMaxSize()) {
+        list(Modifier.weight(0.42f).fillMaxHeight())
+        VerticalDivider()
+        Box(Modifier.weight(0.58f).fillMaxHeight()) {
+            if (selected != null) {
+                ExchangeDetail(selected, onBack = null)
+            } else {
+                Text(
+                    "Select a request to see its details.",
+                    Modifier.padding(24.dp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+/** The [shown] exchanges, newest first, or why there are none of [all]. */
+@Composable
+private fun ExchangeList(
+    all: List<HttpExchange>,
+    shown: List<HttpExchange>,
+    selectedId: Long?,
+    showDirections: Boolean,
+    onSelect: (Long) -> Unit,
+) {
+    if (shown.isEmpty()) {
+        Text(
+            if (all.isEmpty()) "No requests yet." else "No requests match.",
+            Modifier.padding(16.dp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+    LazyColumn(contentPadding = PaddingValues(vertical = 4.dp)) {
+        items(shown, key = { it.id }) { exchange ->
+            ExchangeRow(exchange, selected = exchange.id == selectedId, showDirection = showDirections) {
+                onSelect(exchange.id)
+            }
+        }
+    }
+}
+
+/** The URL filter, and a button that clears the log. */
+@Composable
+private fun FilterRow(query: String, onQueryChange: (String) -> Unit, onClear: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        OutlinedTextField(
+            query,
+            onValueChange = onQueryChange,
+            placeholder = { Text("Filter by URL") },
+            singleLine = true,
+            modifier = Modifier.weight(1f),
+        )
+        TextButton(onClick = onClear) { Text("Clear") }
+    }
+}
+
+/** Shows every exchange, or only incoming or outgoing ones; null [direction] is all of them. */
+@Composable
+private fun DirectionChips(
+    exchanges: List<HttpExchange>,
+    direction: HttpExchange.Direction?,
+    onDirectionChange: (HttpExchange.Direction?) -> Unit,
+) {
+    val incoming = exchanges.count { it.direction == HttpExchange.Direction.Incoming }
+    val outgoing = exchanges.count { it.direction == HttpExchange.Direction.Outgoing }
+    Row(Modifier.padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FilterChip(
+            direction == null,
+            onClick = { onDirectionChange(null) },
+            label = { Text("All (${exchanges.size})") },
+        )
+        FilterChip(
+            direction == HttpExchange.Direction.Incoming,
+            onClick = { onDirectionChange(HttpExchange.Direction.Incoming) },
+            label = { Text("From clients ($incoming)") },
+        )
+        FilterChip(
+            direction == HttpExchange.Direction.Outgoing,
+            onClick = { onDirectionChange(HttpExchange.Direction.Outgoing) },
+            label = { Text("Upstream ($outgoing)") },
+        )
     }
 }
 
@@ -168,9 +221,15 @@ private fun ExchangeRow(exchange: HttpExchange, selected: Boolean, showDirection
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text(formatClock(exchange.startedAt), fontFamily = FontFamily.Monospace, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            formatClock(exchange.startedAt),
+            fontFamily = FontFamily.Monospace,
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         if (showDirection) {
-            Text(if (exchange.direction == HttpExchange.Direction.Incoming) "↓" else "↑", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            val arrow = if (exchange.direction == HttpExchange.Direction.Incoming) "↓" else "↑"
+            Text(arrow, fontSize = 13.sp, fontWeight = FontWeight.Bold)
         }
         StatusBadge(exchange)
         Column(Modifier.weight(1f)) {
@@ -182,7 +241,8 @@ private fun ExchangeRow(exchange: HttpExchange, selected: Boolean, showDirection
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                listOfNotNull(exchange.host ?: exchange.remoteAddress, "${exchange.durationMs} ms", bodySize(exchange)).joinToString(" · "),
+                listOfNotNull(exchange.host ?: exchange.remoteAddress, "${exchange.durationMs} ms", bodySize(exchange))
+                    .joinToString(" · "),
                 fontSize = 11.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -204,7 +264,9 @@ private fun StatusBadge(exchange: HttpExchange) {
     }
     Text(
         status?.toString() ?: "ERR",
-        Modifier.background(color.copy(alpha = STATUS_TINT), RoundedCornerShape(4.dp)).padding(horizontal = 6.dp, vertical = 1.dp),
+        Modifier
+            .background(color.copy(alpha = STATUS_TINT), RoundedCornerShape(4.dp))
+            .padding(horizontal = 6.dp, vertical = 1.dp),
         color = color,
         fontSize = 12.sp,
         fontWeight = FontWeight.Bold,
@@ -225,19 +287,20 @@ private fun ExchangeDetail(exchange: HttpExchange, onBack: (() -> Unit)?) {
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp)) {
             item {
                 if (onBack != null) TextButton(onClick = onBack) { Text("← Requests") }
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     StatusBadge(exchange)
                     Text(exchange.method, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
                 }
-                Text(exchange.url, fontFamily = FontFamily.Monospace, fontSize = 13.sp, modifier = Modifier.padding(vertical = 6.dp))
-                Fact("Time", formatClock(exchange.startedAt))
-                Fact("Duration", "${exchange.durationMs} ms")
-                Fact("Direction", if (exchange.direction == HttpExchange.Direction.Incoming) "Incoming (a client called)" else "Outgoing")
-                exchange.remoteAddress?.let { Fact("Client", it) }
-                exchange.userAgent?.let { Fact("User agent", it) }
-                exchange.contentType?.let { Fact("Content type", it) }
-                bodySize(exchange)?.let { Fact("Body", it) }
-                exchange.error?.let { Fact("Error", it, radarColors.dangerText) }
+                Text(
+                    exchange.url,
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(vertical = 6.dp),
+                )
+                ExchangeFacts(exchange)
                 Section("Request headers")
                 Headers(exchange.requestHeaders)
                 Section("Response headers")
@@ -249,11 +312,32 @@ private fun ExchangeDetail(exchange: HttpExchange, onBack: (() -> Unit)?) {
             }
             itemsIndexed(body) { _, line ->
                 Row(Modifier.horizontalScroll(rememberScrollState())) {
-                    Text(highlightJsonLine(line, highlight), fontFamily = FontFamily.Monospace, fontSize = 12.sp, softWrap = false)
+                    Text(
+                        highlightJsonLine(line, highlight),
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 12.sp,
+                        softWrap = false,
+                    )
                 }
             }
         }
     }
+}
+
+/** When, how long, which way and from whom an exchange went, and how it ended. */
+@Composable
+private fun ExchangeFacts(exchange: HttpExchange) {
+    Fact("Time", formatClock(exchange.startedAt))
+    Fact("Duration", "${exchange.durationMs} ms")
+    Fact(
+        "Direction",
+        if (exchange.direction == HttpExchange.Direction.Incoming) "Incoming (a client called)" else "Outgoing",
+    )
+    exchange.remoteAddress?.let { Fact("Client", it) }
+    exchange.userAgent?.let { Fact("User agent", it) }
+    exchange.contentType?.let { Fact("Content type", it) }
+    bodySize(exchange)?.let { Fact("Body", it) }
+    exchange.error?.let { Fact("Error", it, radarColors.dangerText) }
 }
 
 @Composable
@@ -295,7 +379,7 @@ private fun CopyButton(text: String) {
 }
 
 @Composable
-private fun Headers(headers: List<Pair<String, String>>) {
+private fun Headers(headers: List<HttpHeader>) {
     if (headers.isEmpty()) Text("(none)", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
     headers.forEach { (name, value) ->
         Text(
@@ -317,9 +401,12 @@ private val PrettyJson = Json {
 }
 
 /** [text] re-indented when it is JSON, as it is otherwise. */
-fun prettyJson(text: String): String = runCatching {
+internal fun prettyJson(text: String): String = try {
     PrettyJson.encodeToString(JsonElement.serializer(), Json.parseToJsonElement(text))
-}.getOrDefault(text)
+} catch (_: SerializationException) {
+    // Not JSON: shown as it came.
+    text
+}
 
 private class JsonColors(val key: Color, val string: Color, val literal: Color)
 
@@ -330,7 +417,9 @@ private fun jsonHighlightColors() = JsonColors(
     literal = radarColors.warningText,
 )
 
-private val jsonToken = Regex("\"(?:\\\\.|[^\"\\\\])*\"(\\s*:)?|-?\\d+(?:\\.\\d+)?(?:[eE][+-]?\\d+)?|\\btrue\\b|\\bfalse\\b|\\bnull\\b")
+private val jsonToken = Regex(
+    "\"(?:\\\\.|[^\"\\\\])*\"(\\s*:)?" + "|-?\\d+(?:\\.\\d+)?(?:[eE][+-]?\\d+)?" + "|\\btrue\\b|\\bfalse\\b|\\bnull\\b",
+)
 
 /** Keys, strings and literals in one line of pretty-printed JSON, coloured. */
 private fun highlightJsonLine(line: String, colors: JsonColors): AnnotatedString = buildAnnotatedString {

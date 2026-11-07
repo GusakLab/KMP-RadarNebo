@@ -22,26 +22,26 @@ import kotlin.time.Instant
  * archive. Reports from the data source come in through [publish]; client requests only read, from
  * immutable snapshots, so they never wait for the poller.
  */
-class SituationService(
+class SituationService internal constructor(
     private val tracking: TargetTracking,
     private val alertArchive: AlertArchive,
     private val trackArchive: TrackArchive,
     private val locations: LocationDirectory,
     /** True when the data is simulated; served to clients so they can label it. */
-    val simulated: Boolean,
+    internal val simulated: Boolean,
 ) {
     /** Null until the first report. */
     @Volatile
-    var board: AlertBoard? = null
+    internal var board: AlertBoard? = null
         private set
 
     /** The latest active-alerts body as the source sent it; null when the source sends none (the simulation). */
     @Volatile
-    var rawAlerts: String? = null
+    internal var rawAlerts: String? = null
         private set
 
     @Volatile
-    var tracks: List<DroneTrack> = emptyList()
+    internal var tracks: List<DroneTrack> = emptyList()
         private set
 
     private val log = LoggerFactory.getLogger(SituationService::class.java)
@@ -64,25 +64,25 @@ class SituationService(
     private var trackingAlerts: List<AirAlert> = emptyList()
 
     /** Applies a fresh report and archives what changed. */
-    suspend fun publish(report: SituationReport) = mutex.withLock { apply(report, archive = true) }
+    internal suspend fun publish(report: SituationReport): Unit = mutex.withLock { apply(report, archive = true) }
 
     /** Applies a report from before the server started: it builds up state but is not archived. */
-    suspend fun replay(report: SituationReport) = mutex.withLock { apply(report, archive = false) }
+    internal suspend fun replay(report: SituationReport): Unit = mutex.withLock { apply(report, archive = false) }
 
     /** The source confirmed at [atMs] that nothing changed; tracks still age. */
-    suspend fun confirm(atMs: Long) = mutex.withLock {
+    internal suspend fun confirm(atMs: Long): Unit = mutex.withLock {
         val current = board ?: return@withLock
         board = current.confirmed(Instant.fromEpochMilliseconds(atMs))
         unsavedTracks += advanceTracks(current.alerts + trackingAlerts, emptyList(), atMs)
         saveUnsavedTracks()
     }
 
-    fun activeAlerts(): List<AirAlert> = board?.alerts.orEmpty()
+    internal fun activeAlerts(): List<AirAlert> = board?.alerts.orEmpty()
 
-    fun airRaidStatus(board: AlertBoard): AirRaidStatusMap = AirRaidStatusMap(board.alerts, locations)
+    internal fun airRaidStatus(board: AlertBoard): AirRaidStatusMap = AirRaidStatusMap(board.alerts, locations)
 
     /** Alerts for [uid] active at some point since [since], archived and current, newest first. */
-    suspend fun alertHistory(uid: String, since: Instant, limit: Int): List<AirAlert> {
+    internal suspend fun alertHistory(uid: String, since: Instant, limit: Int): List<AirAlert> {
         val live = activeAlerts().filter { it.concerns(uid) }
         val liveIds = live.mapTo(HashSet()) { it.id }
         return (live + alertArchive.history(uid, since, limit).filter { it.id !in liveIds })
@@ -91,7 +91,7 @@ class SituationService(
     }
 
     /** Tracks in the air at some point in [query]'s window, current and archived, newest first. */
-    suspend fun trackHistory(query: TrackQuery): List<DroneTrack> {
+    internal suspend fun trackHistory(query: TrackQuery): List<DroneTrack> {
         val live = tracks.filter(query::overlaps)
         val liveIds = live.mapTo(HashSet()) { it.id }
         return (live + trackArchive.history(query).filter { it.id !in liveIds })
@@ -100,7 +100,7 @@ class SituationService(
     }
 
     /** Deletes archived alerts and tracks that ended before [before]. */
-    suspend fun pruneArchive(before: Instant): Int =
+    internal suspend fun pruneArchive(before: Instant): Int =
         alertArchive.prune(before) + trackArchive.prune(before.toEpochMilliseconds())
 
     private suspend fun apply(report: SituationReport, archive: Boolean) {
@@ -120,6 +120,8 @@ class SituationService(
         } else if (change.changed) {
             try {
                 alertArchive.save(change.opened + change.updated + change.finished)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 // The next publish then re-runs reconcile(), bringing the archive back in line with the board.
                 reconciled = false
@@ -151,7 +153,11 @@ class SituationService(
      * Feeds the report into tracking, serves the new tracks and returns those that ended, for the archive. Every
      * track goes out with its estimate, smoothed path and forecast ([TrajectoryEstimator]), so clients only draw.
      */
-    private fun advanceTracks(alerts: List<AirAlert>, observations: List<TargetObservation>, atMs: Long): List<DroneTrack> {
+    private fun advanceTracks(
+        alerts: List<AirAlert>,
+        observations: List<TargetObservation>,
+        atMs: Long,
+    ): List<DroneTrack> {
         val update = tracking.update(alerts, observations, atMs)
         tracks = update.tracks.map { TrajectoryEstimator.enrich(it, atMs) }
         return update.ended.map { TrajectoryEstimator.enrich(it, atMs) }

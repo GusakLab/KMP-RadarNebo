@@ -29,7 +29,9 @@ class AlertRegistryTest {
     fun aThreatOnlyEscalates() {
         val registry = AlertRegistry(firstId = 1)
         registry.update(mapOf(odesa to listOf(demand(ThreatType.Drones, ThreatLevel.Red))), t = 0)
-        val alert = registry.update(mapOf(odesa to listOf(demand(ThreatType.Drones, ThreatLevel.Yellow))), t = MINUTE_MS).single()
+        val alert = registry
+            .update(mapOf(odesa to listOf(demand(ThreatType.Drones, ThreatLevel.Yellow))), t = MINUTE_MS)
+            .single()
         assertEquals(ThreatLevel.Red, alert.threats.single().level)
         assertEquals(ThreatLevel.Red, alert.level)
     }
@@ -38,7 +40,8 @@ class AlertRegistryTest {
     fun threatsClearAWhileAfterTheirLastDemandAndTheAlertWithTheLast() {
         val registry = AlertRegistry(firstId = 1)
         registry.update(mapOf(odesa to listOf(demand(ThreatType.Drones), demand(ThreatType.CruiseMissiles))), t = 0)
-        fun threatsAt(t: Long) = registry.update(emptyMap(), t).flatMap { alert -> alert.threats.map { it.type } }.toSet()
+        fun threatsAt(t: Long) =
+            registry.update(emptyMap(), t).flatMap { alert -> alert.threats.map { it.type } }.toSet()
 
         assertEquals(setOf(ThreatType.Drones, ThreatType.CruiseMissiles), threatsAt(2 * MINUTE_MS))
         assertEquals(setOf(ThreatType.Drones), threatsAt(2 * MINUTE_MS + 1), "cruise missiles clear after 2 minutes")

@@ -22,19 +22,22 @@ class TrajectoryReplayTest {
     private val period = config.strikePeriod.inWholeMilliseconds
     private val minute = 60_000L
     private val strikeStart = generateSequence(1_800_000_000_000L / period) { it + 1 }
-        .first { slot -> CombinedStrikePlanner(config.seed).plan(slot, slot * period).flights.count { it.munition == Munition.Shahed } >= 8 } * period
+        .first { slot ->
+            val flights = CombinedStrikePlanner(config.seed).plan(slot, slot * period).flights
+            flights.count { it.munition == Munition.Shahed } >= 8
+        } * period
 
     private class Score(val errorsKm: List<Double>, val tracks: List<DroneTrack>, val tracksPerTarget: Double) {
         val median get() = errorsKm.sorted()[errorsKm.size / 2]
     }
 
+    /** Surveillance fused with the alerts: none, or every [everyMin] minutes for the targets [sighted] picks. */
+    private class Surveillance(val everyMin: Long, val sighted: (String) -> Boolean)
+
     /**
      * Every minute of a strike period, every active drone track's position against the nearest true drone group,
      * with the server's estimate ([enrich]) or with the old client-side interpolation of the raw reports.
      */
-    /** Surveillance fused with the alerts: none, or every [everyMin] minutes for the targets [sighted] picks. */
-    private class Surveillance(val everyMin: Long, val sighted: (String) -> Boolean)
-
     private fun replay(enrich: Boolean, surveillance: Surveillance? = null): Score {
         val fused = surveillance != null
         val simulator = AirSituationSimulator(config, firstAlertId = 1)
@@ -53,7 +56,9 @@ class TrajectoryReplayTest {
             tracks = tracking.update(report.alerts, sightings, t).tracks
                 .map { if (enrich) TrajectoryEstimator.enrich(it, t) else it }
             // The truth: surveillance sightings of every drone-class flight in the air, strike and front line alike.
-            val flying = report.observations.filter { it.type == ThreatType.Drones && it.outcome == null }.map { it.position }
+            val flying = report.observations
+                .filter { it.type == ThreatType.Drones && it.outcome == null }
+                .map { it.position }
             if (flying.isEmpty()) continue
             flyingTargets += flying.size
             activeTracks += tracks.count { it.type == ThreatType.Drones && it.active }
@@ -69,7 +74,10 @@ class TrajectoryReplayTest {
     fun serverEstimatesAreCloserToTheTruthThanRawReports() {
         val fused = replay(enrich = true)
         val raw = replay(enrich = false)
-        println("Drone position error, median: fused ${"%.1f".format(fused.median)} km, raw ${"%.1f".format(raw.median)} km (${fused.errorsKm.size} fixes)")
+        println(
+            "Drone position error, median: fused ${"%.1f".format(fused.median)} km, " +
+                "raw ${"%.1f".format(raw.median)} km (${fused.errorsKm.size} fixes)",
+        )
         assertTrue(fused.errorsKm.size > 100, "enough fixes to score: ${fused.errorsKm.size}")
         assertTrue(fused.median < raw.median, "fused ${fused.median} km vs raw ${raw.median} km")
         // Measured at about 41 km (raw reports: 43.5 km). Alerts only name an area ahead of the target, so a
@@ -85,10 +93,14 @@ class TrajectoryReplayTest {
         val dense = replay(enrich = true, Surveillance(5) { true })
         println(
             "Drone position error, median: alerts ${"%.1f".format(alertsOnly.median)} km, + sparse sightings " +
-                "${"%.1f".format(sparse.median)} km, + dense sightings ${"%.1f".format(dense.median)} km; active tracks per " +
-                "flying drone: ${listOf(alertsOnly, sparse, dense).joinToString(" / ") { "%.2f".format(it.tracksPerTarget) }}",
+                "${"%.1f".format(sparse.median)} km, + dense sightings ${"%.1f".format(dense.median)} km; " +
+                "active tracks per flying drone: " +
+                listOf(alertsOnly, sparse, dense).joinToString(" / ") { "%.2f".format(it.tracksPerTarget) },
         )
-        assertTrue(sparse.median < alertsOnly.median, "sparse ${sparse.median} km vs alerts alone ${alertsOnly.median} km")
+        assertTrue(
+            sparse.median < alertsOnly.median,
+            "sparse ${sparse.median} km vs alerts alone ${alertsOnly.median} km",
+        )
         assertTrue(dense.median < sparse.median, "dense ${dense.median} km vs sparse ${sparse.median} km")
     }
 

@@ -15,7 +15,7 @@ plugins {
 val clientPropertiesFile = providers.gradleProperty("clientProperties").orElse("client.properties")
 val clientProperties = providers.fileContents(rootProject.layout.projectDirectory.file(clientPropertiesFile)).asText
     .map { text -> Properties().apply { load(text.reader()) } }
-val generateClientConfig by tasks.registering {
+val generateClientConfig = tasks.register("generateClientConfig") {
     val serverUrl = clientProperties.map { it.getProperty("server.url").orEmpty().trim() }.orElse("")
     val accessKey = clientProperties.map { it.getProperty("server.accessKey").orEmpty().trim() }.orElse("")
     val outputDir = layout.buildDirectory.dir("generated/clientConfig")
@@ -40,7 +40,35 @@ val generateClientConfig by tasks.registering {
     }
 }
 
+// Compose Multiplatform's iOS libraries depend both on Google's androidx annotation, collection, savedstate and
+// navigationevent and on JetBrains' copies of them. Each pair shares a klib name, so the iOS metadata compilation
+// warned about duplicates, and warnings fail the build. The Google artifacts replace the copies on those classpaths;
+// the JVM and Android variants of the copies already resolve to Google's.
+val googleAndroidx = mapOf(
+    "org.jetbrains.compose.annotation-internal:annotation" to libs.androidx.annotation,
+    "org.jetbrains.compose.collection-internal:collection" to libs.androidx.collection,
+    "org.jetbrains.androidx.navigationevent:navigationevent-compose" to libs.androidx.navigationevent.compose,
+    "org.jetbrains.androidx.savedstate:savedstate" to libs.androidx.savedstate.asProvider(),
+    "org.jetbrains.androidx.savedstate:savedstate-compose" to libs.androidx.savedstate.compose,
+)
+configurations
+    .matching { it.name.contains("ios", ignoreCase = true) || it.name.contains("Metadata") }
+    .configureEach {
+        resolutionStrategy.dependencySubstitution {
+            googleAndroidx.forEach { (copy, google) ->
+                val target = google.get()
+                val coordinates = "${target.module}:${target.versionConstraint.requiredVersion}"
+                substitute(module(copy)).using(module(coordinates)).because("same klib as Google's")
+            }
+        }
+    }
+
 kotlin {
+    // Every compilation of this module (main and test, on every target) fails on a compiler warning.
+    compilerOptions {
+        allWarningsAsErrors.set(true)
+    }
+
     listOf(
         iosArm64(),
         iosSimulatorArm64()
@@ -50,7 +78,7 @@ kotlin {
             isStatic = true
         }
     }
-    
+
     jvm {
         compilerOptions {
             jvmTarget = JvmTarget.JVM_11
@@ -58,29 +86,29 @@ kotlin {
     }
 
     android {
-       namespace = "com.gusak.lab.radarnebo.shared"
-       // Compose 1.13 (from material3 1.13.0-beta01) needs API 37.1 or later to compile against.
-       compileSdk {
-           version = release(libs.versions.android.compileSdk.get().toInt()) { minorApiLevel = 2 }
-       }
-       minSdk = libs.versions.android.minSdk.get().toInt()
-    
-       compilerOptions {
-           jvmTarget = JvmTarget.JVM_11
-       }
-       androidResources {
-           enable = true
-       }
-       withHostTest {
-           isIncludeAndroidResources = true
-       }
-       withDeviceTestBuilder {
-           sourceSetTreeName = "test"
-       }.configure {
-           instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-       }
+        namespace = "com.gusak.lab.radarnebo.shared"
+        // Compose 1.13 (from material3 1.13.0-beta01) needs API 37.1 or later to compile against.
+        compileSdk {
+            version = release(libs.versions.android.compileSdk.get().toInt()) { minorApiLevel = 2 }
+        }
+        minSdk = libs.versions.android.minSdk.get().toInt()
+
+        compilerOptions {
+            jvmTarget = JvmTarget.JVM_11
+        }
+        androidResources {
+            enable = true
+        }
+        withHostTest {
+            isIncludeAndroidResources = true
+        }
+        withDeviceTestBuilder {
+            sourceSetTreeName = "test"
+        }.configure {
+            instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        }
     }
-    
+
     sourceSets {
         commonMain {
             kotlin.srcDir(generateClientConfig)
@@ -109,8 +137,9 @@ kotlin {
             api(libs.koin.compose)
             api(libs.koin.compose.viewmodel)
         }
+        // Desktop needs no Compose artifact of its own: commonMain's ui and foundation carry the binaries for every
+        // desktop OS.
         jvmMain.dependencies {
-            implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutines.swing)
             implementation(libs.ktor.client.okhttp)
         }
@@ -121,7 +150,7 @@ kotlin {
             implementation(libs.kotlin.test)
         }
         jvmTest.dependencies {
-            implementation(compose.desktop.uiTestJUnit4)
+            implementation(libs.compose.uiTestJunit4)
         }
     }
 }
@@ -137,8 +166,8 @@ tasks.withType<JavaCompile>().configureEach {
     targetCompatibility = "11"
 }
 
-// ./gradlew :shared:jvmTest --tests '*ContrastScreenshotsTest*' -PcontrastScreenshots[=Radar,Nord,…] renders every overlay
-// and dialog per map background and theme (downloading satellite tiles) into build/contrast.
+// ./gradlew :shared:jvmTest --tests '*ContrastScreenshotsTest*' -PcontrastScreenshots[=Radar,Nord,…] renders every
+// overlay and dialog per map background and theme (downloading satellite tiles) into build/contrast.
 tasks.named<Test>("jvmTest") {
     providers.gradleProperty("contrastScreenshots").orNull?.let { palettes ->
         systemProperty("contrast.screenshots.dir", layout.buildDirectory.dir("contrast").get().asFile.absolutePath)

@@ -8,6 +8,7 @@ import com.gusak.lab.radarnebo.server.domain.alert.LocationDirectory
 import com.gusak.lab.radarnebo.server.domain.tracking.ObservationTracking
 import com.gusak.lab.radarnebo.server.infrastructure.persistence.InMemoryAlertArchive
 import com.gusak.lab.radarnebo.server.infrastructure.persistence.InMemoryTrackArchive
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
@@ -28,7 +29,10 @@ import kotlin.time.Instant
  * Answers each fetch with the next of [results]; once they run out, fetch throws. Its history fails when
  * [historyFails] is set.
  */
-private class ScriptedSource(private val results: ArrayDeque<FetchResult>, private val historyFails: Boolean = false) : AlertsDataSource {
+private class ScriptedSource(
+    private val results: ArrayDeque<FetchResult>,
+    private val historyFails: Boolean = false,
+) : AlertsDataSource {
     var fetches = 0
     override val kind = DataSourceKind.AlertsInUa
     override val description = "scripted"
@@ -45,7 +49,7 @@ private class ScriptedSource(private val results: ArrayDeque<FetchResult>, priva
 }
 
 class SituationPollerTest {
-    private var now = Fixtures.t0.toEpochMilliseconds()
+    private var now = Fixtures.T0.toEpochMilliseconds()
     private val alertArchive = InMemoryAlertArchive()
     private val situation = situation(alertArchive)
 
@@ -60,13 +64,14 @@ class SituationPollerTest {
     private fun poller(source: AlertsDataSource, situation: SituationService = this.situation) =
         SituationPoller(source, situation, retention = 1.days, clock = { now })
 
-    private fun fresh() = FetchResult.Fresh(SituationReport(now, listOf(alert(1, Fixtures.brovary))))
+    private fun fresh() = FetchResult.Fresh(SituationReport(now, listOf(alert(1, Fixtures.BROVARY))))
 
-    /** An alert that finished two days before [Fixtures.t0], past the one-day retention. */
-    private fun oldAlert(id: Long) = alert(id, Fixtures.kharkiv, startedAt = Fixtures.t0 - 3.days).finish(Fixtures.t0 - 2.days)
+    /** An alert that finished two days before [Fixtures.T0], past the one-day retention. */
+    private fun oldAlert(id: Long) =
+        alert(id, Fixtures.KHARKIV, startedAt = Fixtures.T0 - 3.days).finish(Fixtures.T0 - 2.days)
 
     private suspend fun archivedIds(): List<Long> =
-        alertArchive.history(Fixtures.kharkiv.uid, Fixtures.t0 - 10.days, limit = 10).map { it.id }
+        alertArchive.history(Fixtures.KHARKIV.uid, Fixtures.T0 - 10.days, limit = 10).map { it.id }
 
     @Test
     fun aFailedHistoryReplayDoesNotStopLiveFetches() = runTest {
@@ -105,7 +110,12 @@ class SituationPollerTest {
 
     @Test
     fun aRetryAfterLongerThanTheBackoffIsHonoured() = runTest {
-        val rateLimited = FetchResult.Failed("Upstream rate limit hit (429)", minWaitMs = 60_000, retryAfterMs = 300_000, maxWaitMs = 600_000)
+        val rateLimited = FetchResult.Failed(
+            "Upstream rate limit hit (429)",
+            minWaitMs = 60_000,
+            retryAfterMs = 300_000,
+            maxWaitMs = 600_000,
+        )
         val poller = poller(ScriptedSource(ArrayDeque(listOf(rateLimited))))
 
         assertEquals(300_000, poller.pollOnce())
@@ -113,11 +123,15 @@ class SituationPollerTest {
 
     @Test
     fun rejectionsBackOffUpToTenMinutesAndOutlastAShorterRetryAfter() = runTest {
-        val failure = FetchResult.Failed("Upstream rejected credentials or IP (401)", minWaitMs = 60_000, maxWaitMs = 600_000)
+        val failure =
+            FetchResult.Failed("Upstream rejected credentials or IP (401)", minWaitMs = 60_000, maxWaitMs = 600_000)
         val source = ScriptedSource(ArrayDeque(List(6) { failure } + failure.copy(retryAfterMs = 1_000)))
         val poller = poller(source)
 
-        assertEquals(listOf(60_000L, 120_000L, 240_000L, 480_000L, 600_000L, 600_000L), List(6) { poller.pollOnce() })
+        assertEquals(
+            listOf(60_000L, 120_000L, 240_000L, 480_000L, 600_000L, 600_000L),
+            List(6) { poller.pollOnce() },
+        )
         assertEquals(600_000, poller.pollOnce(), "a Retry-After shorter than the backoff does not shorten it")
     }
 
@@ -152,6 +166,7 @@ class SituationPollerTest {
     }
 
     @Test
+    @OptIn(ExperimentalCoroutinesApi::class)
     fun aPollThatThrowsIsReportedAndRetriedAfterThePollInterval() = runTest {
         val poller = poller(ScriptedSource(ArrayDeque()))
         val job = launch { poller.run() }
@@ -163,6 +178,7 @@ class SituationPollerTest {
     }
 
     @Test
+    @OptIn(ExperimentalCoroutinesApi::class)
     fun anInternalErrorIsReportedByClassOnly() = runTest {
         val source = object : AlertsDataSource by ScriptedSource(ArrayDeque()) {
             override suspend fun fetch(lastModified: String?): FetchResult =

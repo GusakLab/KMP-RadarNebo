@@ -1,0 +1,30 @@
+# Google Ads app campaign text for RadarNebo. One ad group per language; images in uk/ and en/
+# (tools/make-ad-assets.swift). Headlines up to 30 characters, descriptions up to 90.
+
+[uk headlines]
+Жива мапа повітряних загроз
+Тривоги за регіонами України
+Стежте за своїм містом
+Попередження у вашому радіусі
+Без реклами й без акаунта
+
+[uk descriptions]
+RadarNebo показує тривоги та повітряні цілі на живій мапі України.
+Додайте важливі місця й бачте, коли загроза в межах вашого радіуса.
+Треки, прогнози й рівні тривоги. Безкоштовно, без реклами й без акаунта.
+Темна чи світла тема, супутникова карта та кінорежим на весь екран.
+Неофіційний застосунок: завжди дійте за офіційними сигналами тривоги.
+
+[en headlines]
+Live map of air threats
+Alerts by region in Ukraine
+Watch the places that matter
+Warnings within your radius
+No ads, no account needed
+
+[en descriptions]
+RadarNebo shows air raid alerts and tracked aerial threats on a live map of Ukraine.
+Save the places you care about and see when a threat comes within your radius.
+Tracks, forecasts and alert levels. Free, with no ads and no account.
+Dark or light themes, a satellite map and a full-screen cinematic mode.
+Not an official warning system: always follow official air raid alerts.

@@ -30,6 +30,7 @@ import kotlinx.io.IOException
 import org.jetbrains.compose.resources.MissingResourceException
 import org.jetbrains.compose.resources.decodeToImageBitmap
 import radarnebo.shared.generated.resources.Res
+import kotlin.concurrent.Volatile
 import kotlin.math.PI
 import kotlin.math.atan
 import kotlin.math.ceil
@@ -42,6 +43,13 @@ import kotlin.math.tan
 import kotlin.time.Clock
 
 private data class TileKey(val source: TileSource, val z: Int, val x: Int, val y: Int)
+
+/**
+ * What one drawn frame of the map asked for, at the zoom that frame wanted. [missing] tiles are still to come, whether
+ * loading or waiting to retry, with a coarser stand-in or nothing in their place; [absent] ones never will, being
+ * outside what's bundled.
+ */
+data class TileFrame(val source: TileSource, val z: Int, val drawn: Int, val missing: Int, val absent: Int)
 
 /**
  * The tiles bundled for each street style, per zoom: the ranges in files/map/coverage.txt, which
@@ -64,13 +72,19 @@ private class BundledCoverage(private val ranges: Map<Int, IntArray>) {
     }
 }
 
-/** Where [drawMapTiles] gets its tiles from. */
-internal interface TileLookup {
+/** Where [drawMapTiles] gets its tiles from. Public only because [MapTiles] is. */
+interface TileLookup {
     /** The tile to draw, or null while it is missing (a lookup may start loading it). */
     fun get(source: TileSource, z: Int, x: Int, y: Int): ImageBitmap?
 
     /** A tile already in memory, or null; never starts a load. */
     fun cached(source: TileSource, z: Int, x: Int, y: Int): ImageBitmap?
+
+    /** Whether a tile [get] returned null for can still arrive. */
+    fun canArrive(source: TileSource, z: Int, x: Int, y: Int): Boolean = false
+
+    /** Told what each drawn frame asked for. */
+    fun onFrameDrawn(frame: TileFrame) {}
 }
 
 /** A view's tiles read ahead of drawing (see [MapTiles.preload]); it never changes. */
@@ -89,7 +103,7 @@ private class PreloadedTiles(private val tiles: Map<TileKey, ImageBitmap>) : Til
  * Previews render only their first frames, so they draw from [preload] instead. Without a [client], other tiles
  * are never downloaded.
  */
-internal class MapTiles(
+class MapTiles(
     private val client: HttpClient?,
     private val capacity: Int = 400,
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main),
@@ -107,11 +121,20 @@ internal class MapTiles(
     private var coverageRequested = false
 
     /** Counts arrivals; reading it in a draw block makes the canvas redraw as tiles come in. */
-    var loaded: Int by mutableIntStateOf(0)
+    internal var loaded: Int by mutableIntStateOf(0)
+        private set
+
+    /**
+     * The latest frame's tiles. The app never reads this: store screenshot captures wait on it (PlayScreenshots in
+     * androidTest), as the UI gives no sign of when the map has finished loading. Written while drawing, so it must
+     * stay out of snapshot state, and read from the test's thread.
+     */
+    @Volatile
+    var lastFrame: TileFrame? = null
         private set
 
     /** True while a tile asked for, or the bundled coverage, is still loading: for tests to wait on. */
-    val isLoading: Boolean get() = loading.isNotEmpty() || (coverageRequested && coverage == null)
+    internal val isLoading: Boolean get() = loading.isNotEmpty() || (coverageRequested && coverage == null)
 
     /** A tile already in memory, or null; never starts a download. */
     override fun cached(source: TileSource, z: Int, x: Int, y: Int): ImageBitmap? {
@@ -149,7 +172,7 @@ internal class MapTiles(
      * render only their first frames, so they draw from this rather than from tiles arriving one by one. Touches
      * none of this cache's state, so it can run on any thread.
      */
-    suspend fun preload(source: TileSource, camera: MapCamera, size: Size): TileLookup {
+    internal suspend fun preload(source: TileSource, camera: MapCamera, size: Size): TileLookup {
         val directory = source.bundled ?: return PreloadedTiles(emptyMap())
         return withContext(Dispatchers.Default) {
             val coverage = BundledCoverage.parse(readCoverage().orEmpty())
@@ -182,6 +205,15 @@ internal class MapTiles(
                 null
             }
         }
+    }
+
+    override fun canArrive(source: TileSource, z: Int, x: Int, y: Int): Boolean {
+        if (source.bundled == null) return client != null
+        return coverage?.contains(TileKey(source, z, x, y)) ?: true
+    }
+
+    override fun onFrameDrawn(frame: TileFrame) {
+        lastFrame = frame
     }
 
     private fun isBundled(key: TileKey): Boolean {
@@ -272,15 +304,21 @@ private class TileWindow(val z: Int, val xs: IntRange, val ys: IntRange) {
 internal fun DrawScope.drawMapTiles(tiles: TileLookup, source: TileSource, camera: MapCamera) {
     val window = TileWindow.covering(source, camera, size)
     val z = window.z
+    var drawn = 0
+    var missing = 0
+    var absent = 0
     for (x in window.xs) for (y in window.ys) {
         val key = TileKey(source, z, x, y)
         val image = tiles.get(source, z, x, y)
         if (image != null) {
+            drawn++
             drawTile(image, IntOffset.Zero, TILE_PX, key, camera)
         } else {
+            if (tiles.canArrive(source, z, x, y)) missing++ else absent++
             drawCachedAncestor(tiles, key, camera)
         }
     }
+    tiles.onFrameDrawn(TileFrame(source, z, drawn, missing, absent))
 }
 
 /** A cached ancestor of [key], cropped to this tile's part of it. */

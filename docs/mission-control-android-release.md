@@ -1,5 +1,9 @@
 # MissionControl-Nebo (Android) release
 
+> **This module is no longer on Google Play.** Its listing, `com.gusak.lab.radarnebo.missioncontrol`, now ships the
+> RadarNebo app (`:app:android`), so never upload this module's bundle to it. Both apps have the same application id and
+> can't be installed side by side. Releasing the app is covered in [Android release build](./android-release-build.md).
+
 `:mission-control:android` is MissionControl-Nebo, an Android monitor for a RadarNebo server: it reads the server's
 public `/health` report every 5 seconds and shows its status, data source, situation, upstream and polling. English,
 Ukrainian and Dutch (`src/main/res/values`, `values-uk`, `values-nl`). Application id
@@ -21,8 +25,7 @@ set `MISSIONCONTROL_KEYSTORE_DIR`. Without it the release build is unsigned.
 Back up the whole folder (with the password) in a password manager. With Play App Signing this is the **upload key**:
 if it is lost, Google can reset it, but only after a support request.
 
-On CI, store the `.jks` as a base64 secret, decode it into a directory, write `keystore.properties` next to it and
-point `MISSIONCONTROL_KEYSTORE_DIR` at that directory.
+The same key now signs the RadarNebo app (`:app:android`), see below.
 
 ## Building
 
@@ -34,7 +37,7 @@ point `MISSIONCONTROL_KEYSTORE_DIR` at that directory.
 Outputs: `mission-control/android/build/outputs/bundle/release/android-release.aab` and
 `mission-control/android/build/outputs/apk/release/android-release.apk`. The release build is minified with R8.
 
-Before each new release, bump `versionCode` and `versionName` in `mission-control/android/build.gradle.kts`.
+A local build is `1 (1.0.0)` unless you pass `-PmissionControl.versionCode=<n>` and `-PmissionControl.versionName=<x.y.z>`.
 
 The module compiles against Android API 37.2 (Compose 1.13 needs 37.1 or later):
 `sdkmanager "platforms;android-37.2"`.
@@ -51,7 +54,7 @@ The module compiles against Android API 37.2 (Compose 1.13 needs 37.1 or later):
 - `privacy-policy.md`: published as a public Google Doc in the Gusak lab Drive (PuzzleScroll folder),
   https://docs.google.com/document/d/1S-4t0lohj6npOxOttlyyhss9AvBZOsHAUabfGgW5WKE/edit?usp=sharing
 
-## First release on Google Play
+## First release on Google Play (historical)
 
 The Play Console has no API for creating an app, so the first release is done by hand:
 

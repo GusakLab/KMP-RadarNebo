@@ -150,6 +150,7 @@ private fun BoxScope.AppNavigationBar(
             selectedIndex = tab.ordinal,
             onSelect = { onTabChange(Tab.entries[it]) },
             backdrop = backdrop,
+            dimmed = tab != Tab.Map,
         )
     }
 }

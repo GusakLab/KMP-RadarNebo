@@ -11,7 +11,9 @@ plugins {
 
 // client.properties at the repo root (gitignored; see client.properties.example) sets the server address and access key
 // the apps start with. They're generated into ClientConfig.kt; without the file both are blank.
-val clientProperties = providers.fileContents(rootProject.layout.projectDirectory.file("client.properties")).asText
+// A public App Store build uses its own revocable key: -PclientProperties=client.ios.properties (also gitignored).
+val clientPropertiesFile = providers.gradleProperty("clientProperties").orElse("client.properties")
+val clientProperties = providers.fileContents(rootProject.layout.projectDirectory.file(clientPropertiesFile)).asText
     .map { text -> Properties().apply { load(text.reader()) } }
 val generateClientConfig = tasks.register("generateClientConfig") {
     val serverUrl = clientProperties.map { it.getProperty("server.url").orEmpty().trim() }.orElse("")

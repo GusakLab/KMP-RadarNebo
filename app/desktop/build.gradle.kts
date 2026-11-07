@@ -67,8 +67,9 @@ tasks.test {
     }
 }
 
-// A Mac App Store package: ./gradlew :app:desktop:packagePkg -PmacAppStore -PclientProperties=client.ios.properties
-// -PmacProfile=<embedded.provisionprofile> -PmacKeychain=<keychain> -PmacBuildNumber=<n>. Without -PmacAppStore nothing changes.
+// A Mac App Store package: ./gradlew :app:desktop:packagePkg -PmacAppStore -PclientProfile=ios
+// -PmacProfile=<embedded.provisionprofile> -PmacKeychain=<keychain> -PmacBuildNumber=<n>.
+// Without -PmacAppStore nothing changes.
 val macAppStore = providers.gradleProperty("macAppStore").isPresent
 
 compose.desktop {

@@ -21,15 +21,10 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.input.TextFieldState
-import androidx.compose.foundation.text.input.TextObfuscationMode
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedSecureTextField
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -39,10 +34,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -82,7 +74,6 @@ internal fun SettingsScreen(
         AppearanceSection(settings, onChange)
         MapSection(settings, onChange)
         AlertsSection(settings, onChange)
-        ServerSection(settings, onChange)
         if (onOpenRequests != null) {
             SettingsSection("Developer", "{ }") {
                 SettingRow(
@@ -198,44 +189,6 @@ private fun AlertsSection(settings: AppSettings, onChange: SettingsChange) {
             format = { "$it s" },
             onChange = { v -> onChange { it.copy(pollSeconds = v) } },
         )
-    }
-}
-
-@Composable
-private fun ServerSection(settings: AppSettings, onChange: SettingsChange) {
-    var serverUrl by remember(settings.serverUrl) { mutableStateOf(settings.serverUrl) }
-    val accessKey = remember(settings.accessKey) { TextFieldState(settings.accessKey) }
-    val serverChanged = serverUrl.trim() != settings.serverUrl.trim() ||
-        accessKey.text.toString().trim() != settings.accessKey.trim()
-    SettingsSection("Server", "⇄") {
-        SettingBlock(
-            "Connection",
-            "RadarNebo gets alerts and tracked targets from a RadarNebo server, which keeps the history and does the " +
-                "tracking. Run your own and enter its address; ask its operator for an access key if it needs one.",
-        ) {
-            OutlinedTextField(
-                value = serverUrl,
-                onValueChange = { serverUrl = it },
-                label = { Text("Server URL") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(Modifier.height(8.dp))
-            OutlinedSecureTextField(
-                state = accessKey,
-                label = { Text("Access key (optional)") },
-                textObfuscationMode = TextObfuscationMode.Hidden,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(Modifier.height(12.dp))
-            Button(
-                onClick = {
-                    onChange { it.copy(serverUrl = serverUrl.trim(), accessKey = accessKey.text.toString().trim()) }
-                },
-                enabled = serverChanged,
-                modifier = Modifier.align(Alignment.End),
-            ) { Text("Save & reconnect") }
-        }
     }
 }
 

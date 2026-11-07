@@ -848,8 +848,8 @@ private fun ServerDetails(state: UiState, server: ServerState, onOpenRequests: (
         if (server == ServerState.Offline) {
             Text(
                 if (onOpenRequests != null) {
-                    "Is the server running? Start it with ./gradlew :mission-control:server:run, or change its " +
-                        "address in Settings."
+                    "Is the server running? Start it with ./gradlew :mission-control:server:run, or set its " +
+                        "address in client.properties."
                 } else {
                     "Check your internet connection. The app keeps trying."
                 },

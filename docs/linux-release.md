@@ -36,10 +36,10 @@ workflow artifacts without releasing anything. Those builds get version `0.0.<ru
 
 ### Server address and key
 
-The workflow builds without a `client.properties`, so the packages start pointed at
-`https://radar-nebo.worxbend.com` with no key. That server requires one of its `CLIENT_KEYS`, so users enter a key
-in the app's Settings. Baking a key in, as a local `client.properties` does, would publish it to anyone who
-downloads a package.
+The workflow builds without a `client.properties`, so the packages use `https://radar-nebo.worxbend.com` with no
+key. The app has no setting for the server or the key, so the packages reach that server only while it accepts
+clients without one of its `CLIENT_KEYS`. Baking a key in, as a local `client.properties` does, would publish it to
+anyone who downloads a package.
 
 ## Building locally
 

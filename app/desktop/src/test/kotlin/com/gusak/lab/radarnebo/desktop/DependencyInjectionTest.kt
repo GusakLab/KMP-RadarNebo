@@ -35,8 +35,10 @@ import org.koin.core.annotation.KoinExperimentalAPI
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNotSame
+import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
@@ -119,7 +121,7 @@ class DependencyInjectionTest {
         assertEquals("80", storage.getString("proximity_radius_km"))
         assertTrue(update2 { it.copy(accessKey = "key") }.sourceChanged, "a new access key changes the data source")
         assertTrue(update2 { it.copy(serverUrl = "https://radar.example") }.sourceChanged)
-        assertEquals("https://radar.example", storage.getString("server_url"))
+        assertNull(storage.getString("server_url"), "the build sets the server, so it is not saved")
     }
 
     @Test
@@ -173,24 +175,25 @@ class DependencyInjectionTest {
     }
 
     @Test
-    fun anOldDirectConnectionIsMigratedWithoutKeepingTheToken() {
+    fun aServerSavedByAnEarlierVersionIsReplacedByTheBuildsServer() {
         val old = InMemoryStorage().apply {
+            putString("server_url", "http://radar.local:8080")
+            putString("server_access_key", "old-key")
             putString("api_token", "alerts-in-ua-secret")
             putString("api_base_url", "https://api.alerts.in.ua")
         }
-        // No baked-in key: a developer's client.properties may set one, which the default would pick up.
-        val settings = SettingsRepository(old, ServerDefaults("http://10.0.2.2:8080", accessKey = ""))
-        assertEquals("http://10.0.2.2:8080", settings.settings.value.serverUrl)
-        assertEquals("", settings.settings.value.accessKey, "an alerts.in.ua token is not a server key")
+        val settings = SettingsRepository(old, ServerDefaults("https://radar.example", accessKey = "build-key"))
+        val loaded = settings.settings.value
+        assertEquals("https://radar.example" to "build-key", loaded.serverUrl to loaded.accessKey)
         settings.update { it.copy(pollSeconds = 60) }
-        assertEquals(null, old.getString("api_token"), "the token is removed from the device")
-
-        val proxy = InMemoryStorage().apply {
-            putString("api_token", "client-key")
-            putString("api_base_url", "http://radar.local:8080")
+        for (key in listOf("server_url", "server_access_key", "api_token", "api_base_url")) {
+            assertNull(old.getString(key), "$key is removed from the device")
         }
-        val migrated = SettingsRepository(proxy).settings.value
-        assertEquals("http://radar.local:8080" to "client-key", migrated.serverUrl to migrated.accessKey)
+    }
+
+    @Test
+    fun everyThreatTypeShowsByDefault() {
+        assertFalse(SettingsRepository(InMemoryStorage()).settings.value.dronesOnly)
     }
 
     private companion object {

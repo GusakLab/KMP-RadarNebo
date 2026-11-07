@@ -52,6 +52,7 @@ lint/tmp/
 *.keystore
 keystore.properties
 client.properties
+client.ios.properties
 google-services.json
 
 # ==========================================================

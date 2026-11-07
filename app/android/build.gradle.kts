@@ -6,6 +6,13 @@ plugins {
     alias(libs.plugins.composeCompiler)
 }
 
+// Firebase Analytics and Crashlytics read their project from google-services.json (gitignored; see
+// docs/android-release-build.md). Without it, as in CI, the app still builds and runs, with Firebase inactive.
+if (file("google-services.json").exists()) {
+    pluginManager.apply(libs.plugins.googleServices.get().pluginId)
+    pluginManager.apply(libs.plugins.firebaseCrashlytics.get().pluginId)
+}
+
 kotlin {
     compilerOptions {
         jvmTarget = JvmTarget.JVM_11
@@ -17,6 +24,10 @@ dependencies {
 
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtimeCompose)
+
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.analytics)
+    implementation(libs.firebase.crashlytics)
 
     implementation(libs.compose.uiToolingPreview)
     debugImplementation(libs.compose.uiTooling)
@@ -59,6 +70,8 @@ android {
         versionCode = providers.gradleProperty("radarNebo.versionCode").orNull?.toInt() ?: 3
         versionName = providers.gradleProperty("radarNebo.versionName").orNull ?: "1.0.2"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // Only release builds report to Firebase (see the manifest), so development runs stay out of the statistics.
+        manifestPlaceholders["firebaseCollection"] = "false"
     }
     packaging {
         resources {
@@ -78,6 +91,8 @@ android {
     buildTypes {
         release {
             signingConfig = if (storeCapture) signingConfigs.getByName("debug") else signingConfigs.findByName("release")
+            // Store screenshot runs drive the release build and must not count as real use.
+            manifestPlaceholders["firebaseCollection"] = (!storeCapture).toString()
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

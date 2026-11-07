@@ -50,7 +50,7 @@ Run Gradle from the repository root. The CI gate is:
 ```bash
 ./gradlew --continue :core:jvmTest :shared:jvmTest :shared:testAndroidHostTest \
     :mission-control:server:test :mission-control:ui:test :app:desktop:test
-./gradlew --continue :app:android:assembleDebug :mission-control:android:assembleDebug \
+./gradlew --continue :app:android:assembleDebug \
     :core:compileKotlinIosArm64 :core:compileKotlinIosSimulatorArm64 \
     :shared:compileKotlinIosArm64 :shared:compileKotlinIosSimulatorArm64 :shared:compileIosMainKotlinMetadata
 ```

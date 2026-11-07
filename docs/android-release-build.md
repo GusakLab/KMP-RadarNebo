@@ -87,6 +87,21 @@ To print the key fingerprints (SHA-1 / SHA-256), for example for Firebase or Goo
 keytool -list -v -keystore app/android/keystore/radarnebo-release.jks -alias radarnebo
 ```
 
+## Firebase
+
+Release builds report usage to Firebase Analytics and crashes to Crashlytics, in the Firebase project
+`mission-control-nebo`. Debug builds and store screenshot runs (`-PradarNebo.capture`) report nothing. Without
+`app/android/google-services.json` the app builds and runs with Firebase off, as it does in CI.
+
+To get the file, for the app registered as `com.gusak.lab.radarnebo.missioncontrol`:
+
+```bash
+firebase apps:sdkconfig ANDROID 1:777875297807:android:24340234f5f4952a66757a \
+  --project mission-control-nebo --out app/android/google-services.json
+```
+
+Then store it for the deploy workflow: `gh secret set GOOGLE_SERVICES_JSON --env google-play < app/android/google-services.json`.
+
 ## Deploying to Google Play
 
 `.github/workflows/deploy-android.yml` builds a signed bundle from `main` and uploads it to the **production** track
@@ -113,6 +128,7 @@ The secrets live in the repository's `google-play` environment, which only `main
 | `MISSIONCONTROL_KEYSTORE_PASSWORD` | The keystore password (also the key password; the keystore is PKCS12) |
 | `RADARNEBO_ANDROID_CLIENT_KEY` | The server key built into the public app; one of the server's `CLIENT_KEYS` |
 | `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` | The service account's JSON key |
+| `GOOGLE_SERVICES_JSON` | `app/android/google-services.json` (see [Firebase](#firebase)) |
 
 The service account:
 

@@ -64,6 +64,13 @@ jobs:
         run: |
           [[ -n "$CLIENT_KEY" ]] || { echo "::error::RADARNEBO_ANDROID_CLIENT_KEY secret is missing"; exit 1; }
           (umask 077; printf 'server.url=https://radar-nebo.worxbend.com\nserver.accessKey=%s\n' "$CLIENT_KEY" > client.properties)
+      # google-services.json is gitignored, and without it the bundle builds with Firebase Analytics and Crashlytics off.
+      - name: Write the Firebase config
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          [[ -n "$GOOGLE_SERVICES_JSON" ]] || { echo "::error::GOOGLE_SERVICES_JSON secret is missing"; exit 1; }
+          printf '%s' "$GOOGLE_SERVICES_JSON" > app/android/google-services.json
       # The run number only goes up, and a re-run of a failed upload keeps its number. +2 because the releases uploaded
       # by hand took versionCodes 1 and 2. Renaming this file restarts the count: raise the offset past Play's latest.
       - name: Build the bundle

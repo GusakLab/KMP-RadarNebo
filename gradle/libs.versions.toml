@@ -26,6 +26,9 @@ koin = "4.2.2"
 exposed = "1.6.0"
 sqlite-jdbc = "3.54.1.0"
 material3 = "1.13.0-beta01"
+firebase-bom = "35.1.0"
+googleServices = "4.5.0"
+firebaseCrashlytics = "3.0.8"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -85,6 +88,9 @@ koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
 koin-test = { module = "io.insert-koin:koin-test", version.ref = "koin" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 kotlinx-coroutines-swing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
+firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebase-bom" }
+firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
+firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
@@ -95,3 +101,5 @@ kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref =
 kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
+googleServices = { id = "com.google.gms.google-services", version.ref = "googleServices" }
+firebaseCrashlytics = { id = "com.google.firebase.crashlytics", version.ref = "firebaseCrashlytics" }

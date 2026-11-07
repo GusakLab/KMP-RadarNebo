@@ -52,7 +52,9 @@ From a terminal:
 - Desktop app: `./gradlew :app:desktop:run`
 - Desktop app for Linux as an AppImage, Flatpak and Snap, published as a GitHub release on a `v1.2.3` tag:
   [Linux release](./docs/linux-release.md).
-- iOS app: open the [/app/ios](./app/ios) directory in Xcode and run it from there.
+- iOS app: open the [/app/ios](./app/ios) directory in Xcode and run it from there. Release builds report usage and
+  crashes to Firebase when `app/ios/iosApp/GoogleService-Info.plist` (gitignored) is present:
+  `firebase apps:sdkconfig IOS 1:777875297807:ios:bde01143a62d345466757a --project mission-control-nebo --out app/ios/iosApp/GoogleService-Info.plist`.
 - Server: CI, the Oracle Cloud deploy and the server's environment variables are in [Server deployment](./docs/deployment.md).
 
 ---

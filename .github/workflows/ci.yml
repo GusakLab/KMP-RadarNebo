@@ -32,6 +32,6 @@ jobs:
       # Kotlin/Native builds iOS klibs on Linux; linking the iOS app needs macOS and Xcode.
       - name: Build Android and iOS
         run: >-
-          ./gradlew --continue :app:android:assembleDebug :mission-control:android:assembleDebug
+          ./gradlew --continue :app:android:assembleDebug
           :core:compileKotlinIosArm64 :core:compileKotlinIosSimulatorArm64
           :shared:compileKotlinIosArm64 :shared:compileKotlinIosSimulatorArm64 :shared:compileIosMainKotlinMetadata

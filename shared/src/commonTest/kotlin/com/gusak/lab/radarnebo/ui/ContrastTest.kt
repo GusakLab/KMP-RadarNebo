@@ -11,6 +11,7 @@ import kotlin.test.fail
  * WCAG 2.1 AA contrast of every text colour against what it is drawn on, in every palette and theme: 4.5:1 for
  * text (1.4.3), 3:1 for icons and map marks (1.4.11). Translucent chips and glass are checked over the darkest
  * and lightest backdrop and the plain map, since a map, satellite imagery or an alert can be behind them.
+ * Runs only on request: `./gradlew :shared:jvmTest --tests '*.ContrastTest' -PcontrastCheck`.
  */
 class ContrastTest {
     @Test

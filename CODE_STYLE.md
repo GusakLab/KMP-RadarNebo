@@ -55,7 +55,8 @@ Run Gradle from the repository root. The CI gate is:
     :shared:compileKotlinIosArm64 :shared:compileKotlinIosSimulatorArm64 :shared:compileIosMainKotlinMetadata
 ```
 
-The first command runs every test: the Compose screenshot and contrast tests are in `:shared:jvmTest`, and
+The first command runs every test except the contrast checks, which run only on request (`-PcontrastCheck`,
+`-PcontrastScreenshots`; see `shared/build.gradle.kts`). The Compose screenshot tests are in `:shared:jvmTest`, and
 `:shared:testAndroidHostTest` runs shared's common tests on the Android host. The second builds the Android apps,
 the iOS klibs and the iOS metadata; linking the iOS app needs macOS and Xcode. The README lists the run
 commands for each app.
@@ -722,7 +723,7 @@ fun aTrackWithASinglePointHasNoForecast() {
 | Unit | Domain rules, tracking and trajectory math, parsing, state transitions, error mapping. |
 | Integration | Exposed with SQLite, Ktor routes through `testApplication`, serialization, upstream parsers on recorded pages. |
 | Golden | The API contract and simulation output, pinned by digest. |
-| UI | Compose screenshot and contrast tests in `shared` `jvmTest`. |
+| UI | Compose screenshot tests in `shared` `jvmTest`; contrast tests there run only on request. |
 
 Test failure paths as deliberately as success paths. A bug fix starts with a test that fails without the fix.
 

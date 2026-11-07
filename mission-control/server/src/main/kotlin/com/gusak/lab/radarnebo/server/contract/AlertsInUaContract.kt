@@ -22,9 +22,9 @@ import kotlin.time.toJavaInstant
  * The alerts.in.ua JSON format (https://devs.alerts.in.ua), which the server both reads from upstream and
  * serves to its own clients, and how it maps to the domain model.
  */
-object AlertsInUaContract {
+internal object AlertsInUaContract {
     /** Lenient reading, and writing that keeps `null`s as alerts.in.ua does (`"finished_at": null`). */
-    val json = Json {
+    val json: Json = Json {
         ignoreUnknownKeys = true
         coerceInputValues = true
         encodeDefaults = true
@@ -36,7 +36,7 @@ object AlertsInUaContract {
     /** alerts.in.ua timestamps: ISO-8601 UTC with milliseconds, `2022-04-04T16:45:39.000Z`. */
     fun format(instant: Instant): String = timestamp.format(instant.toJavaInstant())
 
-    fun parse(value: String?): Instant? = value?.let { runCatching { Instant.parse(it) }.getOrNull() }
+    fun parse(value: String?): Instant? = value?.let { Instant.parseOrNull(it) }
 
     fun decodeActive(raw: String): List<Alert> = json.decodeFromString(ActiveAlertsResponse.serializer(), raw).alerts
 
@@ -112,5 +112,5 @@ object AlertsInUaContract {
         )
     }
 
-    private val ThreatLevel.apiValue get() = name.lowercase()
+    private val ThreatLevel.apiValue: String get() = name.lowercase()
 }

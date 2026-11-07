@@ -9,12 +9,14 @@ plugins {
 kotlin {
     compilerOptions {
         jvmTarget = JvmTarget.JVM_11
+        allWarningsAsErrors.set(true)
     }
 }
 dependencies {
     implementation(project(":shared"))
 
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.lifecycle.runtimeCompose)
 
     implementation(libs.compose.uiToolingPreview)
     debugImplementation(libs.compose.uiTooling)
@@ -28,7 +30,10 @@ val keystoreProperties = rootProject.file("keystore.properties").takeIf { it.exi
 
 android {
     namespace = "com.gusak.lab.radarnebo"
-    compileSdk = libs.versions.android.compileSdk.get().toInt()
+    // Compose 1.13 (from material3 1.13.0-beta01) needs API 37.1 or later to compile against.
+    compileSdk {
+        version = release(libs.versions.android.compileSdk.get().toInt()) { minorApiLevel = 2 }
+    }
 
     defaultConfig {
         applicationId = "com.gusak.lab.radarnebo"
@@ -58,7 +63,7 @@ android {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
         }
     }

@@ -2,35 +2,12 @@ package com.gusak.lab.radarnebo.server.domain.tracking
 
 import com.gusak.lab.radarnebo.data.ThreatLevel
 import com.gusak.lab.radarnebo.data.ThreatType
-import com.gusak.lab.radarnebo.geo.GeoMath
-import com.gusak.lab.radarnebo.geo.GeoPoint
 import com.gusak.lab.radarnebo.geo.Regions
 import com.gusak.lab.radarnebo.server.domain.alert.AirAlert
 import com.gusak.lab.radarnebo.tracking.DroneTrack
 import com.gusak.lab.radarnebo.tracking.SamplePrecision
 import com.gusak.lab.radarnebo.tracking.TrackOutcome
 import com.gusak.lab.radarnebo.tracking.TrackSample
-import kotlin.math.roundToInt
-
-/** Describes a position for people: "Konotop", or "12 km NE of Konotop". */
-fun interface PlaceNamer {
-    fun describe(point: GeoPoint): String
-
-    companion object {
-        private val compass = listOf("N", "NE", "E", "SE", "S", "SW", "W", "NW")
-
-        /** Relative to the nearest settlement with city status. */
-        val NearestCity = PlaceNamer { point ->
-            val (city, km) = Regions.nearestCity(point)
-            if (km < 3.0) {
-                city.name
-            } else {
-                val bearing = GeoMath.bearingDeg(GeoPoint(city.lat.toDouble(), city.lon.toDouble()), point)
-                "${km.roundToInt()} km ${compass[((bearing + 22.5) / 45).toInt() % 8]} of ${city.name}"
-            }
-        }
-    }
-}
 
 /**
  * Tracks built from surveillance sightings, one track per target. The newest sighting is always the
@@ -41,7 +18,7 @@ fun interface PlaceNamer {
  * A track ends with the sighting that carries an outcome, or as [TrackOutcome.Lost] when no sighting came
  * for [contactTimeoutMs]. Ended tracks stay served for [endedRetentionMs], so clients see where they ended.
  */
-class ObservationTracking(
+internal class ObservationTracking(
     private val placeNamer: PlaceNamer = PlaceNamer.NearestCity,
     private val contactTimeoutMs: Long = 5 * 60_000L,
     private val endedRetentionMs: Long = 15 * 60_000L,
@@ -62,11 +39,12 @@ class ObservationTracking(
 
         /** The last sample is provisional: replaced by newer sightings until it is [spacing] past the one before. */
         fun add(sample: TrackSample, spacing: Long) {
-            val provisional = samples.size >= 2 && samples[samples.lastIndex].t - samples[samples.lastIndex - 1].t < spacing
+            val provisional =
+                samples.size >= 2 && samples[samples.lastIndex].t - samples[samples.lastIndex - 1].t < spacing
             if (provisional) samples[samples.lastIndex] = sample else samples += sample
         }
 
-        fun toDroneTrack() = DroneTrack(
+        fun toDroneTrack(): DroneTrack = DroneTrack(
             id = id,
             type = type,
             level = level,
@@ -85,7 +63,9 @@ class ObservationTracking(
     override fun update(alerts: List<AirAlert>, observations: List<TargetObservation>, nowMs: Long): TrackingUpdate {
         val ended = mutableListOf<Track>()
         observations.sortedBy { it.observedAt }.forEach { observation ->
-            val track = tracks.getOrPut(observation.targetId) { Track(observation.targetId, observation.type, observation.observedAt) }
+            val track = tracks.getOrPut(observation.targetId) {
+                Track(observation.targetId, observation.type, observation.observedAt)
+            }
             if (track.ended || observation.observedAt < track.lastSeen) return@forEach
             track.add(sample(observation), sampleSpacingMs(track.type))
             track.level = observation.level

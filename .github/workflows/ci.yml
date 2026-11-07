@@ -25,4 +25,13 @@ jobs:
       - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
       # The JVM modules; the runner's preinstalled Android SDK lets Gradle configure :app:android.
       - name: Test
-        run: ./gradlew --continue :core:jvmTest :mission-control:server:test :mission-control:ui:test :app:desktop:test
+        run: >-
+          ./gradlew --continue :core:jvmTest :shared:jvmTest :shared:testAndroidHostTest :mission-control:server:test
+          :mission-control:ui:test :app:desktop:test
+      # Every Kotlin compilation sets allWarningsAsErrors, so the Android and iOS targets must compile in CI too.
+      # Kotlin/Native builds iOS klibs on Linux; linking the iOS app needs macOS and Xcode.
+      - name: Build Android and iOS
+        run: >-
+          ./gradlew --continue :app:android:assembleDebug :mission-control:android:assembleDebug
+          :core:compileKotlinIosArm64 :core:compileKotlinIosSimulatorArm64
+          :shared:compileKotlinIosArm64 :shared:compileKotlinIosSimulatorArm64 :shared:compileIosMainKotlinMetadata

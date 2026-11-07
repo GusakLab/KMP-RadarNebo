@@ -1,65 +1,7 @@
 package com.gusak.lab.radarnebo.server.domain.alert
 
 import com.gusak.lab.radarnebo.data.ThreatLevel
-import com.gusak.lab.radarnebo.data.ThreatType
 import kotlin.time.Instant
-
-/** Administrative level an alert is declared for, as alerts.in.ua reports it. */
-enum class LocationType(val apiValue: String) {
-    Oblast("oblast"),
-    Raion("raion"),
-    City("city"),
-    Hromada("hromada"),
-    Unknown("unknown");
-
-    companion object {
-        fun from(value: String?): LocationType = entries.firstOrNull { it.apiValue == value } ?: Unknown
-    }
-}
-
-enum class AlertType(val apiValue: String) {
-    AirRaid("air_raid"),
-    ArtilleryShelling("artillery_shelling"),
-    UrbanFights("urban_fights"),
-    Chemical("chemical"),
-    Nuclear("nuclear");
-
-    companion object {
-        /** An alert type alerts.in.ua does not document is read as an air raid, so it still counts for the IoT statuses. */
-        fun from(value: String?): AlertType = entries.firstOrNull { it.apiValue == value } ?: AirRaid
-    }
-}
-
-/**
- * A place alerts are declared for, identified by its alerts.in.ua UID. Oblasts, Kyiv city and Sevastopol
- * have UIDs 3-31; raions, hromadas and cities have larger ones.
- */
-data class AlertLocation(
-    val uid: String,
-    val title: String,
-    val titleEn: String?,
-    val type: LocationType,
-    val oblastUid: Int?,
-    val oblastTitle: String,
-    val raionTitle: String? = null,
-    /**
-     * `location_oblast_uid` as the source wrote it, served back unchanged. alerts.in.ua puts the location's own
-     * UID there, not the oblast's; [oblastUid] is the real oblast.
-     */
-    val sourceOblastUid: Int? = null,
-) {
-    /** True for an oblast, or a city that is a region of its own (Kyiv, Sevastopol). */
-    val isRegion: Boolean get() = oblastUid != null && uid == oblastUid.toString()
-}
-
-/** One threat an alert warns about. An alert can carry several, e.g. drones and cruise missiles at once. */
-data class ThreatSignal(
-    val type: ThreatType,
-    val level: ThreatLevel,
-    val startedAt: Instant,
-    /** The warning's original wording, which often names the weapon. */
-    val sourceMessage: String?,
-)
 
 /**
  * An alert declared for one [location]: active from [startedAt] until [finishedAt] (null while active).
@@ -79,14 +21,14 @@ data class AirAlert(
     /** Passed through from alerts.in.ua (always null so far). */
     val country: String? = null,
 ) {
-    val isActive: Boolean get() = finishedAt == null
+    internal val isActive: Boolean get() = finishedAt == null
 
-    fun finish(at: Instant): AirAlert = if (isActive) copy(finishedAt = at, updatedAt = at) else this
+    internal fun finish(at: Instant): AirAlert = if (isActive) copy(finishedAt = at, updatedAt = at) else this
 
     /** True when the alert is for the location [uid] or, if [uid] is a region, for any place in it. */
-    fun concerns(uid: String): Boolean =
+    internal fun concerns(uid: String): Boolean =
         location.uid == uid || (LocationDirectory.isRegionUid(uid) && location.oblastUid?.toString() == uid)
 
     /** True when the alert was active at some point at or after [since]. */
-    fun activeSince(since: Instant): Boolean = finishedAt?.let { it >= since } ?: true
+    internal fun activeSince(since: Instant): Boolean = finishedAt?.let { it >= since } ?: true
 }

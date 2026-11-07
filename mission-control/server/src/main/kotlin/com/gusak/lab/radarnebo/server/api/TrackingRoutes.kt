@@ -4,25 +4,14 @@ import com.gusak.lab.radarnebo.data.ThreatType
 import com.gusak.lab.radarnebo.server.application.SituationService
 import com.gusak.lab.radarnebo.server.domain.tracking.TrackQuery
 import com.gusak.lab.radarnebo.tracking.DronePositionsResponse
-import com.gusak.lab.radarnebo.tracking.DroneTrack
 import com.gusak.lab.radarnebo.tracking.DroneTracksResponse
 import com.gusak.lab.radarnebo.tracking.TrackInterpolator
 import io.ktor.http.Parameters
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
-import kotlinx.serialization.Serializable
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
-
-/** Tracks that were in the air in a time window, from the archive. */
-@Serializable
-data class TrackHistoryResponse(
-    val from: Long,
-    val to: Long,
-    val tracks: List<DroneTrack>,
-    val simulated: Boolean,
-)
 
 /**
  * RadarNebo's own API on top of alerts.in.ua's: the targets the server tracks, where they are, and where
@@ -44,7 +33,10 @@ internal fun Route.trackingRoutes(situation: SituationService, pollInterval: () 
         )
     }
 
-    /** Every visible target's position at `at` (default: now), interpolated between reports or dead-reckoned past the last. */
+    /**
+     * Every visible target's position at `at` (default: now), interpolated between reports or dead-reckoned past
+     * the last.
+     */
     get("/v1/drones/positions.json") {
         situation.requireData()
         val at = call.request.queryParameters.time("at") ?: clock()
@@ -57,7 +49,10 @@ internal fun Route.trackingRoutes(situation: SituationService, pollInterval: () 
 
 /** The track archive, on its own rate limit: each call can read a week of tracks. */
 internal fun Route.trackArchiveRoutes(situation: SituationService, clock: () -> Long) {
-    /** Archived tracks in the air between `from` (default: a day ago) and `to` (default: now), optionally of one `type`. */
+    /**
+     * Archived tracks in the air between `from` (default: a day ago) and `to` (default: now), optionally of one
+     * `type`.
+     */
     get("/v1/drones/archive.json") {
         situation.requireData()
         val params = call.request.queryParameters
@@ -66,7 +61,8 @@ internal fun Route.trackArchiveRoutes(situation: SituationService, clock: () -> 
         val type = params["type"]?.let { value ->
             ThreatType.entries.firstOrNull { it.apiValue == value } ?: badRequest("Unknown type '$value'")
         }
-        val limit = params["limit"]?.let { it.toIntOrNull() ?: badRequest("'limit' must be a number") } ?: TrackQuery.DEFAULT_LIMIT
+        val limit = params["limit"]?.let { it.toIntOrNull() ?: badRequest("'limit' must be a number") }
+            ?: TrackQuery.DEFAULT_LIMIT
         val query = try {
             TrackQuery(from, to, type, limit)
         } catch (e: IllegalArgumentException) {
@@ -76,6 +72,9 @@ internal fun Route.trackArchiveRoutes(situation: SituationService, clock: () -> 
     }
 }
 
-/** The time in parameter [name], or null when absent; answers 400 when it is neither epoch milliseconds nor ISO-8601. */
+/**
+ * The time in parameter [name], or null when absent; answers 400 when it is neither epoch milliseconds nor
+ * ISO-8601.
+ */
 private fun Parameters.time(name: String): Long? =
     this[name]?.let { parseTime(it) ?: badRequest("'$name' must be epoch milliseconds or ISO-8601") }

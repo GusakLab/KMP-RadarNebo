@@ -3,25 +3,6 @@ package com.gusak.lab.radarnebo.data
 import com.gusak.lab.radarnebo.tracking.DroneTrack
 import kotlin.time.Clock
 
-/** Active alerts and the server's tracks, as of the latest successful poll. */
-data class AlertsSnapshot(
-    val alerts: List<Alert>,
-    /** Tracks of every threat class; the UI filters them by settings. */
-    val tracks: List<DroneTrack>,
-    /** Server clock minus local clock, applied before interpolating track positions. */
-    val clockOffsetMs: Long,
-    /** The server says its data is simulated; the UI must label it. */
-    val simulated: Boolean,
-    /** The server's own report on its data source; null if it didn't answer. */
-    val health: ServerHealth? = null,
-)
-
-sealed interface AlertsUpdate {
-    data class Updated(val snapshot: AlertsSnapshot) : AlertsUpdate
-    /** [backOff] as in [FetchResult.Failure]. */
-    data class Failed(val message: String, val backOff: Boolean = false) : AlertsUpdate
-}
-
 /**
  * Alerts and tracks from the RadarNebo server, the app's only data source. The server tracks targets and
  * decides where its data comes from; the app only reads and, between polls, interpolates positions.
@@ -36,7 +17,7 @@ class AlertsRepository(
     private var simulated = false
 
     /** Polls [endpoint] once. */
-    suspend fun refresh(endpoint: ServerEndpoint): AlertsUpdate {
+    internal suspend fun refresh(endpoint: ServerEndpoint): AlertsUpdate {
         when (val result = api.activeAlerts(endpoint)) {
             is FetchResult.Fresh -> alerts = result.alerts
             is FetchResult.Failure -> return AlertsUpdate.Failed(result.message, result.backOff)
@@ -52,7 +33,7 @@ class AlertsRepository(
     }
 
     /** Forgets everything fetched, e.g. after switching to another server. */
-    fun reset() {
+    internal fun reset() {
         alerts = emptyList()
         tracks = emptyList()
         clockOffsetMs = 0L

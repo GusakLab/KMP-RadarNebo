@@ -6,7 +6,7 @@ import kotlin.time.Instant
  * Every alert the server has served, active and finished. Active alerts are saved too, so a restart can
  * tell which alerts were still open and finish them ([unfinished]).
  */
-interface AlertArchive {
+internal interface AlertArchive {
     /** Inserts or replaces [alerts] by id. */
     suspend fun save(alerts: Collection<AirAlert>)
 

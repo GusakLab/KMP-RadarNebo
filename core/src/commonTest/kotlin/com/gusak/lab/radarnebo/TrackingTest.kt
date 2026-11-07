@@ -20,24 +20,29 @@ import kotlin.time.Instant
 class TrackingTest {
     private val minute = 60_000L
 
-    private fun marker(id: String, lat: Double, lon: Double, type: String = "raion", startedAt: Long? = null) = ThreatMarker(
-        id = id, type = ThreatType.Drones, level = ThreatLevel.Red, title = id, oblastUid = 14, oblastName = "Kyiv Oblast",
-        locationType = type, point = GeoPoint(lat, lon), startedAt = startedAt?.let(Instant::fromEpochMilliseconds), message = null,
-    )
+    private fun marker(id: String, lat: Double, lon: Double, type: String = "raion", startedAt: Long? = null) =
+        ThreatMarker(
+            id = id, type = ThreatType.Drones, level = ThreatLevel.Red, title = id, oblastUid = 14,
+            oblastName = "Kyiv Oblast", locationType = type, point = GeoPoint(lat, lon),
+            startedAt = startedAt?.let(Instant::fromEpochMilliseconds), message = null,
+        )
 
-    private fun track(vararg samples: Pair<Long, GeoPoint>, active: Boolean = true) = DroneTrack(
-        id = "t", level = ThreatLevel.Red, oblastUid = null, active = active, firstSeen = 0, lastSeen = samples.last().first,
-        markerIds = emptyList(), samples = samples.map { TrackSample(it.first, it.second.lat, it.second.lon, "") },
+    /** A report at [t] of a target at [point]. */
+    private fun at(t: Long, point: GeoPoint) = TrackSample(t, point.lat, point.lon, "")
+
+    private fun track(vararg samples: TrackSample, active: Boolean = true) = DroneTrack(
+        id = "t", level = ThreatLevel.Red, oblastUid = null, active = active, firstSeen = 0,
+        lastSeen = samples.last().t, markerIds = emptyList(), samples = samples.toList(),
     )
 
     @Test
     fun interpolatesLinearlyBetweenSamples() {
-        val t = track(0L to GeoPoint(50.0, 30.0), 20 * minute to GeoPoint(50.4, 31.0))
-        val mid = TrackInterpolator.positionAt(t, 5 * minute)!!
+        val t = track(at(0L, GeoPoint(50.0, 30.0)), at(20 * minute, GeoPoint(50.4, 31.0)))
+        val mid = assertNotNull(TrackInterpolator.positionAt(t, 5 * minute))
         assertEquals(PositionMode.Interpolated, mid.mode)
         assertEquals(50.1, mid.lat, 1e-9)
         assertEquals(30.25, mid.lon, 1e-9)
-        assertTrue(mid.headingDeg!! in 45.0..90.0, "north-east heading, got ${mid.headingDeg}")
+        assertTrue(assertNotNull(mid.headingDeg) in 45.0..90.0, "north-east heading, got ${mid.headingDeg}")
     }
 
     @Test
@@ -45,18 +50,18 @@ class TrackingTest {
         // 100 km covered in one minute is unrealistic; extrapolation must use the speed cap instead.
         val a = GeoPoint(50.0, 30.0)
         val b = GeoPoint(50.9, 30.0)
-        val t = track(0L to a, minute to b)
-        val p = TrackInterpolator.positionAt(t, minute + 5 * minute)!!
+        val t = track(at(0L, a), at(minute, b))
+        val p = assertNotNull(TrackInterpolator.positionAt(t, minute + 5 * minute))
         assertEquals(PositionMode.Extrapolated, p.mode)
         val travelled = GeoMath.distanceKm(b, p.point)
         assertEquals(TrackInterpolator.MAX_SPEED_KMH * 5 / 60, travelled, 0.5)
 
         // Dead reckoning stops after MAX_EXTRAPOLATION_MS: at most 220 km/h for 30 minutes.
-        val muchLater = TrackInterpolator.positionAt(t, minute + 600 * minute)!!
+        val muchLater = assertNotNull(TrackInterpolator.positionAt(t, minute + 600 * minute))
         val maxKm = TrackInterpolator.MAX_SPEED_KMH * TrackInterpolator.MAX_EXTRAPOLATION_MS / 3_600_000.0
         assertEquals(maxKm, GeoMath.distanceKm(b, muchLater.point), 1.0)
 
-        val ended = TrackInterpolator.positionAt(t.copy(active = false), 3 * minute)!!
+        val ended = assertNotNull(TrackInterpolator.positionAt(t.copy(active = false), 3 * minute))
         assertEquals(PositionMode.Held, ended.mode)
         assertEquals(b, ended.point)
     }
@@ -92,12 +97,12 @@ class TrackingTest {
     fun trendFollowsTheCourseThroughCoarsePositions() {
         // Positions zig-zag north and south of a westward course, as raion centres do.
         val t = track(
-            0L to GeoPoint(50.5, 32.0),
-            15 * minute to GeoPoint(50.3, 31.6),
-            30 * minute to GeoPoint(50.5, 31.2),
-            45 * minute to GeoPoint(50.3, 30.8),
+            at(0L, GeoPoint(50.5, 32.0)),
+            at(15 * minute, GeoPoint(50.3, 31.6)),
+            at(30 * minute, GeoPoint(50.5, 31.2)),
+            at(45 * minute, GeoPoint(50.3, 30.8)),
         )
-        val (heading, speed) = TrackInterpolator.trend(t.samples)!!
+        val (heading, speed) = assertNotNull(TrackInterpolator.trend(t.samples))
         assertTrue(heading in 255.0..285.0, "westward, got $heading")
         assertTrue(speed in 90.0..130.0, "about 115 km/h, got $speed")
     }
@@ -131,7 +136,7 @@ class TrackingTest {
         val tracker = DroneTracker()
         tracker.update(listOf(marker("oblast", 50.3, 30.4, type = "oblast")), 0)
         assertTrue(tracker.snapshot().isEmpty())
-        assertNotNull(TrackInterpolator.positionAt(track(0L to GeoPoint(1.0, 1.0)), 5))
+        assertNotNull(TrackInterpolator.positionAt(track(at(0L, GeoPoint(1.0, 1.0))), 5))
     }
 
     @Test
@@ -163,7 +168,8 @@ class TrackingTest {
     fun staleTrackIsNotContinuedByANewGroup() {
         val tracker = DroneTracker()
         tracker.update(listOf(marker("a", 50.5, 30.8, startedAt = 0)), 0)
-        tracker.update(listOf(marker("a", 50.5, 30.8, startedAt = 0), marker("b", 50.45, 30.5, startedAt = 2 * 60 * minute)), 2 * 60 * minute)
+        val newGroup = marker("b", 50.45, 30.5, startedAt = 2 * 60 * minute)
+        tracker.update(listOf(marker("a", 50.5, 30.8, startedAt = 0), newGroup), 2 * 60 * minute)
         assertEquals(2, tracker.snapshot().size)
     }
 }

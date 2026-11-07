@@ -17,20 +17,12 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.withTimeoutOrNull
 
-const val REFRESH_SECONDS = 5
+internal const val REFRESH_SECONDS: Int = 5
 
-/**
- * What the monitor knows about the server: its last report and when it came, and whether the latest attempt failed.
- * A failed attempt keeps the last report, so a short outage doesn't blank the screen.
- */
-data class MonitorState(
-    val health: Health? = null,
-    val fetchedAt: Long? = null,
-    val error: String? = null,
-    val loading: Boolean = true,
-)
-
-class MonitorViewModel(app: Application) : AndroidViewModel(app) {
+internal class MonitorViewModel @JvmOverloads constructor(
+    app: Application,
+    private val clock: () -> Long = System::currentTimeMillis,
+) : AndroidViewModel(app) {
     private val prefs = app.getSharedPreferences("monitor", Context.MODE_PRIVATE)
     private val client = HealthClient()
     private val refreshRequests = Channel<Unit>(Channel.CONFLATED)
@@ -38,7 +30,10 @@ class MonitorViewModel(app: Application) : AndroidViewModel(app) {
     private val _serverUrl = MutableStateFlow(prefs.getString(KEY_SERVER_URL, null) ?: BuildConfig.DEFAULT_SERVER_URL)
     val serverUrl: StateFlow<String> = _serverUrl.asStateFlow()
 
-    /** Polls while someone watches (the screen, while started) and for a few seconds after, so rotation doesn't restart it. */
+    /**
+     * Polls while someone watches (the screen, while started) and for a few seconds after, so rotation doesn't
+     * restart it.
+     */
     @OptIn(ExperimentalCoroutinesApi::class)
     val state: StateFlow<MonitorState> = _serverUrl
         .flatMapLatest(::poll)
@@ -59,7 +54,7 @@ class MonitorViewModel(app: Application) : AndroidViewModel(app) {
         send(current)
         while (true) {
             current = try {
-                MonitorState(health = client.fetch(url), fetchedAt = System.currentTimeMillis(), loading = false)
+                MonitorState(health = client.fetch(url), fetchedAt = clock(), loading = false)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -74,7 +69,7 @@ class MonitorViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    override fun onCleared() = client.close()
+    override fun onCleared(): Unit = client.close()
 
     private companion object {
         const val KEY_SERVER_URL = "server_url"

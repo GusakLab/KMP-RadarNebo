@@ -1,5 +1,6 @@
 package com.gusak.lab.radarnebo.server.infrastructure.upstream
 
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
@@ -10,6 +11,7 @@ import kotlin.test.assertTrue
 class UpstreamRateLimiterTest {
 
     @Test
+    @OptIn(ExperimentalCoroutinesApi::class)
     fun limiterNeverExceedsBudgetInAnyRollingMinute() = runTest {
         val limiter = UpstreamRateLimiter(maxPerWindow = 8, clock = { testScheduler.currentTime })
         val times = mutableListOf<Long>()
@@ -21,7 +23,10 @@ class UpstreamRateLimiterTest {
         job.cancel()
         assertTrue(times.size in 75..81, "expected ~80 requests in 10 min, got ${times.size}")
         times.forEach { start -> assertTrue(times.count { it in start until start + 60_000 } <= 8) }
-        assertTrue(times.zipWithNext { a, b -> b - a }.all { it >= 7_500 }, "requests are spaced evenly through the minute")
+        assertTrue(
+            times.zipWithNext { a, b -> b - a }.all { it >= 7_500 },
+            "requests are spaced evenly through the minute",
+        )
     }
 
     @Test
@@ -35,6 +40,7 @@ class UpstreamRateLimiterTest {
     }
 
     @Test
+    @OptIn(ExperimentalCoroutinesApi::class)
     fun aClockSteppedBackDoesNotStallTheNextRequest() = runTest {
         var offset = 0L
         val limiter = UpstreamRateLimiter(maxPerWindow = 6, clock = { testScheduler.currentTime + offset })

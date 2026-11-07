@@ -1,3 +1,4 @@
+import com.gusak.lab.radarnebo.buildlogic.launchAs
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -13,6 +14,7 @@ kotlin {
     compilerOptions {
         jvmTarget = JvmTarget.JVM_17
         optIn.add("kotlin.time.ExperimentalTime")
+        allWarningsAsErrors.set(true)
     }
 }
 
@@ -27,9 +29,11 @@ dependencies {
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.cio)
     implementation(libs.logback.classic)
-    implementation(compose.desktop.currentOs)
+    implementation(libs.compose.ui)
+    implementation(libs.compose.foundation)
     implementation(libs.compose.material3)
     implementation(libs.androidx.lifecycle.viewmodelCompose)
+    implementation(libs.androidx.lifecycle.runtimeCompose)
     implementation(libs.kotlinx.coroutines.swing)
 
     testImplementation(libs.kotlin.test)
@@ -67,7 +71,8 @@ compose.desktop {
     }
 }
 
-// Run like :mission-control:server:run, also under Compose Hot Reload: with mission-control/server/.env loaded and the archive under mission-control/server/data.
+// Run like :mission-control:server:run, also under Compose Hot Reload: with mission-control/server/.env loaded and
+// the archive under mission-control/server/data.
 // The console reads both from this property (see consoleConfig) rather than from environment variables and the
 // working directory, because hotRunAsync, which Android Studio's runs use, starts the app from hotRun's argfile
 // and only carries over its JVM arguments.
@@ -84,5 +89,6 @@ tasks.withType<JavaExec>().matching { it.name in setOf("run", "hotRun", "hotDev"
     }
 }
 
-// The process is called "RadarNebo Server" rather than "java" (buildSrc/src/main/kotlin/LaunchAs.kt).
+// The process is called "RadarNebo Server" rather than "java"
+// (buildSrc/src/main/kotlin/com/gusak/lab/radarnebo/buildlogic/LaunchAs.kt).
 launchAs("RadarNebo Server")

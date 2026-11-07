@@ -9,6 +9,11 @@ plugins {
 // Platform-independent alerts.in.ua models, geography, threat mapping and drone tracking.
 // Shared by the mobile/desktop UI (:shared) and the caching proxy (:server).
 kotlin {
+    // Every compilation of every target: a warning fails the build, so warnings are fixed rather than collected.
+    compilerOptions {
+        allWarningsAsErrors.set(true)
+    }
+
     iosArm64()
     iosSimulatorArm64()
     jvm {
@@ -19,7 +24,10 @@ kotlin {
 
     android {
         namespace = "com.gusak.lab.radarnebo.core"
-        compileSdk = libs.versions.android.compileSdk.get().toInt()
+        // Compose 1.13 (from material3 1.13.0-beta01) needs API 37.1 or later to compile against.
+        compileSdk {
+            version = release(libs.versions.android.compileSdk.get().toInt()) { minorApiLevel = 2 }
+        }
         minSdk = libs.versions.android.minSdk.get().toInt()
 
         compilerOptions {

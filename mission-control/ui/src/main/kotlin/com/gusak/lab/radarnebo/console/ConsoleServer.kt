@@ -16,33 +16,28 @@ import io.ktor.server.engine.EmbeddedServer
 import io.ktor.server.engine.embeddedServer
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 
-sealed interface ServerState {
-    data object Stopped : ServerState
-    data object Starting : ServerState
-    data class Running(val port: Int, val since: Long) : ServerState
-    data object Stopping : ServerState
-    data class Failed(val message: String) : ServerState
-}
+private typealias CioServer = EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration>
 
 /**
- * Runs the RadarNebo server inside the console, configured like `:mission-control:server:run` (environment and mission-control/server/.env),
- * and keeps what the console shows: traffic both ways, clients and the server's state.
+ * Runs the RadarNebo server inside the console, configured like `:mission-control:server:run` (environment and
+ * mission-control/server/.env), and keeps what the console shows: traffic both ways, clients and the server's state.
  */
-class ConsoleServer(private val baseConfig: ServerConfig) {
+internal class ConsoleServer(
+    private val baseConfig: ServerConfig,
+    private val clock: () -> Long = System::currentTimeMillis,
+) {
     private val log = LoggerFactory.getLogger("Console")
     private val lock = Mutex()
-    private var engine: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration>? = null
+    private var engine: CioServer? = null
 
     @Volatile
     private var components: ServerComponents? = null
@@ -50,7 +45,7 @@ class ConsoleServer(private val baseConfig: ServerConfig) {
     // One limiter for every run, so stopping and starting again can't exceed the alerts.in.ua budget.
     private val upstreamLimiter = UpstreamRateLimiter(baseConfig.upstream.effectivePerMinute)
 
-    val traffic = TrafficLog(capacity = 500)
+    val traffic: TrafficLog = TrafficLog(capacity = 500)
 
     private val _clients = MutableStateFlow<Map<String, ClientInfo>>(emptyMap())
     val clients: StateFlow<Map<String, ClientInfo>> = _clients.asStateFlow()
@@ -64,15 +59,15 @@ class ConsoleServer(private val baseConfig: ServerConfig) {
     val dataSource: StateFlow<DataSourceKind> = _dataSource.asStateFlow()
 
     /** alerts.in.ua needs ALERTS_API_TOKEN (environment or mission-control/server/.env). */
-    val alertsInUaAvailable get() = !baseConfig.upstream.token.isNullOrBlank()
+    val alertsInUaAvailable: Boolean get() = !baseConfig.upstream.token.isNullOrBlank()
 
-    val defaultPort get() = baseConfig.port
-    val upstreamUrl get() = baseConfig.upstream.baseUrl
-    val archive get() = baseConfig.archive.jdbcUrl
-    val clientKeys get() = baseConfig.clients.keys.size
+    val defaultPort: Int get() = baseConfig.port
+    val upstreamUrl: String get() = baseConfig.upstream.baseUrl
+    val archive: String get() = baseConfig.archive.jdbcUrl
+    val clientKeys: Int get() = baseConfig.clients.keys.size
 
     /** A key the console's own client can use; null when the server doesn't ask for one. */
-    val clientKey get() = baseConfig.clients.keys.firstOrNull()
+    val clientKey: String? get() = baseConfig.clients.keys.firstOrNull()
 
     private val recorder = TrafficRecorder { exchange ->
         if (exchange.direction == HttpExchange.Direction.Incoming) noteClient(exchange)
@@ -82,12 +77,12 @@ class ConsoleServer(private val baseConfig: ServerConfig) {
     /** The server's own report, as `/health` would give it; null while stopped. */
     fun health(): Health? = components?.let { health(it.situation, it.poller, it.upstreamBudgetPerMinute, it.clock()) }
 
-    suspend fun start(port: Int) = lock.withLock { startLocked(port) }
+    suspend fun start(port: Int): Unit = lock.withLock { startLocked(port) }
 
-    suspend fun stop() = lock.withLock { stopLocked() }
+    suspend fun stop(): Unit = lock.withLock { stopLocked() }
 
     /** Serves alerts from [kind] from now on; a running server restarts on the same port to switch. */
-    suspend fun switchDataSource(kind: DataSourceKind) = lock.withLock {
+    suspend fun switchDataSource(kind: DataSourceKind): Unit = lock.withLock {
         if (kind == _dataSource.value || (kind == DataSourceKind.AlertsInUa && !alertsInUaAvailable)) return@withLock
         _dataSource.value = kind
         log.info("Data source set to {}", kind)
@@ -97,7 +92,7 @@ class ConsoleServer(private val baseConfig: ServerConfig) {
         startLocked(running.port)
     }
 
-    fun clearClients() = _clients.update { emptyMap() }
+    fun clearClients(): Unit = _clients.update { emptyMap() }
 
     /** Only while [lock] is held. */
     private suspend fun startLocked(port: Int) {
@@ -110,27 +105,42 @@ class ConsoleServer(private val baseConfig: ServerConfig) {
             }
             // Started outside withContext: it would wait for the server's coroutines, which run until it stops.
             val server = embeddedServer(CIO, port = port, host = "0.0.0.0") { radarServer(built) }
-            try {
-                server.start(wait = false)
-            } catch (e: Throwable) {
-                // Nothing else holds these yet, so a failed start (a taken port) would leak the archive and poller.
-                server.stop(0, 0)
-                built.close()
-                throw e
-            }
+            startOrRelease(server, built)
             engine = server
             components = built
             log.info("Server started on port {} ({})", port, config.dataSource)
-            _state.value = ServerState.Running(port, System.currentTimeMillis())
+            _state.value = ServerState.Running(port, clock())
+        } catch (e: CancellationException) {
+            _state.value = ServerState.Stopped
+            throw e
+        } catch (e: EngineStartFailure) {
+            reportFailedStart(port, e.cancellation)
         } catch (e: Exception) {
-            // CIO reports a taken port by cancelling its own job, so only our own cancellation propagates.
-            if (e is CancellationException && !currentCoroutineContext().isActive) {
-                _state.value = ServerState.Stopped
-                throw e
-            }
-            log.error("Server failed to start on port {}", port, e)
-            _state.value = ServerState.Failed(e.message ?: e::class.simpleName ?: "error")
+            reportFailedStart(port, e)
         }
+    }
+
+    /** Starts [server]; if it doesn't start, it and [built] are released before the failure propagates. */
+    private fun startOrRelease(server: CioServer, built: ServerComponents) {
+        var started = false
+        try {
+            server.start(wait = false)
+            started = true
+        } catch (e: CancellationException) {
+            // CIO reports a taken port by cancelling its own job, so only our own cancellation propagates.
+            throw EngineStartFailure(e)
+        } finally {
+            if (!started) {
+                // Nothing else holds these yet, so a failed start (a taken port) would leak the archive and poller.
+                server.stop(0, 0)
+                built.close()
+            }
+        }
+    }
+
+    private fun reportFailedStart(port: Int, reason: Throwable) {
+        log.error("Server failed to start on port {}", port, reason)
+        _state.value = ServerState.Failed(reason.message ?: reason::class.simpleName ?: "error")
     }
 
     /** Only while [lock] is held. Whatever happens while stopping, the console ends up stopped and can start again. */
@@ -157,3 +167,10 @@ class ConsoleServer(private val baseConfig: ServerConfig) {
         _clients.update { it + (address to it[address].after(exchange, address)) }
     }
 }
+
+/**
+ * The engine didn't start because CIO cancelled its own job ([cancellation]): a failed start, not the cancellation of
+ * the coroutine that started it.
+ */
+private class EngineStartFailure(val cancellation: CancellationException) :
+    Exception(cancellation.message, cancellation)

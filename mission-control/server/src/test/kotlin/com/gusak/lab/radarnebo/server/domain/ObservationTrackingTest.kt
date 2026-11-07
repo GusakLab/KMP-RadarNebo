@@ -32,7 +32,9 @@ class ObservationTrackingTest {
         for (t in 0..10 * minute step 10 * second) update = tracking.update(emptyList(), listOf(sighting(t)), t)
         val track = update.tracks.single()
         assertEquals(10 * minute, track.samples.last().t, "the latest position is served")
-        track.samples.dropLast(1).zipWithNext().forEach { (a, b) -> assertTrue(b.t - a.t >= minute, "history is a sample a minute") }
+        track.samples.dropLast(1).zipWithNext().forEach { (a, b) ->
+            assertTrue(b.t - a.t >= minute, "history is a sample a minute")
+        }
         assertEquals(11, track.samples.size)
         assertTrue(track.active && track.outcome == null)
         assertEquals(listOf("42:drones"), track.markerIds)
@@ -43,7 +45,11 @@ class ObservationTrackingTest {
     fun aTrackEndsWithItsOutcomeOrIsLostWithoutSightings() {
         val tracking = ObservationTracking(contactTimeoutMs = 5 * minute, endedRetentionMs = 15 * minute)
         tracking.update(emptyList(), listOf(sighting(0), sighting(0, id = "d2")), 0)
-        val shotDown = tracking.update(emptyList(), listOf(sighting(2 * minute, TrackOutcome.Intercepted), sighting(2 * minute, id = "d2")), 2 * minute)
+        val shotDown = tracking.update(
+            emptyList(),
+            listOf(sighting(2 * minute, TrackOutcome.Intercepted), sighting(2 * minute, id = "d2")),
+            2 * minute,
+        )
         assertEquals(listOf("d1"), shotDown.ended.map { it.id })
         val d1 = shotDown.tracks.single { it.id == "d1" }
         assertEquals(TrackOutcome.Intercepted, d1.outcome)
@@ -56,7 +62,10 @@ class ObservationTrackingTest {
         assertEquals(TrackOutcome.Lost, lost.tracks.single { it.id == "d2" }.outcome)
         assertEquals(2 * minute, lost.tracks.single { it.id == "d1" }.lastSeen)
 
-        assertTrue(tracking.update(emptyList(), emptyList(), 30 * minute).tracks.isEmpty(), "ended tracks are dropped after 15 minutes")
+        assertTrue(
+            tracking.update(emptyList(), emptyList(), 30 * minute).tracks.isEmpty(),
+            "ended tracks are dropped after 15 minutes",
+        )
     }
 
     @Test

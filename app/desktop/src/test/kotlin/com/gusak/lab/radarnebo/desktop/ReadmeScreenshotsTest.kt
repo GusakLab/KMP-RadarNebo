@@ -4,6 +4,7 @@ import org.jetbrains.skia.EncodedImageFormat
 import org.junit.Assume.assumeTrue
 import java.io.File
 import kotlin.test.Test
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 /**
@@ -39,13 +40,13 @@ class ReadmeScreenshotsTest {
     fun writeReadmeScreenshots() {
         val dir = System.getProperty("readme.screenshots.dir")
         assumeTrue("run with -PupdateReadmeScreenshots", dir != null)
-        val out = File(dir!!).apply { mkdirs() }
+        val out = File(assertNotNull(dir)).apply { mkdirs() }
         val previews = PreviewRenderer.discover().associateBy { it.id }
         shots.forEach { (file, id) ->
             val preview = previews[id] ?: error("no preview $id")
             val image = PreviewRenderer.render(preview, density = 1.5f)
             assertTrue(PreviewRenderer.hasContent(image), "$id rendered blank")
-            File(out, "$file.png").writeBytes(image.encodeToData(EncodedImageFormat.PNG)!!.bytes)
+            File(out, "$file.png").writeBytes(assertNotNull(image.encodeToData(EncodedImageFormat.PNG)).bytes)
         }
     }
 }

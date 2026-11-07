@@ -1,3 +1,4 @@
+import com.gusak.lab.radarnebo.buildlogic.launchAs
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -15,6 +16,7 @@ kotlin {
     compilerOptions {
         jvmTarget = JvmTarget.JVM_17
         optIn.add("kotlin.time.ExperimentalTime")
+        allWarningsAsErrors.set(true)
     }
 }
 
@@ -48,8 +50,8 @@ dependencies {
     testImplementation(libs.ktor.client.mock)
 }
 
-// Local secrets for `./gradlew :mission-control:server:run`: KEY=value lines from mission-control/server/.env (git-ignored).
-// Variables already set in the environment win.
+// Local secrets for `./gradlew :mission-control:server:run`: KEY=value lines from mission-control/server/.env
+// (git-ignored). Variables already set in the environment win.
 tasks.named<JavaExec>("run") {
     val envFile = file(".env")
     if (envFile.exists()) {
@@ -62,5 +64,6 @@ tasks.named<JavaExec>("run") {
     }
 }
 
-// The process is called "RadarNebo Server" rather than "java" (buildSrc/src/main/kotlin/LaunchAs.kt).
+// The process is called "RadarNebo Server" rather than "java"
+// (buildSrc/src/main/kotlin/com/gusak/lab/radarnebo/buildlogic/LaunchAs.kt).
 launchAs("RadarNebo Server")

@@ -24,6 +24,7 @@ import org.jetbrains.skia.EncodedImageFormat
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalComposeUiApi::class, InternalComposeUiApi::class)
@@ -36,7 +37,9 @@ class AddFavoriteTest {
         val press = Offset(500f, 400f)
         val expectedPoint = MapProjection.toGeo(MapCamera.Overview.toWorld(press, size))
         ImageComposeScene(width = 1000, height = 800, density = Density(1f)) {
-            RadarTheme { MapScreen(UiState(), onModeChange = {}, onAddFavorite = { name, point -> added += name to point }) }
+            RadarTheme {
+                MapScreen(UiState(), onModeChange = {}, onAddFavorite = { name, point -> added += name to point })
+            }
         }.use { scene ->
             var t = 0L
             fun frame() = scene.render(t).also { t += 16_000_000L }
@@ -47,7 +50,8 @@ class AddFavoriteTest {
             scene.sendPointerEvent(PointerEventType.Release, press, button = PointerButton.Primary)
             repeat(20) { frame() }
             val out = File(System.getProperty("snapshot.dir") ?: "build/snapshots").apply { mkdirs() }
-            File(out, "add-favorite-card.png").writeBytes(frame().encodeToData(EncodedImageFormat.PNG)!!.bytes)
+            val card = assertNotNull(frame().encodeToData(EncodedImageFormat.PNG))
+            File(out, "add-favorite-card.png").writeBytes(card.bytes)
 
             // Enter accepts the suggested name.
             for (type in listOf(KeyEventType.KeyDown, KeyEventType.KeyUp)) {

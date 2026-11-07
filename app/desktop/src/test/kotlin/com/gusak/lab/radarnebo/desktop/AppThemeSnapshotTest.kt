@@ -19,8 +19,10 @@ import org.koin.compose.KoinIsolatedContext
 import org.jetbrains.skia.EncodedImageFormat
 import org.jetbrains.skia.Image
 import java.io.File
+import javax.swing.SwingUtilities
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 /** Renders the full app (demo data) in both themes, including the floating liquid-glass bar. */
 @OptIn(ExperimentalComposeUiApi::class)
@@ -30,7 +32,7 @@ class AppThemeSnapshotTest {
 
     private fun save(image: Image, name: String) {
         val out = File(System.getProperty("snapshot.dir") ?: "build/snapshots").apply { mkdirs() }
-        File(out, name).writeBytes(image.encodeToData(EncodedImageFormat.PNG)!!.bytes)
+        File(out, name).writeBytes(assertNotNull(image.encodeToData(EncodedImageFormat.PNG)).bytes)
     }
 
     /** Centre of nav item [index]: bar is 3 x 84dp items + 2 x 6dp padding, centred, 12dp above the bottom. */
@@ -40,7 +42,11 @@ class AppThemeSnapshotTest {
         val storage = InMemoryStorage().apply {
             putString("theme_mode", mode.name)
             putString("color_palette", palette.name)
-            putString("favorites", """[{"id":"1","name":"Kyiv","lat":50.4501,"lon":30.5234},{"id":"2","name":"Kharkiv","lat":49.9935,"lon":36.2304}]""")
+            putString(
+                "favorites",
+                """[{"id":"1","name":"Kyiv","lat":50.4501,"lon":30.5234},""" +
+                    """{"id":"2","name":"Kharkiv","lat":49.9935,"lon":36.2304}]""",
+            )
         }
         val owner = object : ViewModelStoreOwner {
             override val viewModelStore = ViewModelStore()
@@ -58,13 +64,15 @@ class AppThemeSnapshotTest {
             fun frames(n: Int): Image {
                 var image = scene.render(t)
                 repeat(n) {
-                    Thread.sleep(5) // let the view model's first (demo) poll land on the main dispatcher
+                    // let the view model's first (demo) poll land on the main dispatcher
+                    SwingUtilities.invokeAndWait {}
                     t += 16_000_000L
                     image = scene.render(t)
                 }
                 return image
             }
-            val name = mode.name.lowercase() + if (palette == ColorPalette.Radar) "" else "-" + palette.name.lowercase()
+            val name =
+                mode.name.lowercase() + if (palette == ColorPalette.Radar) "" else "-" + palette.name.lowercase()
             save(frames(60), "app-$name-map.png")
             scene.sendPointerEvent(PointerEventType.Press, navItem(2))
             scene.sendPointerEvent(PointerEventType.Release, navItem(2))

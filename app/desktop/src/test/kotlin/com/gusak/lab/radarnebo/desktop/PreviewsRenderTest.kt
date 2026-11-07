@@ -4,6 +4,7 @@ import org.jetbrains.skia.EncodedImageFormat
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.test.fail
 
@@ -17,7 +18,11 @@ class PreviewsRenderTest {
     @Test
     fun everyPreviewIsFound() {
         val previews = PreviewRenderer.discover()
-        assertEquals(PreviewRenderer.annotationCount(), previews.size, "every @Preview is a function the test can call")
+        assertEquals(
+            PreviewRenderer.annotationCount(),
+            previews.size,
+            "every @Preview is a function the test can call",
+        )
         val duplicates = previews.groupBy { it.id }.filterValues { it.size > 1 }.keys
         assertTrue(duplicates.isEmpty(), "preview function names are unique per file: $duplicates")
         assertTrue(previews.size >= 78, "expected the full preview set, found ${previews.size}")
@@ -30,11 +35,15 @@ class PreviewsRenderTest {
             mkdirs()
         }
         val failures = PreviewRenderer.discover().mapNotNull { preview ->
-            runCatching {
+            try {
                 val image = PreviewRenderer.render(preview, density = 1f)
-                File(out, "${preview.id}.png").writeBytes(image.encodeToData(EncodedImageFormat.PNG)!!.bytes)
+                val png = assertNotNull(image.encodeToData(EncodedImageFormat.PNG))
+                File(out, "${preview.id}.png").writeBytes(png.bytes)
                 if (!PreviewRenderer.hasContent(image)) error("rendered a blank image")
-            }.exceptionOrNull()?.let { "${preview.name} (${preview.id}): ${it.cause ?: it}" }
+                null
+            } catch (e: Exception) {
+                "${preview.name} (${preview.id}): ${e.cause ?: e}"
+            }
         }
         if (failures.isNotEmpty()) fail("${failures.size} previews failed:\n" + failures.joinToString("\n"))
     }

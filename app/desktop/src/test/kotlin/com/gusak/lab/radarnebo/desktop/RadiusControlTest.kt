@@ -7,7 +7,7 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -54,6 +54,7 @@ class RadiusControlTest {
 
         // A preset saves straight away and the map button follows.
         rule.onNodeWithText("25 km").performClick()
+        rule.waitForIdle()
         assertEquals(listOf(25), saved)
         rule.onNodeWithContentDescription("Warning radius, 25 km").assertIsDisplayed()
 

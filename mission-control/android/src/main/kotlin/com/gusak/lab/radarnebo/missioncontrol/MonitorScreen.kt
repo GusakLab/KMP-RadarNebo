@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -58,57 +59,22 @@ import java.time.format.FormatStyle
 @Composable
 private fun clock(ms: Long?): String {
     val locale = LocalConfiguration.current.locales[0]
-    val format = remember(locale) { DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM).withLocale(locale).withZone(ZoneId.systemDefault()) }
+    val format = remember(locale) {
+        DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM).withLocale(locale).withZone(ZoneId.systemDefault())
+    }
     return ms?.let { format.format(Instant.ofEpochMilli(it)) } ?: "–"
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MonitorScreen(viewModel: MonitorViewModel) {
+internal fun MonitorScreen(viewModel: MonitorViewModel) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val serverUrl by viewModel.serverUrl.collectAsStateWithLifecycle()
     var editingServer by rememberSaveable { mutableStateOf(false) }
-    val context = LocalContext.current
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.app_name)) },
-                actions = {
-                    GlyphButton("↻", stringResource(R.string.action_refresh), viewModel::refresh)
-                    GlyphButton("⚙", stringResource(R.string.action_server)) { editingServer = true }
-                },
-            )
-        },
+        topBar = { MonitorTopBar(onRefresh = viewModel::refresh, onEditServer = { editingServer = true }) },
     ) { padding ->
-        LazyColumn(
-            Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(
-                start = 16.dp,
-                end = 16.dp,
-                top = padding.calculateTopPadding() + 8.dp,
-                bottom = padding.calculateBottomPadding() + 24.dp,
-            ),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            item { StatusCard(state, serverUrl, onRetry = viewModel::refresh) }
-            state.health?.let { health ->
-                item { SourceCard(health) }
-                item { SituationCard(health) }
-                item { UpstreamCard(health) }
-                item { PollingCard(health) }
-                health.lastError?.let { error ->
-                    item { InfoCard(stringResource(R.string.card_error)) { Text(error, color = StatusColors.danger, fontSize = 14.sp) } }
-                }
-            }
-            item {
-                OutlinedButton(
-                    onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, serverUrl.toUri())) },
-                    modifier = Modifier.padding(top = 4.dp),
-                ) { Text(stringResource(R.string.action_open_status_page)) }
-            }
-        }
+        MonitorReport(state, serverUrl, padding, onRetry = viewModel::refresh)
     }
 
     if (editingServer) {
@@ -120,6 +86,58 @@ fun MonitorScreen(viewModel: MonitorViewModel) {
             },
             onDismiss = { editingServer = false },
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MonitorTopBar(onRefresh: () -> Unit, onEditServer: () -> Unit) {
+    TopAppBar(
+        title = { Text(stringResource(R.string.app_name)) },
+        actions = {
+            GlyphButton("↻", stringResource(R.string.action_refresh), onRefresh)
+            GlyphButton("⚙", stringResource(R.string.action_server), onEditServer)
+        },
+    )
+}
+
+/** The server's report as a column of cards under the top bar, with a link to its status page. */
+@Composable
+private fun MonitorReport(state: MonitorState, serverUrl: String, padding: PaddingValues, onRetry: () -> Unit) {
+    val context = LocalContext.current
+    LazyColumn(
+        Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(
+            start = 16.dp,
+            end = 16.dp,
+            top = padding.calculateTopPadding() + 8.dp,
+            bottom = padding.calculateBottomPadding() + 24.dp,
+        ),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        item { StatusCard(state, serverUrl, onRetry = onRetry) }
+        state.health?.let { health -> healthCards(health) }
+        item {
+            OutlinedButton(
+                onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, serverUrl.toUri())) },
+                modifier = Modifier.padding(top = 4.dp),
+            ) { Text(stringResource(R.string.action_open_status_page)) }
+        }
+    }
+}
+
+private fun LazyListScope.healthCards(health: Health) {
+    item { SourceCard(health) }
+    item { SituationCard(health) }
+    item { UpstreamCard(health) }
+    item { PollingCard(health) }
+    health.lastError?.let { error ->
+        item {
+            InfoCard(stringResource(R.string.card_error)) {
+                Text(error, color = StatusColors.danger, fontSize = 14.sp)
+            }
+        }
     }
 }
 
@@ -152,8 +170,18 @@ private fun StatusCard(state: MonitorState, serverUrl: String, onRetry: () -> Un
         Text(serverUrl, fontFamily = FontFamily.Monospace, fontSize = 13.sp, color = MaterialTheme.colorScheme.primary)
         when {
             state.error != null -> {
-                Text(state.error.ifBlank { stringResource(R.string.unknown_error) }, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                state.fetchedAt?.let { Text(stringResource(R.string.showing_last_known, clock(it)), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                Text(
+                    state.error.ifBlank { stringResource(R.string.unknown_error) },
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                state.fetchedAt?.let {
+                    Text(
+                        stringResource(R.string.showing_last_known, clock(it)),
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 TextButton(onClick = onRetry) { Text(stringResource(R.string.action_retry)) }
             }
             state.fetchedAt != null -> Text(
@@ -184,9 +212,16 @@ private fun SituationCard(health: Health) {
     InfoCard(stringResource(R.string.card_situation)) {
         Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
             BigNumber(stringResource(R.string.situation_alerts), health.alerts.toString(), Modifier.weight(1f))
-            BigNumber(stringResource(R.string.situation_active_tracks), health.activeTracks.toString(), Modifier.weight(1f))
+            BigNumber(
+                stringResource(R.string.situation_active_tracks),
+                health.activeTracks.toString(),
+                Modifier.weight(1f),
+            )
         }
-        Fact(stringResource(R.string.situation_tracks), stringResource(R.string.situation_tracks_value, health.activeTracks, health.tracks))
+        Fact(
+            stringResource(R.string.situation_tracks),
+            stringResource(R.string.situation_tracks_value, health.activeTracks, health.tracks),
+        )
         Fact(stringResource(R.string.situation_data_from), clock(health.dataConfirmedAt))
         Fact(
             stringResource(R.string.situation_data_age),
@@ -199,12 +234,27 @@ private fun SituationCard(health: Health) {
 private fun UpstreamCard(health: Health) {
     InfoCard(stringResource(R.string.card_upstream)) {
         health.upstreamBudgetPerMinute?.let { budget ->
-            Fact(stringResource(R.string.upstream_last_minute), stringResource(R.string.upstream_last_minute_value, health.upstreamRequestsLastMinute, budget))
+            Fact(
+                stringResource(R.string.upstream_last_minute),
+                stringResource(R.string.upstream_last_minute_value, health.upstreamRequestsLastMinute, budget),
+            )
         }
         Fact(stringResource(R.string.upstream_total), health.upstreamRequestsTotal.toString())
-        Fact(stringResource(R.string.upstream_rate_limited), health.upstreamRateLimitedTotal.toString(), warnIfPositive(health.upstreamRateLimitedTotal))
-        Fact(stringResource(R.string.upstream_rejected), health.upstreamRejectedTotal.toString(), warnIfPositive(health.upstreamRejectedTotal))
-        Fact(stringResource(R.string.upstream_other_failures), health.upstreamOtherFailuresTotal.toString(), warnIfPositive(health.upstreamOtherFailuresTotal))
+        Fact(
+            stringResource(R.string.upstream_rate_limited),
+            health.upstreamRateLimitedTotal.toString(),
+            warnIfPositive(health.upstreamRateLimitedTotal),
+        )
+        Fact(
+            stringResource(R.string.upstream_rejected),
+            health.upstreamRejectedTotal.toString(),
+            warnIfPositive(health.upstreamRejectedTotal),
+        )
+        Fact(
+            stringResource(R.string.upstream_other_failures),
+            health.upstreamOtherFailuresTotal.toString(),
+            warnIfPositive(health.upstreamOtherFailuresTotal),
+        )
         Fact(stringResource(R.string.upstream_last_success), clock(health.upstreamLastSuccessAt))
     }
 }
@@ -212,7 +262,10 @@ private fun UpstreamCard(health: Health) {
 @Composable
 private fun PollingCard(health: Health) {
     InfoCard(stringResource(R.string.card_polling)) {
-        Fact(stringResource(R.string.poll_interval), stringResource(R.string.poll_interval_value, health.pollIntervalSeconds.toInt()))
+        Fact(
+            stringResource(R.string.poll_interval),
+            stringResource(R.string.poll_interval_value, health.pollIntervalSeconds.toInt()),
+        )
         Fact(stringResource(R.string.poll_last), clock(health.lastAttemptAt))
         Fact(stringResource(R.string.poll_next), clock(health.nextPollAt))
     }
@@ -274,7 +327,11 @@ private fun ServerDialog(current: String, onSave: (String?) -> Unit, onDismiss: 
                 TextButton(onClick = { onSave(null) }) { Text(stringResource(R.string.common_use_default)) }
             }
         },
-        confirmButton = { TextButton(onClick = { onSave(url.trimEnd('/')) }, enabled = valid) { Text(stringResource(R.string.common_save)) } },
+        confirmButton = {
+            TextButton(onClick = { onSave(url.trimEnd('/')) }, enabled = valid) {
+                Text(stringResource(R.string.common_save))
+            }
+        },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) } },
     )
 }

@@ -13,7 +13,7 @@ import com.gusak.lab.radarnebo.tracking.DroneTracker
  * [DroneTracker] links consecutive raion and settlement alerts of drones and cruise missiles into tracks.
  * Track ids carry [runId], so they stay unique in the archive across restarts.
  */
-class AlertDerivedTracking(runId: String) : TargetTracking {
+internal class AlertDerivedTracking(runId: String) : TargetTracking {
     private val tracker = DroneTracker(idPrefix = "trk-$runId-")
     private var active = emptySet<String>()
 

@@ -7,7 +7,7 @@ import kotlin.test.assertTrue
 
 class FlightTest {
     private fun flightFrom(originUk: String): Flight {
-        val site = StrikeGeography.droneSites.first { it.originUk == originUk }
+        val site = StrikeGeography.DRONE_SITES.first { it.originUk == originUk }
         return FlightFactory(Random(0)).flight(
             id = "T1",
             munition = Munition.Shahed,
@@ -32,6 +32,9 @@ class FlightTest {
 
     @Test
     fun theTargetOblastIsTheTargetSettlements() {
-        assertEquals(SimulatedLocations.settlement("Kharkiv").city.oblastUid, flightFrom("Курської області").targetOblastUid)
+        assertEquals(
+            SimulatedLocations.settlement("Kharkiv").city.oblastUid,
+            flightFrom("Курської області").targetOblastUid,
+        )
     }
 }

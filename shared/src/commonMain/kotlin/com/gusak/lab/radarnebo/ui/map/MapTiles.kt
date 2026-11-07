@@ -1,16 +1,17 @@
 package com.gusak.lab.radarnebo.ui.map
 
+import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
-import com.gusak.lab.radarnebo.data.MapBackground
 import com.gusak.lab.radarnebo.geo.GeoPoint
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
@@ -22,60 +23,23 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
+import kotlinx.io.IOException
+import org.jetbrains.compose.resources.MissingResourceException
 import org.jetbrains.compose.resources.decodeToImageBitmap
 import radarnebo.shared.generated.resources.Res
 import kotlin.math.PI
 import kotlin.math.atan
 import kotlin.math.ceil
+import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.ln
 import kotlin.math.roundToInt
 import kotlin.math.sinh
 import kotlin.math.tan
 import kotlin.time.Clock
-
-/**
- * A web map tile set (Web Mercator, 256 px tiles) and the credit its terms require. The street maps are Carto's
- * label-free basemaps, bundled with the app (see [bundled]) so they show offline and leave cities to the map's
- * own labels; satellite imagery comes from Esri's public service, which needs no key. At night (the dark theme)
- * the satellite view shows NASA's Black Marble city lights instead, bundled too.
- */
-enum class TileSource(
-    val maxZoom: Int,
-    val attribution: String,
-    private val template: String,
-    /** File extension of bundled tiles. */
-    val extension: String = "png",
-    /** Photographic imagery rather than a drawn map. */
-    val isImagery: Boolean = false,
-) {
-    DarkStreets(BUNDLED_MAX_ZOOM, "Map © CARTO, © OpenStreetMap contributors", "bundled:carto-dark"),
-    LightStreets(BUNDLED_MAX_ZOOM, "Map © CARTO, © OpenStreetMap contributors", "bundled:carto-light"),
-    Satellite(18, "Imagery © Esri, Maxar, Earthstar Geographics", "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", isImagery = true),
-    // The deepest zoom NASA GIBS serves Black Marble at (NIGHT_MAX_ZOOM in tools/download-map-tiles.py).
-    NightSatellite(8, "Imagery: NASA Black Marble, via NASA GIBS", "bundled:nasa-night", extension = "jpg", isImagery = true);
-
-    /** The resource folder (under files/map) holding this set's tiles as z/x/y.[extension], or null if downloaded. */
-    val bundled: String? get() = template.removePrefix("bundled:").takeIf { it != template }
-
-    fun url(z: Int, x: Int, y: Int) = template.replace("{z}", "$z").replace("{x}", "$x").replace("{y}", "$y")
-
-    companion object {
-        /** The tiles for [background]; street maps and satellite imagery follow the theme. Null shows no map. */
-        fun of(background: MapBackground, dark: Boolean): TileSource? = when (background) {
-            MapBackground.None -> null
-            MapBackground.Streets -> if (dark) DarkStreets else LightStreets
-            MapBackground.Satellite -> if (dark) NightSatellite else Satellite
-        }
-    }
-}
-
-/** The deepest zoom tools/download-map-tiles.py stores (MAX_TILE_ZOOM there); closer views upscale it. */
-private const val BUNDLED_MAX_ZOOM = 9
 
 private data class TileKey(val source: TileSource, val z: Int, val x: Int, val y: Int)
 
@@ -100,21 +64,37 @@ private class BundledCoverage(private val ranges: Map<Int, IntArray>) {
     }
 }
 
+/** Where [drawMapTiles] gets its tiles from. */
+internal interface TileLookup {
+    /** The tile to draw, or null while it is missing (a lookup may start loading it). */
+    fun get(source: TileSource, z: Int, x: Int, y: Int): ImageBitmap?
+
+    /** A tile already in memory, or null; never starts a load. */
+    fun cached(source: TileSource, z: Int, x: Int, y: Int): ImageBitmap?
+}
+
+/** A view's tiles read ahead of drawing (see [MapTiles.preload]); it never changes. */
+private class PreloadedTiles(private val tiles: Map<TileKey, ImageBitmap>) : TileLookup {
+    override fun get(source: TileSource, z: Int, x: Int, y: Int): ImageBitmap? = tiles[TileKey(source, z, x, y)]
+
+    override fun cached(source: TileSource, z: Int, x: Int, y: Int): ImageBitmap? = get(source, z, x, y)
+}
+
 /**
  * Loads map tiles on demand, from the app's resources for [TileSource.bundled] sets and over the network for
  * the rest, and keeps the latest [capacity] in memory. [get] never waits: it returns what
  * is cached and starts loading what isn't; [loaded] changes when a tile arrives, so a canvas reading it redraws.
  * Used from the main thread only (drawing happens there), so the cache needs no locking.
  *
- * With [blocking], bundled tiles are read before [get] returns instead: for previews, which render only their
- * first frames. Without a [client], other tiles are never downloaded.
+ * Previews render only their first frames, so they draw from [preload] instead. Without a [client], other tiles
+ * are never downloaded.
  */
-class MapTiles(
+internal class MapTiles(
     private val client: HttpClient?,
     private val capacity: Int = 400,
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main),
-    private val blocking: Boolean = false,
-) {
+    private val clock: () -> Long = { Clock.System.now().toEpochMilliseconds() },
+) : TileLookup {
     private val cache = LinkedHashMap<TileKey, ImageBitmap>()
     private val loading = HashSet<TileKey>()
     private val failedAt = HashMap<TileKey, Long>()
@@ -127,45 +107,34 @@ class MapTiles(
     private var coverageRequested = false
 
     /** Counts arrivals; reading it in a draw block makes the canvas redraw as tiles come in. */
-    var loaded by mutableIntStateOf(0)
+    var loaded: Int by mutableIntStateOf(0)
         private set
 
+    /** True while a tile asked for, or the bundled coverage, is still loading: for tests to wait on. */
+    val isLoading: Boolean get() = loading.isNotEmpty() || (coverageRequested && coverage == null)
+
     /** A tile already in memory, or null; never starts a download. */
-    fun cached(source: TileSource, z: Int, x: Int, y: Int): ImageBitmap? {
+    override fun cached(source: TileSource, z: Int, x: Int, y: Int): ImageBitmap? {
         val key = TileKey(source, z, x, y)
         return cache.remove(key)?.also { cache[key] = it }
     }
 
-    fun get(source: TileSource, z: Int, x: Int, y: Int): ImageBitmap? {
+    override fun get(source: TileSource, z: Int, x: Int, y: Int): ImageBitmap? {
         cached(source, z, x, y)?.let { return it }
         val key = TileKey(source, z, x, y)
         val bundled = source.bundled
         if (bundled != null && !isBundled(key)) return null
         if (bundled == null && client == null) return null
-        if (blocking && bundled != null) {
-            val image = runBlocking { readBundled(bundled, source.extension, z, x, y) } ?: return null
-            store(key, image)
-            return image
-        }
-        val now = Clock.System.now().toEpochMilliseconds()
+        val now = clock()
         if (key in loading || (failedAt[key]?.let { now - it < RETRY_MS } == true)) return null
         loading += key
         scope.launch {
             val image = withContext(Dispatchers.Default) {
-                if (bundled != null) {
-                    readBundled(bundled, source.extension, z, x, y)
-                } else {
-                    permits.withPermit {
-                        runCatching {
-                            val response = client!!.get(source.url(z, x, y)) { header(HttpHeaders.UserAgent, USER_AGENT) }
-                            if (response.status.isSuccess()) response.bodyAsBytes().decodeToImageBitmap() else null
-                        }.getOrNull()
-                    }
-                }
+                if (bundled != null) readBundled(bundled, key) else download(key)
             }
             loading -= key
             if (image == null) {
-                failedAt[key] = Clock.System.now().toEpochMilliseconds()
+                failedAt[key] = clock()
             } else {
                 failedAt -= key
                 store(key, image)
@@ -175,26 +144,52 @@ class MapTiles(
         return null
     }
 
+    /**
+     * Reads the bundled tiles [drawMapTiles] draws for [camera] over a view of [size], all at once: previews
+     * render only their first frames, so they draw from this rather than from tiles arriving one by one. Touches
+     * none of this cache's state, so it can run on any thread.
+     */
+    suspend fun preload(source: TileSource, camera: MapCamera, size: Size): TileLookup {
+        val directory = source.bundled ?: return PreloadedTiles(emptyMap())
+        return withContext(Dispatchers.Default) {
+            val coverage = BundledCoverage.parse(readCoverage().orEmpty())
+            val tiles = TileWindow.covering(source, camera, size).keys(source)
+                .filter { it in coverage }
+                .mapNotNull { key -> readBundled(directory, key)?.let { key to it } }
+                .toMap()
+            PreloadedTiles(tiles)
+        }
+    }
+
     private fun store(key: TileKey, image: ImageBitmap) {
         cache[key] = image
         while (cache.size > capacity) cache.remove(cache.keys.first())
     }
 
-    private suspend fun readBundled(directory: String, extension: String, z: Int, x: Int, y: Int): ImageBitmap? =
-        runCatching { Res.readBytes("files/map/$directory/$z/$x/$y.$extension").decodeToImageBitmap() }.getOrNull()
+    private suspend fun download(key: TileKey): ImageBitmap? {
+        val http = client ?: return null
+        return permits.withPermit {
+            try {
+                val response = http.get(key.source.url(key.z, key.x, key.y)) {
+                    header(HttpHeaders.UserAgent, USER_AGENT)
+                }
+                if (response.status.isSuccess()) response.bodyAsBytes().decodeToImageBitmap() else null
+            } catch (_: IOException) {
+                // Offline, unreachable or timed out: the tile counts as failed and is tried again later.
+                null
+            } catch (_: IllegalArgumentException) {
+                // A body that is no image.
+                null
+            }
+        }
+    }
 
     private fun isBundled(key: TileKey): Boolean {
         coverage?.let { return key in it }
-        if (blocking) {
-            val text = runBlocking { runCatching { Res.readBytes("files/map/coverage.txt").decodeToString() }.getOrNull() }
-            return key in BundledCoverage.parse(text.orEmpty()).also { coverage = it }
-        }
         if (!coverageRequested) {
             coverageRequested = true
             scope.launch {
-                val text = withContext(Dispatchers.Default) {
-                    runCatching { Res.readBytes("files/map/coverage.txt").decodeToString() }.getOrNull()
-                }
+                val text = withContext(Dispatchers.Default) { readCoverage() }
                 coverage = BundledCoverage.parse(text.orEmpty())
                 loaded++
             }
@@ -208,70 +203,110 @@ class MapTiles(
     }
 }
 
+private suspend fun readBundled(directory: String, key: TileKey): ImageBitmap? = try {
+    Res.readBytes("files/map/$directory/${key.z}/${key.x}/${key.y}.${key.source.extension}").decodeToImageBitmap()
+} catch (_: MissingResourceException) {
+    null
+} catch (_: IllegalArgumentException) {
+    // A file the platform's image decoder can't read.
+    null
+}
+
+private suspend fun readCoverage(): String? = try {
+    Res.readBytes("files/map/coverage.txt").decodeToString()
+} catch (_: MissingResourceException) {
+    null
+}
+
 /** Map tiles for the map to draw under the oblasts; null (tests, most previews) draws none. */
-val LocalMapTiles = staticCompositionLocalOf<MapTiles?> { null }
+internal val LocalMapTiles: ProvidableCompositionLocal<MapTiles?> = staticCompositionLocalOf { null }
 
 private const val TILE_PX = 256
 private const val MAX_TILES = 80
 
 // Web Mercator, which tiles use: x is linear in longitude, y is not in latitude.
 private fun lonToTileX(lon: Double, n: Int) = (lon + 180.0) / 360.0 * n
-private fun latToTileY(lat: Double, n: Int) = (1.0 - ln(tan(lat * PI / 180.0) + 1.0 / kotlin.math.cos(lat * PI / 180.0)) / PI) / 2.0 * n
+private fun latToTileY(lat: Double, n: Int) =
+    (1.0 - ln(tan(lat * PI / 180.0) + 1.0 / cos(lat * PI / 180.0)) / PI) / 2.0 * n
 private fun tileYToLat(y: Double, n: Int) = atan(sinh(PI * (1.0 - 2.0 * y / n))) * 180.0 / PI
 private fun tileXToLon(x: Double, n: Int) = x / n * 360.0 - 180.0
+
+/** The tiles covering a view: columns [xs] and rows [ys] at zoom level [z]. */
+private class TileWindow(val z: Int, val xs: IntRange, val ys: IntRange) {
+    val count: Int get() = (xs.last - xs.first + 1) * (ys.last - ys.first + 1)
+
+    fun keys(source: TileSource): List<TileKey> = xs.flatMap { x -> ys.map { y -> TileKey(source, z, x, y) } }
+
+    companion object {
+        /**
+         * The window [camera] shows over a view of [size]: the zoom level whose tiles are at least as sharp as the
+         * screen, coarsened while that takes more than [MAX_TILES] tiles.
+         */
+        fun covering(source: TileSource, camera: MapCamera, size: Size): TileWindow {
+            val topLeft = MapProjection.toGeo(camera.toWorld(Offset.Zero, size))
+            val bottomRight = MapProjection.toGeo(camera.toWorld(Offset(size.width, size.height), size))
+            // Screen pixels per degree of longitude decide the zoom level whose tiles are at least that sharp.
+            val pxPerDegree = size.width / (bottomRight.lon - topLeft.lon)
+            val sharpest = ceil(ln(pxPerDegree * 360.0 / TILE_PX) / ln(2.0)).toInt().coerceIn(3, source.maxZoom)
+            var window = at(sharpest, topLeft, bottomRight)
+            while (window.count > MAX_TILES && window.z > 3) window = at(window.z - 1, topLeft, bottomRight)
+            return window
+        }
+
+        private fun at(z: Int, topLeft: GeoPoint, bottomRight: GeoPoint): TileWindow {
+            val n = 1 shl z
+            val x0 = floor(lonToTileX(topLeft.lon, n)).toInt().coerceAtLeast(0)
+            val x1 = floor(lonToTileX(bottomRight.lon, n)).toInt().coerceAtMost(n - 1)
+            val y0 = floor(latToTileY(topLeft.lat.coerceIn(-85.0, 85.0), n)).toInt().coerceAtLeast(0)
+            val y1 = floor(latToTileY(bottomRight.lat.coerceIn(-85.0, 85.0), n)).toInt().coerceAtMost(n - 1)
+            return TileWindow(z, x0..x1, y0..y1)
+        }
+    }
+}
 
 /**
  * Draws the tiles covering the view. The map is equirectangular and tiles are Mercator, so each tile is drawn
  * as horizontal strips, each placed at its own latitude; this keeps coastlines on the oblast borders. A tile
  * still loading is stood in for by the nearest coarser one already cached.
  */
-internal fun DrawScope.drawMapTiles(tiles: MapTiles, source: TileSource, camera: MapCamera) {
-    val topLeft = MapProjection.toGeo(camera.toWorld(Offset.Zero, size))
-    val bottomRight = MapProjection.toGeo(camera.toWorld(Offset(size.width, size.height), size))
-    // Screen pixels per degree of longitude decide the zoom level whose tiles are at least that sharp.
-    val pxPerDegree = size.width / (bottomRight.lon - topLeft.lon)
-    var z = ceil(ln(pxPerDegree * 360.0 / TILE_PX) / ln(2.0)).toInt().coerceIn(3, source.maxZoom)
-    while (true) {
-        val n = 1 shl z
-        val x0 = floor(lonToTileX(topLeft.lon, n)).toInt().coerceAtLeast(0)
-        val x1 = floor(lonToTileX(bottomRight.lon, n)).toInt().coerceAtMost(n - 1)
-        val y0 = floor(latToTileY(topLeft.lat.coerceIn(-85.0, 85.0), n)).toInt().coerceAtLeast(0)
-        val y1 = floor(latToTileY(bottomRight.lat.coerceIn(-85.0, 85.0), n)).toInt().coerceAtMost(n - 1)
-        if ((x1 - x0 + 1) * (y1 - y0 + 1) > MAX_TILES && z > 3) {
-            z--
-            continue
+internal fun DrawScope.drawMapTiles(tiles: TileLookup, source: TileSource, camera: MapCamera) {
+    val window = TileWindow.covering(source, camera, size)
+    val z = window.z
+    for (x in window.xs) for (y in window.ys) {
+        val key = TileKey(source, z, x, y)
+        val image = tiles.get(source, z, x, y)
+        if (image != null) {
+            drawTile(image, IntOffset.Zero, TILE_PX, key, camera)
+        } else {
+            drawCachedAncestor(tiles, key, camera)
         }
-        for (x in x0..x1) for (y in y0..y1) {
-            val image = tiles.get(source, z, x, y)
-            if (image != null) {
-                drawTile(image, IntOffset.Zero, TILE_PX, z, x, y, camera)
-            } else {
-                // A cached ancestor, cropped to this tile's part of it.
-                for (up in 1..4) {
-                    if (z - up < 0) break
-                    val parent = tiles.cached(source, z - up, x shr up, y shr up) ?: continue
-                    val part = TILE_PX shr up
-                    val src = IntOffset((x and ((1 shl up) - 1)) * part, (y and ((1 shl up) - 1)) * part)
-                    drawTile(parent, src, part, z, x, y, camera)
-                    break
-                }
-            }
-        }
+    }
+}
+
+/** A cached ancestor of [key], cropped to this tile's part of it. */
+private fun DrawScope.drawCachedAncestor(tiles: TileLookup, key: TileKey, camera: MapCamera) {
+    for (up in 1..4) {
+        if (key.z - up < 0) break
+        val parent = tiles.cached(key.source, key.z - up, key.x shr up, key.y shr up) ?: continue
+        val part = TILE_PX shr up
+        val src = IntOffset((key.x and ((1 shl up) - 1)) * part, (key.y and ((1 shl up) - 1)) * part)
+        drawTile(parent, src, part, key, camera)
         break
     }
 }
 
 private const val STRIPS = 8
 
-private fun DrawScope.drawTile(image: ImageBitmap, src: IntOffset, srcSize: Int, z: Int, x: Int, y: Int, camera: MapCamera) {
-    val n = 1 shl z
-    val left = camera.toScreen(MapProjection.toWorld(GeoPoint(0.0, tileXToLon(x.toDouble(), n))), size).x
-    val right = camera.toScreen(MapProjection.toWorld(GeoPoint(0.0, tileXToLon(x + 1.0, n))), size).x
+/** Draws the [srcSize] square of [image] at [src] where the tile [key] belongs on the map. */
+private fun DrawScope.drawTile(image: ImageBitmap, src: IntOffset, srcSize: Int, key: TileKey, camera: MapCamera) {
+    val n = 1 shl key.z
+    val left = camera.toScreen(MapProjection.toWorld(GeoPoint(0.0, tileXToLon(key.x.toDouble(), n))), size).x
+    val right = camera.toScreen(MapProjection.toWorld(GeoPoint(0.0, tileXToLon(key.x + 1.0, n))), size).x
     val l = left.roundToInt()
     val w = right.roundToInt() - l
     for (i in 0 until STRIPS) {
-        val lat0 = tileYToLat(y + i.toDouble() / STRIPS, n)
-        val lat1 = tileYToLat(y + (i + 1).toDouble() / STRIPS, n)
+        val lat0 = tileYToLat(key.y + i.toDouble() / STRIPS, n)
+        val lat1 = tileYToLat(key.y + (i + 1).toDouble() / STRIPS, n)
         val top = camera.toScreen(MapProjection.toWorld(GeoPoint(lat0, 0.0)), size).y.roundToInt()
         val bottom = camera.toScreen(MapProjection.toWorld(GeoPoint(lat1, 0.0)), size).y.roundToInt()
         if (bottom < 0 || top > size.height || w <= 0 || bottom <= top) continue

@@ -20,12 +20,16 @@ import kotlin.time.Instant
  * partial surveillance fills the gaps of the alerts and the other way round, and the same target reported by both
  * merges into one track. Track ids carry [runId], so they stay unique in the archive across restarts.
  */
-class FusedTracking(runId: String, private val placeNamer: PlaceNamer = PlaceNamer.NearestCity) : TargetTracking {
+internal class FusedTracking(
+    runId: String,
+    private val placeNamer: PlaceNamer = PlaceNamer.NearestCity,
+) : TargetTracking {
     private val tracker = DroneTracker(idPrefix = "fus-$runId-")
     private var active = emptySet<String>()
 
     override fun update(alerts: List<AirAlert>, observations: List<TargetObservation>, nowMs: Long): TrackingUpdate {
-        val markers = ThreatMapper.toMarkers(alerts.map { it.toDto() }, dronesOnly = false) + observations.map(::toMarker)
+        val markers =
+            ThreatMapper.toMarkers(alerts.map { it.toDto() }, dronesOnly = false) + observations.map(::toMarker)
         tracker.update(markers, nowMs)
         val tracks = tracker.snapshot()
         val ended = tracks.filter { !it.active && it.id in active }

@@ -10,20 +10,13 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
 
-/** What the poller last did, for the health check. */
-data class PollerStatus(
-    val lastAttemptAt: Long? = null,
-    val nextPollAt: Long? = null,
-    val lastError: String? = null,
-)
-
 /**
  * Pulls reports from an [AlertsDataSource] on its poll interval and publishes them to [SituationService].
  * Client traffic never triggers a fetch, so the upstream rate is independent of how many apps are connected.
  * Before the first fetch it replays the source's history; once an hour it prunes the archive to [retention].
  */
-class SituationPoller(
-    val source: AlertsDataSource,
+class SituationPoller internal constructor(
+    internal val source: AlertsDataSource,
     private val situation: SituationService,
     private val retention: Duration,
     private val clock: () -> Long = System::currentTimeMillis,
@@ -35,17 +28,17 @@ class SituationPoller(
     private var lastPruneAt = Long.MIN_VALUE
 
     @Volatile
-    var status = PollerStatus()
+    internal var status: PollerStatus = PollerStatus()
         private set
 
-    suspend fun run() {
+    internal suspend fun run() {
         log.info("Serving alerts from {}, polled every {}", source.description, source.pollInterval)
         try {
             pollForever()
-        } catch (t: Throwable) {
+        } catch (e: Error) {
             // An Error ends the loop for good; say so in /health right away rather than only once the data is stale.
-            if (t !is CancellationException) status = status.copy(lastError = "Poller stopped (${t::class.simpleName})")
-            throw t
+            status = status.copy(lastError = "Poller stopped (${e::class.simpleName})")
+            throw e
         }
     }
 
@@ -59,7 +52,8 @@ class SituationPoller(
                 // A broken report or archive must not stop the feed; the next poll starts afresh.
                 log.error("Poll failed", e)
                 // The class only: the message may hold upstream details; anonymous classes have no simple name.
-                status = status.copy(lastError = "Internal error (${e::class.simpleName ?: e::class.java.name}); see server log")
+                val errorClass = e::class.simpleName ?: e::class.java.name
+                status = status.copy(lastError = "Internal error ($errorClass); see server log")
                 source.pollInterval.inWholeMilliseconds
             }
             status = status.copy(nextPollAt = clock() + waitMs)
@@ -68,7 +62,7 @@ class SituationPoller(
     }
 
     /** Performs one fetch and returns how long to wait before the next one. */
-    suspend fun pollOnce(): Long {
+    internal suspend fun pollOnce(): Long {
         if (!primed) {
             // History is best effort and attempted once, so a failed replay can't stop live fetches.
             primed = true

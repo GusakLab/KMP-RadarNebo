@@ -22,12 +22,15 @@ internal class FlightFactory(private val random: Random) {
         count: Int = 1,
         level: ThreatLevel = ThreatLevel.Red,
     ): Flight {
-        val path = FlightPath(waypoints, random.nextDouble(munition.speedKmh.start, munition.speedKmh.endInclusive), departAt)
+        val speedKmh = random.nextDouble(munition.speedKmh.start, munition.speedKmh.endInclusive)
+        val path = FlightPath(waypoints, speedKmh, departAt)
         val detected = detectionFraction(munition, path)
         val roll = random.nextDouble()
         val (endFraction, earlyOutcome) = when {
-            roll < munition.interceptChance ->
-                random.nextDouble(munition.interceptWindow).coerceAtLeast(detected + MIN_TRACKED_FRACTION) to TrackOutcome.Intercepted
+            roll < munition.interceptChance -> {
+                val interceptAt = random.nextDouble(munition.interceptWindow)
+                interceptAt.coerceAtLeast(detected + MIN_TRACKED_FRACTION) to TrackOutcome.Intercepted
+            }
             roll < munition.interceptChance + munition.lossChance ->
                 random.nextDouble(maxOf(detected + MIN_TRACKED_FRACTION, 0.3)..0.95) to TrackOutcome.Lost
             else -> 1.0 to munition.completesAs
@@ -53,11 +56,12 @@ internal class FlightFactory(private val random: Random) {
      * A drone route: from the launch site to where it crosses the border ([gate]), then at the target with one
      * to three doglegs of 15-55 km on the way, as Shaheds fly to get around air defence.
      */
-    fun droneRoute(from: GeoPoint, gate: GeoPoint, to: GeoPoint): List<GeoPoint> = listOf(from) + droneRoute(gate, to)
+    private fun droneRoute(from: GeoPoint, gate: GeoPoint, to: GeoPoint): List<GeoPoint> =
+        listOf(from) + droneRoute(gate, to)
 
     /** A drone route from [site], through the border gate nearest its way, to [target]. */
     fun droneRouteFrom(site: LaunchSite, target: GeoPoint): List<GeoPoint> =
-        droneRoute(jitter(site.point, 15.0), gate(StrikeGeography.droneGates, site.point, target, 15.0), target)
+        droneRoute(jitter(site.point, 15.0), gate(StrikeGeography.DRONE_GATES, site.point, target, 15.0), target)
 
     /** A drone route straight from [from] at [to], doglegging on the way. */
     private fun droneRoute(from: GeoPoint, to: GeoPoint): List<GeoPoint> {
@@ -82,7 +86,7 @@ internal class FlightFactory(private val random: Random) {
     fun cruiseRoute(from: GeoPoint, gate: GeoPoint, to: GeoPoint): List<GeoPoint> {
         val bearing = GeoMath.bearingDeg(gate, to)
         val lengthKm = GeoMath.distanceKm(gate, to)
-        val turns = SimulatedLocations.settlements
+        val turns = SimulatedLocations.SETTLEMENTS
             .map { it.city.point }
             .mapNotNull { p ->
                 val km = GeoMath.distanceKm(gate, p)
@@ -93,12 +97,15 @@ internal class FlightFactory(private val random: Random) {
             }
             .shuffled(random)
             .take(1 + random.nextInt(3))
-            .sortedBy { it.first }
-            .map { jitter(it.second, 8.0) }
+            .sortedBy { (along, _) -> along }
+            .map { (_, point) -> jitter(point, 8.0) }
         return listOf(from, gate) + turns + to
     }
 
-    /** One of the three [gates] (settlement names) that make the shortest way from [from] to [to], give or take [jitterKm]. */
+    /**
+     * One of the three [gates] (settlement names) that make the shortest way from [from] to [to], give or take
+     * [jitterKm].
+     */
     fun gate(gates: List<String>, from: GeoPoint, to: GeoPoint, jitterKm: Double): GeoPoint {
         val gate = gates.map(StrikeGeography::point)
             .sortedBy { GeoMath.distanceKm(from, it) + GeoMath.distanceKm(it, to) }
@@ -108,17 +115,20 @@ internal class FlightFactory(private val random: Random) {
     }
 
     /** A point within [km] of [point], so flights over the same settlement don't fly through one spot. */
-    fun jitter(point: GeoPoint, km: Double): GeoPoint = GeoMath.destination(point, random.nextDouble(0.0, 360.0), random.nextDouble(0.0, km))
+    fun jitter(point: GeoPoint, km: Double): GeoPoint =
+        GeoMath.destination(point, random.nextDouble(0.0, 360.0), random.nextDouble(0.0, km))
 
     /** How far along its path surveillance first sees the flight: ballistic launches and bomb releases at once. */
     private fun detectionFraction(munition: Munition, path: FlightPath): Double {
-        if (munition.weaponClass == WeaponClass.BallisticMissile || munition.weaponClass == WeaponClass.GuidedBomb) return 0.0
+        if (munition.weaponClass == WeaponClass.BallisticMissile || munition.weaponClass == WeaponClass.GuidedBomb) {
+            return 0.0
+        }
         return (0..DETECTION_STEPS).map { it.toDouble() / DETECTION_STEPS }
             .firstOrNull { StrikeGeography.inCoverage(path.positionAtFraction(it)) }
             ?: 0.0
     }
 
-    private fun Random.nextDouble(range: ClosedFloatingPointRange<Double>) =
+    private fun Random.nextDouble(range: ClosedFloatingPointRange<Double>): Double =
         if (range.endInclusive <= range.start) range.start else nextDouble(range.start, range.endInclusive)
 
     private companion object {

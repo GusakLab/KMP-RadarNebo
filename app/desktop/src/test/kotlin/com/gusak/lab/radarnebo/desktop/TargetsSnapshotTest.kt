@@ -21,15 +21,20 @@ import org.jetbrains.skia.EncodedImageFormat
 import org.jetbrains.skia.Image
 import java.io.File
 import kotlin.test.Test
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import kotlin.time.Clock
+import kotlin.time.Instant
+
+/** A fixed instant (the one the previews use), so time labels and track positions are the same every run. */
+private val NOW: Instant = Instant.parse("2026-03-14T15:00:00Z")
 
 /** Renders tracked demo drones, the targets panel and a selected target's timeline, also scrolled. */
 @OptIn(ExperimentalComposeUiApi::class)
 class TargetsSnapshotTest {
 
-    private fun state(): UiState {
-        val end = Clock.System.now().toEpochMilliseconds()
+    /** The demo targets as of [now]. */
+    private fun state(now: Instant): UiState {
+        val end = now.toEpochMilliseconds()
         val threats = emptyList<com.gusak.lab.radarnebo.domain.ThreatMarker>()
         val favorites = listOf(FavoriteLocation("1", "Home", 50.45, 30.60))
         return UiState(
@@ -39,7 +44,7 @@ class TargetsSnapshotTest {
             mapThreats = threats,
             proximity = ThreatMapper.proximity(favorites, threats, 50),
             tracks = listOf(southbound(end), westbound(end)),
-            lastUpdated = Clock.System.now(),
+            lastUpdated = now,
         )
     }
 
@@ -66,17 +71,25 @@ class TargetsSnapshotTest {
 
     private fun save(image: Image, name: String) {
         val out = File(System.getProperty("snapshot.dir") ?: "build/snapshots").apply { mkdirs() }
-        File(out, name).writeBytes(image.encodeToData(EncodedImageFormat.PNG)!!.bytes)
+        File(out, name).writeBytes(assertNotNull(image.encodeToData(EncodedImageFormat.PNG)).bytes)
     }
 
     private fun run(width: Int, height: Int, firstRow: Offset, name: String) {
-        val state = state()
+        val now = NOW
+        val state = state(now)
         assertTrue(state.tracks.count { it.samples.size >= 2 } >= 2, "demo produced moving tracks")
-        val now = Clock.System.now().toEpochMilliseconds()
-        val prediction = TrackPredictor.predict(state.tracks.first { it.id == "trk-99" }, now)
+        val prediction = TrackPredictor.predict(state.tracks.first { it.id == "trk-99" }, now.toEpochMilliseconds())
         assertTrue(prediction != null && prediction.distanceKm <= 50.0, "westbound group has a predicted destination")
         ImageComposeScene(width, height, Density(1f)) {
-            RadarTheme(ThemeMode.Dark) { MapScreen(state, onModeChange = {}, onAddFavorite = { _, _ -> }, bottomInset = 88f.let { androidx.compose.ui.unit.Dp(it) }) }
+            RadarTheme(ThemeMode.Dark) {
+                MapScreen(
+                    state,
+                    onModeChange = {},
+                    onAddFavorite = { _, _ -> },
+                    bottomInset = 88f.let { androidx.compose.ui.unit.Dp(it) },
+                    clock = { NOW.toEpochMilliseconds() },
+                )
+            }
         }.use { scene ->
             var t = 0L
             fun frames(n: Int): Image {

@@ -9,14 +9,6 @@ import com.gusak.lab.radarnebo.server.domain.alert.AlertLocation
 import com.gusak.lab.radarnebo.tracking.TrackOutcome
 import kotlin.math.abs
 
-/** A threat the warning system wants declared for a location. [targetId] is set when the target is right there. */
-internal data class ThreatDemand(
-    val type: ThreatType,
-    val level: ThreatLevel,
-    val message: String,
-    val targetId: String? = null,
-)
-
 /**
  * The simulated air raid warning system: decides from what is in the air which locations must be under
  * alert, and for what.
@@ -28,14 +20,15 @@ internal data class ThreatDemand(
  * - Air defence at work: the settlement nearest an interception, for a few minutes around it.
  * - Regional threats ([AreaThreat]): their regions.
  */
-internal class WarningSystem(private val settlements: List<Settlement> = SimulatedLocations.settlements) {
+internal class WarningSystem(private val settlements: List<Settlement> = SimulatedLocations.SETTLEMENTS) {
 
     fun demands(t: Long, flights: List<Flight>, areas: List<AreaThreat>): Map<AlertLocation, List<ThreatDemand>> {
-        // Insertion order, which follows the deterministic flights, decides which location the registry gives which
-        // alert id. A HashMap would not do: AlertLocation's hash includes an enum, whose identity hash changes
-        // every JVM run, so the same seed would number and order alerts differently.
+        // Insertion order, which follows the deterministic flights, decides which location the registry gives
+        // which alert id. A HashMap would not do: AlertLocation's hash includes an enum, whose identity hash
+        // changes every JVM run, so the same seed would number and order alerts differently.
         val demands = LinkedHashMap<AlertLocation, MutableList<ThreatDemand>>()
-        fun demand(location: AlertLocation, demand: ThreatDemand) = demands.getOrPut(location) { mutableListOf() }.add(demand)
+        fun demand(location: AlertLocation, demand: ThreatDemand): Boolean =
+            demands.getOrPut(location) { mutableListOf() }.add(demand)
 
         flights.filter { it.isTracked(t) }.forEach { flight ->
             when (flight.munition.weaponClass) {
@@ -48,27 +41,42 @@ internal class WarningSystem(private val settlements: List<Settlement> = Simulat
                 }
             }
         }
-        flights.filter { it.outcome == TrackOutcome.Intercepted && t in it.endAt - AIR_DEFENSE_BEFORE_MS..it.endAt + AIR_DEFENSE_AFTER_MS }
+        flights.filter { it.outcome == TrackOutcome.Intercepted && t in airDefenseWindow(it) }
             .forEach { flight ->
-                nearest(flight.endPoint, AIR_DEFENSE_RADIUS_KM)?.let { demand(it.location, ThreatDemand(ThreatType.AirDefense, ThreatLevel.Red, AIR_DEFENSE_MESSAGE)) }
+                nearest(flight.endPoint, AIR_DEFENSE_RADIUS_KM)?.let {
+                    demand(it.location, ThreatDemand(ThreatType.AirDefense, ThreatLevel.Red, AIR_DEFENSE_MESSAGE))
+                }
             }
         areas.filter { it.isActive(t) }.forEach { area ->
-            area.oblastUids.forEach { uid -> demand(SimulatedLocations.region(uid), ThreatDemand(area.type, area.level, area.message)) }
+            area.oblastUids.forEach { uid ->
+                demand(SimulatedLocations.region(uid), ThreatDemand(area.type, area.level, area.message))
+            }
         }
         return demands
     }
+
+    /** When air defence is at work around [flight]'s interception. */
+    private fun airDefenseWindow(flight: Flight): LongRange =
+        flight.endAt - AIR_DEFENSE_BEFORE_MS..flight.endAt + AIR_DEFENSE_AFTER_MS
 
     private fun alongTheWay(flight: Flight, t: Long, demand: (AlertLocation, ThreatDemand) -> Unit) {
         val profile = flight.munition.warning
         val here = flight.positionAt(t)
         val redPath = flight.path.pointsBetween(t, t + profile.redLeadMs, STEP_KM)
-        val yellowPath = if (profile.yellowLeadMs > profile.redLeadMs) flight.path.pointsBetween(t + profile.redLeadMs, t + profile.yellowLeadMs, STEP_KM) else emptyList()
+        val yellowPath = if (profile.yellowLeadMs > profile.redLeadMs) {
+            flight.path.pointsBetween(t + profile.redLeadMs, t + profile.yellowLeadMs, STEP_KM)
+        } else {
+            emptyList()
+        }
         settlements.forEach { settlement ->
             val p = settlement.city.point
             val demandHere = when {
-                isWithin(here, p, profile.redRadiusKm) -> ThreatDemand(flight.threat, flight.level, flight.message, flight.id)
-                redPath.any { isWithin(it, p, profile.redRadiusKm) } -> ThreatDemand(flight.threat, flight.level, flight.message)
-                yellowPath.any { isWithin(it, p, profile.corridorKm) } -> ThreatDemand(flight.threat, ThreatLevel.Yellow, flight.message)
+                isWithin(here, p, profile.redRadiusKm) ->
+                    ThreatDemand(flight.threat, flight.level, flight.message, flight.id)
+                redPath.any { isWithin(it, p, profile.redRadiusKm) } ->
+                    ThreatDemand(flight.threat, flight.level, flight.message)
+                yellowPath.any { isWithin(it, p, profile.corridorKm) } ->
+                    ThreatDemand(flight.threat, ThreatLevel.Yellow, flight.message)
                 else -> null
             }
             demandHere?.let { demand(settlement.location, it) }
@@ -83,15 +91,19 @@ internal class WarningSystem(private val settlements: List<Settlement> = Simulat
             Regions.oblastAt(path.positionAtFraction(fromFraction + (1.0 - fromFraction) * i / BALLISTIC_SAMPLES))
         }
         val target = listOf(flight.targetOblastUid) +
-            if (flight.targetOblastUid == Regions.KYIV_CITY_UID) listOf(SimulatedLocations.KYIV_OBLAST_UID) else emptyList()
+            if (flight.targetOblastUid == Regions.KYIV_CITY_UID) {
+                listOf(SimulatedLocations.KYIV_OBLAST_UID)
+            } else {
+                emptyList()
+            }
         return (target + overflown).filterTo(LinkedHashSet()) { it !in SimulatedLocations.OCCUPIED_REGIONS }
     }
 
     private fun nearest(point: GeoPoint, maxKm: Double): Settlement? = settlements
         .map { it to GeoMath.distanceKm(point, it.city.point) }
-        .filter { it.second <= maxKm }
-        .minByOrNull { it.second }
-        ?.first
+        .filter { (_, km) -> km <= maxKm }
+        .minByOrNull { (_, km) -> km }
+        ?.let { (settlement, _) -> settlement }
 
     /** Distance check with a cheap bounding-box test first: this runs for every settlement and flight each tick. */
     private fun isWithin(a: GeoPoint, b: GeoPoint, km: Double): Boolean {

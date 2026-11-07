@@ -3,9 +3,14 @@
 Published as a public Google Doc, and linked from the Play Console:
 https://docs.google.com/document/d/1S-4t0lohj6npOxOttlyyhss9AvBZOsHAUabfGgW5WKE/edit?usp=sharing
 
-Effective: 3 November 2026. RadarNebo is published by GUSAK LAB LLC. It shows air raid alerts and tracked aerial threats over Ukraine on a map, using data from a RadarNebo server.
+Effective: 7 November 2026. RadarNebo is published by GUSAK LAB LLC. It shows air raid alerts and tracked aerial threats over Ukraine on a map, using data from a RadarNebo server.
 
-What the app collects: nothing. RadarNebo has no accounts, analytics, advertising, tracking or third-party SDKs, and it does not access your location, contacts, photos or microphone. GUSAK LAB LLC does not sell or share personal data.
+What the app collects: RadarNebo has no accounts, and it does not access your location, contacts, photos or microphone. GUSAK LAB LLC does not sell personal data. To learn how the app is used and to fix crashes, the app uses two Google services:
+
+- Google Analytics for Firebase receives usage events (such as app opens, screens viewed and session length), your device model, operating system, language and app version, an app instance identifier, an approximate location (country and city) that Google derives from your IP address, and on Android the advertising ID. The advertising ID helps measure our Google Ads campaigns; you can reset or delete it in your device settings. On iOS the app does not access the advertising identifier.
+- Firebase Crashlytics receives a report when the app crashes: the stack trace, device model, operating system, app version, free memory and disk space, and an installation identifier.
+
+Neither service receives your favorite places, settings or server access key. Google processes this data for us under the Google Analytics and Firebase terms and privacy policy (https://policies.google.com/privacy). Analytics data is kept for the retention period set in our Firebase project (2 months by default) and crash reports for 90 days.
 
 What stays on your device: your favorite places, including any names and coordinates you enter, your settings, and the server address and access key. None of this is sent to anyone else, except that the access key, if one is set, is sent to that server to authorize the app's requests. You can remove favorites in the app, and deleting the app removes all of it from your device, though a copy may remain in your device's own backup.
 

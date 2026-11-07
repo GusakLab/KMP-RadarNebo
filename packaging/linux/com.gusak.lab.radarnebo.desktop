@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=RadarNebo
+GenericName=Threat map
+Comment=Drone and missile threats over Ukraine on a live map
+Exec=radarnebo
+Icon=com.gusak.lab.radarnebo
+Terminal=false
+Categories=Utility;Maps;
+Keywords=radar;drone;missile;air raid;alert;Ukraine;map;
+# AWT names the window after the main class, so docks match it to this entry through this key.
+StartupWMClass=com-gusak-lab-radarnebo-desktop-MainKt

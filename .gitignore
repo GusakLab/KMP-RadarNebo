@@ -104,6 +104,16 @@ fastlane/test_output
 *.rpm
 *.exe
 
+# Linux packages (packaging/linux, snap/): outputs, and the work directories of flatpak-builder and of
+# snapcraft's destructive mode
+*.AppImage
+*.flatpak
+*.snap
+.flatpak-builder/
+/parts/
+/stage/
+/prime/
+
 # ==========================================================
 # Server (Ktor)
 # ==========================================================
@@ -140,4 +150,7 @@ Desktop.ini
 # The server's archive database (ARCHIVE_JDBC_URL)
 mission-control/server/data/
 /data/
-client.ios.properties
+
+# Claude Code: per-user settings and agent worktrees
+.claude/settings.local.json
+.claude/worktrees/

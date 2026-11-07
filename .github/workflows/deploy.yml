@@ -1,5 +1,9 @@
 name: Deploy server to OCI
 
+# Deploys come from main only: a push to main that touches the server, or a manual run on main (redeploy or rollback).
+# Pull requests never deploy; ci.yml tests them. The `main` checks on the jobs below are the visible half. The lock is
+# the `production` environment: only main may deploy to it, and it holds the deploy secrets, so a branch that edits
+# this file (a branch runs its own copy of it) still gets none of them.
 on:
   push:
     branches: ["main"]
@@ -13,47 +17,29 @@ on:
       - ".github/workflows/deploy.yml"
   workflow_dispatch:  # manual redeploy from the Actions tab (e.g. after rotating ALERTS_IN_UA_API_KEY or CLIENT_KEYS)
     inputs:
-      image_tag:  # rollback: redeploys an image already on Docker Hub, skipping tests, build and scan
-        description: Deploy this existing image sha instead of building
+      image_tag:  # rollback: redeploys an image main already pushed to Docker Hub, skipping tests, build and scan
+        description: Deploy the image of this earlier main commit (full sha) instead of building
         type: string
         required: false
-  # Labelling a pull request `deploy` deploys its branch, and every push to it redeploys while the label stays.
-  # Same paths as push: a pull request that doesn't touch the server never deploys.
-  # closed and unlabeled only run restore-main, which puts main back after a pull request deploy.
-  pull_request:
-    types: [labeled, synchronize, closed, unlabeled]
-    paths:
-      - "core/**"
-      - "mission-control/server/**"
-      - "buildSrc/**"
-      - "gradle/**"
-      - "*.gradle.kts"
-      - "gradle.properties"
-      - ".github/workflows/deploy.yml"
 
 permissions:
   contents: read
 
 env:
-  IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/radarnebo-server
   APP_DIR: docker-deployments/apps/radarnebo/radarnebo-server
   # Caddy gets and renews its Let's Encrypt certificate for it; a repository variable DOMAIN overrides it.
   DOMAIN: ${{ vars.DOMAIN || 'radar-nebo.worxbend.com' }}
 
 jobs:
   test:
-    # Pull requests only with the `deploy` label, and only from this repository: forks get no secrets.
-    # A rollback (image_tag) deploys an image that was tested when it was built.
-    if: >-
-      inputs.image_tag == '' && (
-        github.event_name != 'pull_request' || (
-          github.event.pull_request.head.repo.full_name == github.repository &&
-          contains(github.event.pull_request.labels.*.name, 'deploy') &&
-          (github.event.action == 'synchronize' ||
-            (github.event.action == 'labeled' && github.event.label.name == 'deploy'))))
+    # A manual run can be started on any branch: only main's runs go on. A rollback (image_tag) deploys an image that
+    # was tested when it was built.
+    if: github.ref == 'refs/heads/main' && inputs.image_tag == ''
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
@@ -69,20 +55,32 @@ jobs:
 
   build-and-deploy:
     needs: test
-    # test is skipped only for a rollback; any other skip (a pull request it doesn't apply to) skips the deploy too.
+    # test is skipped only for a rollback; any other skip (a run off main) skips the deploy too.
     if: >-
-      !cancelled() && (
+      !cancelled() && github.ref == 'refs/heads/main' && (
         needs.test.result == 'success' ||
         (needs.test.result == 'skipped' && inputs.image_tag != ''))
-    # Deploys run one after the other, never side by side. On the job, not the workflow: a run that skips it
-    # (a pull request closing) never joins the group, so it can't replace a pending deploy.
+    # Only main may deploy to it (its deployment branch policy), and the deploy secrets live in it, not in the repository.
+    environment:
+      name: production
+      url: https://${{ env.DOMAIN }}
+    # Deploys run one after the other, never side by side; a newer one waits instead of cancelling the one running.
     concurrency:
       group: deploy-oci
       cancel-in-progress: false
     runs-on: ubuntu-latest
     env:
+      # On the job, not the workflow: environment secrets reach only the job that names the environment.
+      IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/radarnebo-server
       TAG: ${{ inputs.image_tag || github.sha }}
     steps:
+      - id: checkout
+        name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # A rollback needs main's whole history to check that image_tag is one of its commits.
+          fetch-depth: ${{ inputs.image_tag == '' && 1 || 0 }}
+          persist-credentials: false
       - name: Check image_tag
         if: inputs.image_tag != ''
         env:
@@ -90,9 +88,9 @@ jobs:
         run: |
           # Images are tagged with the full sha only, so a short one would fail later, at the pull on the VM.
           [[ "$IMAGE_TAG" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::image_tag must be a full 40-character commit sha"; exit 1; }
-      - id: checkout
-        name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+          # Pull request deploys once pushed images of unmerged branches too; only main's own commits may go live.
+          git merge-base --is-ancestor "$IMAGE_TAG" HEAD 2>/dev/null ||
+            { echo "::error::image_tag $IMAGE_TAG is not a commit on main"; exit 1; }
       - name: Download the fat jar
         if: inputs.image_tag == ''
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -124,6 +122,9 @@ jobs:
           context: mission-control/server
           push: true
           tags: ${{ env.IMAGE }}:${{ github.sha }}
+          # A new value each run, so the Dockerfile's apt upgrade takes today's Ubuntu security fixes instead of
+          # coming from the cache. A rerun of the same run reuses it.
+          build-args: UPGRADE_ID=${{ github.run_id }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Scan arm64 image (Trivy)
@@ -150,9 +151,9 @@ jobs:
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: "1"
-      # Only main moves :latest, and only to an image both scans passed.
+      # :latest moves only to an image both scans passed; a rollback leaves it alone.
       - name: Tag latest
-        if: inputs.image_tag == '' && github.ref == 'refs/heads/main'
+        if: inputs.image_tag == ''
         run: docker buildx imagetools create -t "${IMAGE}:latest" "${IMAGE}:${GITHUB_SHA}"
       - name: Copy compose file and Caddyfile to remote machine
         uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1
@@ -174,8 +175,10 @@ jobs:
       - id: deploy
         name: Connect to remote machine and deploy
         env:
-          # Passed via envs:, never pasted into the script. Empty ALERTS_API_TOKEN runs the simulation; an empty
-          # CLIENT_KEYS fails the deploy (the compose file requires it) instead of exposing an open API.
+          # Passed via envs:, never pasted into the script (the image tag can come from the image_tag input). Empty
+          # ALERTS_API_TOKEN runs the simulation; an empty CLIENT_KEYS fails the deploy (the compose file requires it)
+          # instead of exposing an open API.
+          RADARNEBO_SERVER_IMAGE: ${{ env.IMAGE }}:${{ env.TAG }}
           ALERTS_API_TOKEN: ${{ secrets.ALERTS_IN_UA_API_KEY }}
           CLIENT_KEYS: ${{ secrets.CLIENT_KEYS }}
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
@@ -185,12 +188,11 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT }}
           fingerprint: ${{ secrets.SSH_HOST_FINGERPRINT }}
-          envs: ALERTS_API_TOKEN,CLIENT_KEYS,DOMAIN
+          envs: RADARNEBO_SERVER_IMAGE,ALERTS_API_TOKEN,CLIENT_KEYS,DOMAIN
           script: |
             set -e  # this ssh-action carries on after a failed command otherwise
-            export RADARNEBO_SERVER_IMAGE=${{ env.IMAGE }}:${{ env.TAG }}
             cd $PWD/${{ env.APP_DIR }}
-            docker pull $RADARNEBO_SERVER_IMAGE
+            docker pull "$RADARNEBO_SERVER_IMAGE"
             # Compose reads .env from here, so a manual `docker compose ps/logs/up` on the VM works too.
             # One line per value: none of them may contain a newline. rm first: umask applies only to a new file.
             (rm -f .env; umask 077; printf 'RADARNEBO_SERVER_IMAGE=%s\nDOMAIN=%s\nALERTS_API_TOKEN=%s\nCLIENT_KEYS=%s\n' \
@@ -202,22 +204,3 @@ jobs:
       # From outside, through Caddy, TLS, DNS and the firewall, which the container healthcheck never touches.
       - name: Check https://DOMAIN/health
         run: curl -fsS --retry 12 --retry-delay 5 --retry-all-errors "https://${DOMAIN}/health" | jq -e '.status'
-
-  # A pull request deploy stays live until this puts main back: on losing the `deploy` label, or on closing unmerged
-  # (a merged one is deployed by the push to main).
-  restore-main:
-    if: >-
-      github.event_name == 'pull_request' &&
-      github.event.pull_request.head.repo.full_name == github.repository && (
-        (github.event.action == 'unlabeled' && github.event.label.name == 'deploy') ||
-        (github.event.action == 'closed' && !github.event.pull_request.merged &&
-          contains(github.event.pull_request.labels.*.name, 'deploy')))
-    runs-on: ubuntu-latest
-    permissions:
-      actions: write
-    steps:
-      - name: Redeploy main
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: gh workflow run deploy.yml --ref main

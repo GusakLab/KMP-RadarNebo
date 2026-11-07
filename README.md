@@ -52,9 +52,16 @@ From a terminal:
 - MissionControl-Nebo, the Android server monitor (not on Google Play): `./gradlew :mission-control:android:bundleRelease`; signing and the
   details are in [MissionControl-Nebo release](./docs/mission-control-android-release.md).
 - Desktop app: `./gradlew :app:desktop:run`
+- Desktop app for Linux as an AppImage, Flatpak and Snap, published as a GitHub release on a `v1.2.3` tag:
+  [Linux release](./docs/linux-release.md).
 - iOS app: open the [/app/ios](./app/ios) directory in Xcode and run it from there.
 - Server: CI, the Oracle Cloud deploy and the server's environment variables are in [Server deployment](./docs/deployment.md).
 
 ---
 
 Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)…
+
+## License
+
+MIT, see [LICENSE](LICENSE). The agent skills in `.claude/skills/` keep their upstream licenses, listed
+in [`.claude/THIRD_PARTY_SKILLS.md`](.claude/THIRD_PARTY_SKILLS.md).

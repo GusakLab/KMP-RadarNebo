@@ -1,0 +1,181 @@
+name: Linux release
+
+# A v1.2.3 tag builds the desktop client (app/desktop) as an AppImage, a Flatpak bundle and a Snap, and publishes
+# them with their SHA-256 sums as the tag's GitHub release. A pull request that changes the packaging, or a manual
+# run, builds the same three as workflow artifacts only. docs/linux-release.md has the details.
+on:
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
+  pull_request:
+    paths:
+      - "packaging/linux/**"
+      - "snap/**"
+      - "app/desktop/build.gradle.kts"
+      - ".github/workflows/release-linux.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A newer push to the same pull request cancels the run it supersedes; tag runs always finish.
+concurrency:
+  group: release-linux-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  distributable:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Version
+        id: version
+        # The tag without its v (the trigger only matches v<major>.<minor>.<patch>); other runs get 0.0.<run number>.
+        run: |
+          if [[ $GITHUB_REF == refs/tags/v* ]]; then version=${GITHUB_REF_NAME#v}; else version=0.0.$GITHUB_RUN_NUMBER; fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+      # No client.properties here: the packages start pointed at the public server with no key, and users enter
+      # the server's key in Settings.
+      - name: Test and build the distributable
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: ./gradlew :app:desktop:test :app:desktop:createDistributable -PappVersion="$VERSION"
+      # A tarball keeps the launcher's executable bit and the JRE's symbolic links, which artifacts don't.
+      - name: Pack the distributable
+        run: tar -C app/desktop/build/compose/binaries/main/app -czf radarnebo-dist.tar.gz RadarNebo
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: distributable
+          path: radarnebo-dist.tar.gz
+          retention-days: 7
+
+  appimage:
+    needs: distributable
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: distributable
+      - name: Unpack the distributable
+        run: mkdir -p app/desktop/build/compose/binaries/main/app && tar -C app/desktop/build/compose/binaries/main/app -xzf radarnebo-dist.tar.gz
+      - name: Check the desktop entry and AppStream metadata
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq desktop-file-utils appstream
+          desktop-file-validate packaging/linux/com.gusak.lab.radarnebo.desktop
+          appstreamcli validate --no-net packaging/linux/com.gusak.lab.radarnebo.metainfo.xml
+      - name: Build the AppImage
+        env:
+          VERSION: ${{ needs.distributable.outputs.version }}
+        run: packaging/linux/appimage/build.sh "$VERSION" out
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: linux-appimage
+          path: out/*.AppImage
+          retention-days: 7
+
+  flatpak:
+    needs: distributable
+    runs-on: ubuntu-latest
+    # The Freedesktop 26.08 runtime and SDK come preinstalled; flatpak-builder's sandbox needs --privileged.
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:freedesktop-26.08
+      options: --privileged
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: distributable
+      - name: Unpack the distributable
+        run: mkdir -p app/desktop/build/compose/binaries/main/app && tar -C app/desktop/build/compose/binaries/main/app -xzf radarnebo-dist.tar.gz
+      # Installing the bundle fetches the runtime from Flathub, the action's default runtime repository.
+      - uses: flatpak/flatpak-github-actions/flatpak-builder@79327416609af08178ad73b352877e51450790b3 # v6.8
+        with:
+          manifest-path: packaging/linux/flatpak/com.gusak.lab.radarnebo.yml
+          bundle: RadarNebo-${{ needs.distributable.outputs.version }}-x86_64.flatpak
+          # The only module is the freshly built distributable, so a build cache never hits.
+          cache: false
+          upload-artifact: false
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: linux-flatpak
+          path: RadarNebo-*.flatpak
+          retention-days: 7
+
+  snap:
+    needs: distributable
+    # Destructive mode builds on the runner itself instead of in an LXD container, which needs the runner's Ubuntu to
+    # match the snap's core24 base.
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: distributable
+      - name: Unpack the distributable
+        run: mkdir -p app/desktop/build/compose/binaries/main/app && tar -C app/desktop/build/compose/binaries/main/app -xzf radarnebo-dist.tar.gz
+      - name: Set the snap's version
+        env:
+          VERSION: ${{ needs.distributable.outputs.version }}
+        run: |
+          sed -i "s/^version: .*/version: \"$VERSION\"/" snap/snapcraft.yaml
+          grep -x "version: \"$VERSION\"" snap/snapcraft.yaml
+      # On failure snapcraft only prints a summary, so show the end of its detailed log.
+      - name: Build the snap
+        run: |
+          sudo snap install snapcraft --classic
+          sudo snapcraft pack --destructive-mode || {
+            sudo sh -c 'tail -n 80 /root/.local/state/snapcraft/log/snapcraft-*.log'
+            exit 1
+          }
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: linux-snap
+          path: "*.snap"
+          retention-days: 7
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [appimage, flatpak, snap]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: linux-*
+          merge-multiple: true
+          path: release
+      - name: Checksums
+        working-directory: release
+        run: sha256sum -- * > SHA256SUMS && cat SHA256SUMS
+      # Rerunning the workflow for a tag replaces the files of the release it already made.
+      - name: Publish the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" release/* --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" release/* --verify-tag --generate-notes \
+              --notes-file packaging/linux/release-notes.md
+          fi

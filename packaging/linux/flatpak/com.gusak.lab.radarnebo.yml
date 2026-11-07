@@ -1,0 +1,41 @@
+# Flatpak of the desktop client, built from the Compose distributable (which bundles its own trimmed JRE), so it
+# needs no Java extension. Build `./gradlew :app:desktop:createDistributable` first; docs/linux-release.md has the
+# local commands, and .github/workflows/release-linux.yml builds it for releases.
+id: com.gusak.lab.radarnebo
+runtime: org.freedesktop.Platform
+runtime-version: "26.08"
+sdk: org.freedesktop.Sdk
+command: radarnebo
+
+finish-args:
+  # Compose Desktop draws through AWT, which only speaks X11 (XWayland on Wayland sessions).
+  - --socket=x11
+  - --share=ipc
+  - --device=dri
+  - --share=network
+  # Java takes the home directory from the passwd entry rather than $HOME, so the app writes its settings to
+  # ~/.radarnebo/settings.properties. This keeps that directory in the app's own storage (~/.var/app/<id>).
+  - --persist=.radarnebo
+
+modules:
+  - name: radarnebo
+    buildsystem: simple
+    sources:
+      - type: dir
+        path: ../../../app/desktop/build/compose/binaries/main/app/RadarNebo
+        dest: RadarNebo
+      - type: file
+        path: ../com.gusak.lab.radarnebo.desktop
+      - type: file
+        path: ../com.gusak.lab.radarnebo.metainfo.xml
+      - type: file
+        path: ../../../app/desktop/icons/radarnebo.png
+        dest-filename: com.gusak.lab.radarnebo.png
+    build-commands:
+      - mkdir -p /app/lib /app/bin
+      - cp -a RadarNebo /app/lib/radarnebo
+      # The launcher finds its JRE from its real path, so a link to it works.
+      - ln -s ../lib/radarnebo/bin/RadarNebo /app/bin/radarnebo
+      - install -Dm644 com.gusak.lab.radarnebo.desktop -t /app/share/applications
+      - install -Dm644 com.gusak.lab.radarnebo.metainfo.xml -t /app/share/metainfo
+      - install -Dm644 com.gusak.lab.radarnebo.png -t /app/share/icons/hicolor/512x512/apps

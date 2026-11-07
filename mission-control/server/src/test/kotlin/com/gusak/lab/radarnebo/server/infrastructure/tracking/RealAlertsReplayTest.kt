@@ -13,6 +13,7 @@ import com.gusak.lab.radarnebo.tracking.TrajectoryEstimator
 import kotlinx.serialization.Serializable
 import kotlin.math.abs
 import kotlin.test.Test
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
 
@@ -30,17 +31,27 @@ class RealAlertsReplayTest {
     private val dayStart = Instant.parse("2026-10-26T00:00:00Z").toEpochMilliseconds()
 
     private val archived: List<Archived> by lazy {
-        javaClass.getResourceAsStream("/alerts-in-ua-drones-2026-10-26.jsonl")!!.bufferedReader().readLines()
+        assertNotNull(javaClass.getResourceAsStream("/alerts-in-ua-drones-2026-10-26.jsonl"))
+            .bufferedReader()
+            .readLines()
             .filter { it.isNotBlank() }
             .map { RadarNeboApi.json.decodeFromString(Archived.serializer(), it) }
     }
 
     private fun Alert.startMs() = startedAt?.let { Instant.parse(it).toEpochMilliseconds() } ?: Long.MAX_VALUE
 
-    /** The alerts open at [t], each with the threats that had started by then: what `/v1/alerts/active.json` listed. */
+    /**
+     * The alerts open at [t], each with the threats that had started by then: what `/v1/alerts/active.json`
+     * listed.
+     */
     private fun activeAt(t: Long): List<Alert> = archived
         .filter { it.alert.startMs() <= t && (it.finishedAt == null || it.finishedAt > t) }
-        .map { a -> a.alert.copy(threats = a.alert.threats.filter { th -> th.startedAt?.let { Instant.parse(it).toEpochMilliseconds() <= t } ?: true }) }
+        .map { a ->
+            val started = a.alert.threats.filter { th ->
+                th.startedAt?.let { Instant.parse(it).toEpochMilliseconds() <= t } ?: true
+            }
+            a.alert.copy(threats = started)
+        }
 
     private val tracks: List<DroneTrack> by lazy {
         val tracker = DroneTracker()
@@ -70,12 +81,17 @@ class RealAlertsReplayTest {
                 val speed = GeoMath.distanceKm(a.point, b.point) / ((b.t - a.t) / 3_600_000.0)
                 assertTrue(speed <= k.maxSpeedKmh * 1.25, "${track.id} path implies $speed km/h")
             }
-            track.estimate?.speedKmh?.let { assertTrue(it in k.minSpeedKmh - 1e-6..k.maxSpeedKmh + 1e-6, "${track.id} estimated at $it km/h") }
+            track.estimate?.speedKmh?.let {
+                assertTrue(it in k.minSpeedKmh - 1e-6..k.maxSpeedKmh + 1e-6, "${track.id} estimated at $it km/h")
+            }
             // No doubling back between consecutive legs unless the kind loiters.
             if (!k.loiters) {
                 track.samples.windowed(3).forEach { (a, b, c) ->
-                    if (GeoMath.distanceKm(a.point, b.point) < 1.0 || GeoMath.distanceKm(b.point, c.point) < 1.0) return@forEach
-                    val turn = abs(((GeoMath.bearingDeg(b.point, c.point) - GeoMath.bearingDeg(a.point, b.point) + 540.0) % 360.0) - 180.0)
+                    if (GeoMath.distanceKm(a.point, b.point) < 1.0 || GeoMath.distanceKm(b.point, c.point) < 1.0) {
+                        return@forEach
+                    }
+                    val legTurn = GeoMath.bearingDeg(b.point, c.point) - GeoMath.bearingDeg(a.point, b.point)
+                    val turn = abs(((legTurn + 540.0) % 360.0) - 180.0)
                     assertTrue(turn <= 150.0, "${track.id} reverses by $turn° at ${b.title}")
                 }
             }
@@ -95,16 +111,25 @@ class RealAlertsReplayTest {
                 val km = GeoMath.distanceKm(last.point, first.point)
                 val k = TrackKinematics.of(lost)
                 val reverses = !k.loiters && listOfNotNull(
-                    lost.samples.getOrNull(lost.samples.lastIndex - 1)?.let { GeoMath.bearingDeg(it.point, last.point) },
+                    lost.samples.getOrNull(lost.samples.lastIndex - 1)
+                        ?.let { GeoMath.bearingDeg(it.point, last.point) },
                     lost.estimate?.headingDeg,
                 ).any { bearingTurn(it, GeoMath.bearingDeg(last.point, first.point)) > 150.0 }
                 // Tracks born in the same update are never linked: reports appearing together are separate groups.
-                lost.id != track.id && lost.firstSeen != track.firstSeen && lost.kind == track.kind && lost.lastSeen < first.t && first.t - lost.lastSeen <= window &&
-                    km <= TrackKinematics.Drones.maxHopKm * 1.5 && km <= k.maxSpeedKmh * 1.5 * (first.t - last.t) / 3_600_000.0 + 25.0 &&
+                lost.id != track.id && lost.firstSeen != track.firstSeen && lost.kind == track.kind &&
+                    lost.lastSeen < first.t && first.t - lost.lastSeen <= window &&
+                    km <= TrackKinematics.Drones.maxHopKm * 1.5 &&
+                    km <= k.maxSpeedKmh * 1.5 * (first.t - last.t) / 3_600_000.0 + 25.0 &&
                     !reverses
             }
         }
-        println("Real 2026-10-26: ${inlandStarts.size} drone tracks start inland, ${violations.size} while a lost one could have flown there")
-        assertTrue(violations.isEmpty(), "started inland next to a lost track: ${violations.map { it.id to it.samples.first().title }}")
+        println(
+            "Real 2026-10-26: ${inlandStarts.size} drone tracks start inland, " +
+                "${violations.size} while a lost one could have flown there",
+        )
+        assertTrue(
+            violations.isEmpty(),
+            "started inland next to a lost track: ${violations.map { it.id to it.samples.first().title }}",
+        )
     }
 }

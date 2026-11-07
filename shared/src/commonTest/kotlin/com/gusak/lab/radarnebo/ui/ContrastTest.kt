@@ -15,60 +15,82 @@ import kotlin.test.fail
 class ContrastTest {
     @Test
     fun everyPaletteMeetsWcagAa() {
-        val failures = mutableListOf<String>()
-        for (palette in ColorPalette.entries) for (dark in listOf(false, true)) {
-            val (radar, m) = themeColors(palette, dark)
-            fun check(what: String, text: Color, on: Color, min: Float = TEXT_CONTRAST) {
-                // Translucent text is seen over what it sits on.
-                val r = contrast(text.compositeOver(on), on)
-                if (r < min) failures += "$palette ${if (dark) "dark" else "light"}: $what ${(r * 100).roundToInt() / 100f} < $min"
-            }
-            fun checkText(where: String, on: Color) {
-                check("onSurface on $where", m.onSurface, on)
-                check("onSurfaceVariant on $where", m.onSurfaceVariant, on)
-                check("primary on $where", m.primary, on)
-                check("dangerText on $where", radar.dangerText, on)
-                check("okText on $where", radar.okText, on)
-                check("warningText on $where", radar.warningText, on)
-            }
-            // Material surfaces: panels and cards.
-            checkText("surface", m.surface)
-            checkText("background", m.background)
-            checkText("surfaceContainerHigh", m.surfaceContainerHigh)
-            check("onSurface on surfaceContainerHighest", m.onSurface, m.surfaceContainerHighest)
-            check("onPrimary on primary", m.onPrimary, m.primary)
-            check("onPrimaryContainer on primaryContainer", m.onPrimaryContainer, m.primaryContainer)
-            for ((name, under) in listOf("black" to Color.Black, "white" to Color.White, "map" to radar.mapBackground)) {
-                // Glass: the navigation bar's labels, and dialogs with their translucent section cards.
-                val bar = radar.glassTint.compositeOver(under)
-                check("nav label on glass/$name", m.onSurface, bar)
-                check("nav label on lens/$name", m.onSurface, radar.glassSelection.compositeOver(bar))
-                val dialog = m.surface.copy(alpha = GlassDialogTint).compositeOver(bar)
-                checkText("dialog/$name", dialog)
-                checkText("dialog card/$name", m.surfaceContainerHigh.copy(alpha = 0.55f).compositeOver(dialog))
-                // Tags and rows tinted with their own status colour: REPORTED / ACTIVE, a favorite under threat.
-                for ((status, text) in listOf(radar.ok to radar.okText, radar.danger to radar.dangerText, radar.warning to radar.warningText)) {
-                    check("status tag/$name", text, status.copy(alpha = STATUS_TINT).compositeOver(dialog))
-                    check("onSurface on status row/$name", m.onSurface, status.copy(alpha = STATUS_TINT).compositeOver(dialog))
-                }
-                // Chips over the map: the status strip, cinematic captions, timestamps, attribution.
-                val chip = radar.overlay.compositeOver(under)
-                check("onOverlay on overlay/$name", radar.onOverlay, chip)
-                check("onOverlayMuted on overlay/$name", radar.onOverlayMuted, chip)
-                check("dangerText on overlay/$name", radar.dangerText, chip)
-                check("okText on overlay/$name", radar.okText, chip)
-                check("warningText on overlay/$name", radar.warningText, chip)
-            }
-            // Drawn straight on the plain map (over tiles and imagery they get a halo of their own).
-            for ((name, under) in listOf("mapBackground" to radar.mapBackground, "oblastIdle" to radar.oblastIdle)) {
-                check("cityLabel on $name", radar.cityLabel, under)
-                check("mapLabel on $name", radar.mapLabel, under)
-                check("cityDot on $name", radar.cityDot, under, GRAPHIC_CONTRAST)
-                check("danger mark on $name", radar.danger, under, GRAPHIC_CONTRAST)
-                check("warning mark on $name", radar.warning, under, GRAPHIC_CONTRAST)
-            }
-            check("onWarning on warning", radar.onWarning, radar.warning)
+        val failures = ColorPalette.entries.flatMap { palette ->
+            listOf(false, true).flatMap { dark -> PaletteContrast(palette, dark).failures() }
         }
         if (failures.isNotEmpty()) fail("${failures.size} pairs below WCAG AA:\n" + failures.joinToString("\n"))
+    }
+}
+
+/** Every colour pair one palette variant draws text or marks with; [failures] lists those below WCAG AA. */
+private class PaletteContrast(private val palette: ColorPalette, private val dark: Boolean) {
+    private val radar = themeColors(palette, dark).radar
+    private val m = themeColors(palette, dark).material
+    private val found = mutableListOf<String>()
+
+    fun failures(): List<String> {
+        // Material surfaces: panels and cards.
+        checkText("surface", m.surface)
+        checkText("background", m.background)
+        checkText("surfaceContainerHigh", m.surfaceContainerHigh)
+        check("onSurface on surfaceContainerHighest", m.onSurface, m.surfaceContainerHighest)
+        check("onPrimary on primary", m.onPrimary, m.primary)
+        check("onPrimaryContainer on primaryContainer", m.onPrimaryContainer, m.primaryContainer)
+        for ((name, under) in listOf("black" to Color.Black, "white" to Color.White, "map" to radar.mapBackground)) {
+            checkOver(name, under)
+        }
+        // Drawn straight on the plain map (over tiles and imagery they get a halo of their own).
+        for ((name, under) in listOf("mapBackground" to radar.mapBackground, "oblastIdle" to radar.oblastIdle)) {
+            check("cityLabel on $name", radar.cityLabel, under)
+            check("mapLabel on $name", radar.mapLabel, under)
+            check("cityDot on $name", radar.cityDot, under, GRAPHIC_CONTRAST)
+            check("danger mark on $name", radar.danger, under, GRAPHIC_CONTRAST)
+            check("warning mark on $name", radar.warning, under, GRAPHIC_CONTRAST)
+        }
+        check("onWarning on warning", radar.onWarning, radar.warning)
+        return found
+    }
+
+    /** Glass and chips seen over [under], which a map, imagery or an alert can put behind them. */
+    private fun checkOver(name: String, under: Color) {
+        // Glass: the navigation bar's labels, and dialogs with their translucent section cards.
+        val bar = radar.glassTint.compositeOver(under)
+        check("nav label on glass/$name", m.onSurface, bar)
+        check("nav label on lens/$name", m.onSurface, radar.glassSelection.compositeOver(bar))
+        val dialog = m.surface.copy(alpha = GlassDialogTint).compositeOver(bar)
+        checkText("dialog/$name", dialog)
+        checkText("dialog card/$name", m.surfaceContainerHigh.copy(alpha = 0.55f).compositeOver(dialog))
+        // Tags and rows tinted with their own status colour: REPORTED / ACTIVE, a favorite under threat.
+        val statuses = listOf(
+            radar.ok to radar.okText,
+            radar.danger to radar.dangerText,
+            radar.warning to radar.warningText,
+        )
+        for ((status, text) in statuses) {
+            check("status tag/$name", text, status.copy(alpha = STATUS_TINT).compositeOver(dialog))
+            check("onSurface on status row/$name", m.onSurface, status.copy(alpha = STATUS_TINT).compositeOver(dialog))
+        }
+        // Chips over the map: the status strip, cinematic captions, timestamps, attribution.
+        val chip = radar.overlay.compositeOver(under)
+        check("onOverlay on overlay/$name", radar.onOverlay, chip)
+        check("onOverlayMuted on overlay/$name", radar.onOverlayMuted, chip)
+        check("dangerText on overlay/$name", radar.dangerText, chip)
+        check("okText on overlay/$name", radar.okText, chip)
+        check("warningText on overlay/$name", radar.warningText, chip)
+    }
+
+    private fun checkText(where: String, on: Color) {
+        check("onSurface on $where", m.onSurface, on)
+        check("onSurfaceVariant on $where", m.onSurfaceVariant, on)
+        check("primary on $where", m.primary, on)
+        check("dangerText on $where", radar.dangerText, on)
+        check("okText on $where", radar.okText, on)
+        check("warningText on $where", radar.warningText, on)
+    }
+
+    private fun check(what: String, text: Color, on: Color, min: Float = TEXT_CONTRAST) {
+        // Translucent text is seen over what it sits on.
+        val r = contrast(text.compositeOver(on), on)
+        if (r < min) found += "$palette ${if (dark) "dark" else "light"}: $what ${(r * 100).roundToInt() / 100f} < $min"
     }
 }

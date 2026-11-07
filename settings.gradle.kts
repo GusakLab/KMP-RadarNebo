@@ -54,6 +54,8 @@ gradle.startParameter.taskNames.let { names ->
     val mainClass = names.getOrNull(names.indexOf("--mainClass") + 1)?.takeIf { "--mainClass" in names }
     val (project, suffix) = hotReloadTargets[mainClass] ?: return@let
     if (names.any { it == "hotRun" || it == "hotDev" }) {
-        gradle.startParameter.setTaskNames(names.map { if (it == "hotRun" || it == "hotDev") "$project:$it$suffix" else it })
+        gradle.startParameter.setTaskNames(
+            names.map { if (it == "hotRun" || it == "hotDev") "$project:$it$suffix" else it },
+        )
     }
 }

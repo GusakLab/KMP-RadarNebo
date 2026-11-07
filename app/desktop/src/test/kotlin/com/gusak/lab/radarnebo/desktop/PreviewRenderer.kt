@@ -1,6 +1,5 @@
 package com.gusak.lab.radarnebo.desktop
 
-import androidx.compose.runtime.Composer
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.currentComposer
 import androidx.compose.ui.ImageComposeScene
@@ -10,25 +9,10 @@ import androidx.compose.ui.use
 import org.jetbrains.skia.Bitmap
 import org.jetbrains.skia.Image
 import java.io.File
-import java.lang.reflect.Method
+import javax.swing.SwingUtilities
+import kotlin.test.assertNotNull
 
-/** A `@Preview` function found in the shared sources. */
-data class PreviewFunction(
-    val name: String,
-    val className: String,
-    val functionName: String,
-    val widthDp: Int?,
-    val heightDp: Int?,
-) {
-    val id get() = "${className.substringAfterLast('.')}-$functionName"
-
-    /** Composable functions compile to static methods taking (Composer, Int changed-flags). */
-    fun method(): Method = Class.forName(className).declaredMethods
-        .single { it.name == functionName && it.parameterTypes.contentEquals(arrayOf(Composer::class.java, Int::class.javaPrimitiveType)) }
-        .apply { isAccessible = true }
-}
-
-object PreviewRenderer {
+internal object PreviewRenderer {
     private val previewPattern = Regex(
         """@Preview\(([^)]*)\)\s*@Composable\s*(?:(?:private|internal)\s+)?fun\s+(\w+)\s*\(""",
     )
@@ -40,7 +24,8 @@ object PreviewRenderer {
     fun discover(sources: File = File(System.getProperty("preview.sources"))): List<PreviewFunction> =
         sources.walkTopDown().filter { it.extension == "kt" }.flatMap { file ->
             val text = file.readText()
-            val pkg = Regex("""^package\s+([\w.]+)""", RegexOption.MULTILINE).find(text)!!.groupValues[1]
+            val packageLine = Regex("""^package\s+([\w.]+)""", RegexOption.MULTILINE).find(text)
+            val pkg = assertNotNull(packageLine, "no package line in $file").groupValues[1]
             val className = "$pkg.${file.nameWithoutExtension}Kt"
             previewPattern.findAll(text).map { match ->
                 val args = match.groupValues[1]
@@ -55,8 +40,9 @@ object PreviewRenderer {
         }.toList()
 
     /** How many `@Preview` annotations the sources hold, to check [discover] missed none. */
-    fun annotationCount(sources: File = File(System.getProperty("preview.sources"))): Int =
-        sources.walkTopDown().filter { it.extension == "kt" }.sumOf { Regex("""@Preview\(""").findAll(it.readText()).count() }
+    fun annotationCount(sources: File = File(System.getProperty("preview.sources"))): Int = sources.walkTopDown()
+        .filter { it.extension == "kt" }
+        .sumOf { Regex("""@Preview\(""").findAll(it.readText()).count() }
 
     /**
      * Renders [preview] the way an IDE does: at its declared size, with [LocalInspectionMode] on.
@@ -73,7 +59,8 @@ object PreviewRenderer {
         }.use { scene ->
             var image = scene.render(0)
             repeat(12) {
-                Thread.sleep(4) // lets work dispatched to the main dispatcher (the app preview's first poll) land
+                // lets work dispatched to the main dispatcher (the app preview's first poll) land
+                SwingUtilities.invokeAndWait {}
                 image = scene.render((it + 1) * 16_000_000L)
             }
             image

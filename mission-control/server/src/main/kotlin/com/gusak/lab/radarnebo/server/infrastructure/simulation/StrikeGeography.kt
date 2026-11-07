@@ -4,27 +4,13 @@ import com.gusak.lab.radarnebo.geo.GeoMath
 import com.gusak.lab.radarnebo.geo.GeoPoint
 import com.gusak.lab.radarnebo.geo.Regions
 
-/** A place attacks are launched from; [originUk] is how warnings name it ("Курської області"). */
-internal class LaunchSite(val name: String, val originUk: String, val point: GeoPoint)
-
-/** A strike objective: a city with what makes it a target, weighted by how often it is attacked. */
-internal class Objective(val settlement: String, val weight: Int)
-
-/**
- * A front-line town under guided-bomb attack. Bombs are released [rangeKm] away at a bearing in
- * [bearingDeg] (clockwise from north, seen from the town), which puts the release point over [launchArea].
- */
-internal class KabTarget(val settlement: String, val bearingDeg: IntRange, val rangeKm: IntRange, val launchArea: LaunchSite, val weight: Int = 1)
-
-/** A stretch of the front where reconnaissance drones cross in from [base] to look at [settlements]. */
-internal class ReconSector(val base: GeoPoint, val settlements: List<String>)
-
 /** Where the attacks come from and what they aim at; coordinates are approximate. */
 internal object StrikeGeography {
-    private fun site(name: String, originUk: String, lat: Double, lon: Double) = LaunchSite(name, originUk, GeoPoint(lat, lon))
+    private fun site(name: String, originUk: String, lat: Double, lon: Double): LaunchSite =
+        LaunchSite(name, originUk, GeoPoint(lat, lon))
 
     /** Shahed launch sites in Russia and occupied Crimea and Donetsk. */
-    val droneSites = listOf(
+    val DRONE_SITES: List<LaunchSite> = listOf(
         site("Kursk", "Курської області", 51.75, 36.30),
         site("Oryol", "Орловської області", 52.97, 36.08),
         site("Navlya", "Брянської області", 52.83, 34.50),
@@ -37,20 +23,20 @@ internal object StrikeGeography {
     )
 
     /** Tu-95MS launch lines for Kh-101 cruise missiles. */
-    val bomberLaunchLines = listOf(
+    val BOMBER_LAUNCH_LINES: List<LaunchSite> = listOf(
         site("Volgodonsk", "Волгодонська (Ту-95МС)", 47.60, 42.10),
         site("Caspian Sea", "акваторії Каспійського моря (Ту-95МС)", 46.10, 47.60),
         site("Engels", "Саратовської області (Ту-95МС)", 51.30, 45.40),
     )
 
     /** Black Sea Fleet ships and submarines launching Kalibr cruise missiles. */
-    val kalibrCarriers = listOf(
+    val KALIBR_CARRIERS: List<LaunchSite> = listOf(
         site("Novorossiysk", "акваторії Чорного моря (Новоросійськ)", 44.45, 37.55),
         site("Black Sea west of Crimea", "акваторії Чорного моря", 44.40, 32.60),
     )
 
     /** Iskander-M and KN-23 launch areas; ballistic missiles reach about 500 km (KN-23: 700 km). */
-    val ballisticSites = listOf(
+    val BALLISTIC_SITES: List<LaunchSite> = listOf(
         site("Kursk", "Курської області", 51.70, 36.20),
         site("Belgorod", "Бєлгородської області", 50.60, 36.60),
         site("Bryansk", "Брянської області", 52.95, 34.00),
@@ -60,23 +46,26 @@ internal object StrikeGeography {
     )
 
     /** MiG-31K launch areas for the Kinzhal. */
-    val kinzhalLaunchAreas = listOf(
+    val KINZHAL_LAUNCH_AREAS: List<LaunchSite> = listOf(
         site("Lipetsk", "Липецької області (МіГ-31К)", 52.60, 39.60),
         site("Black Sea", "акваторії Чорного моря (МіГ-31К)", 44.30, 35.20),
     )
 
     /** Settlements on the border, coast or front over which drone groups cross in. */
-    val droneGates = listOf(
-        "Novhorod-Siverskyi", "Hlukhiv", "Shostka", "Sumy", "Trostianets", "Okhtyrka", "Zolochiv", "Chuhuiv", "Kupiansk",
-        "Izium", "Kramatorsk", "Zaporizhzhia", "Nikopol", "Kherson", "Mykolaiv", "Pivdenne", "Izmail",
+    val DRONE_GATES: List<String> = listOf(
+        "Novhorod-Siverskyi", "Hlukhiv", "Shostka", "Sumy", "Trostianets", "Okhtyrka", "Zolochiv", "Chuhuiv",
+        "Kupiansk", "Izium", "Kramatorsk", "Zaporizhzhia", "Nikopol", "Kherson", "Mykolaiv", "Pivdenne", "Izmail",
     )
 
     /** Settlements on the border, coast or front through which cruise missiles enter. */
-    val cruiseGates = listOf("Novhorod-Siverskyi", "Shostka", "Hlukhiv", "Okhtyrka", "Kupiansk", "Izium", "Zaporizhzhia", "Nikopol")
-    val kalibrGates = listOf("Pivdenne", "Bilhorod-Dnistrovskyi", "Chornomorsk", "Mykolaiv", "Izmail", "Odesa")
+    val CRUISE_GATES: List<String> = listOf(
+        "Novhorod-Siverskyi", "Shostka", "Hlukhiv", "Okhtyrka", "Kupiansk", "Izium", "Zaporizhzhia", "Nikopol",
+    )
+    val KALIBR_GATES: List<String> =
+        listOf("Pivdenne", "Bilhorod-Dnistrovskyi", "Chornomorsk", "Mykolaiv", "Izmail", "Odesa")
 
     /** What massive strikes aim at: energy, defence industry, airfields and the capital. */
-    val objectives = listOf(
+    val OBJECTIVES: List<Objective> = listOf(
         Objective("Kyiv", 6),
         Objective("Lviv", 2),
         Objective("Ivano-Frankivsk", 1),
@@ -106,39 +95,41 @@ internal object StrikeGeography {
     )
 
     /** Cities near the border and front that small daytime drone groups go for. */
-    val frontlineDroneTargets = listOf(
+    val FRONTLINE_DRONE_TARGETS: List<String> = listOf(
         "Kharkiv", "Sumy", "Odesa", "Zaporizhzhia", "Dnipro", "Mykolaiv", "Kherson", "Chernihiv", "Poltava",
         "Kryvyi Rih", "Izmail", "Pavlohrad", "Kramatorsk", "Sloviansk", "Shostka", "Konotop", "Nikopol",
     )
 
-    private val belgorod = site("Belgorod", "Бєлгородської області", 50.60, 36.60)
-    private val kursk = site("Kursk", "Курської області", 51.70, 35.90)
-    private val occupiedLuhansk = site("occupied Luhansk Oblast", "тимчасово окупованої Луганщини", 49.30, 38.60)
-    private val occupiedDonetsk = site("occupied Donetsk Oblast", "тимчасово окупованої Донеччини", 48.40, 38.30)
-    private val occupiedZaporizhzhia = site("occupied Zaporizhzhia Oblast", "тимчасово окупованої Запорізької області", 47.30, 35.40)
-    private val occupiedKherson = site("occupied left bank, Kherson Oblast", "окупованого лівобережжя Херсонщини", 46.40, 33.10)
+    private val BELGOROD = site("Belgorod", "Бєлгородської області", 50.60, 36.60)
+    private val KURSK = site("Kursk", "Курської області", 51.70, 35.90)
+    private val OCCUPIED_LUHANSK = site("occupied Luhansk Oblast", "тимчасово окупованої Луганщини", 49.30, 38.60)
+    private val OCCUPIED_DONETSK = site("occupied Donetsk Oblast", "тимчасово окупованої Донеччини", 48.40, 38.30)
+    private val OCCUPIED_ZAPORIZHZHIA =
+        site("occupied Zaporizhzhia Oblast", "тимчасово окупованої Запорізької області", 47.30, 35.40)
+    private val OCCUPIED_KHERSON =
+        site("occupied left bank, Kherson Oblast", "окупованого лівобережжя Херсонщини", 46.40, 33.10)
 
     /** Front-line and border towns under guided bomb attack, from the directions the bombers fly. */
-    val kabTargets = listOf(
-        KabTarget("Kharkiv", 0..45, 55..70, belgorod, weight = 4),
-        KabTarget("Sumy", 40..90, 48..60, kursk, weight = 3),
-        KabTarget("Okhtyrka", 50..70, 55..65, belgorod),
-        KabTarget("Trostianets", 60..90, 45..55, belgorod),
-        KabTarget("Zolochiv", -30..30, 30..50, belgorod),
-        KabTarget("Bohodukhiv", 0..30, 45..60, belgorod),
-        KabTarget("Chuhuiv", 0..25, 65..80, belgorod),
-        KabTarget("Kupiansk", 60..120, 40..60, occupiedLuhansk, weight = 2),
-        KabTarget("Izium", 80..130, 50..65, occupiedLuhansk),
-        KabTarget("Sloviansk", 90..140, 50..65, occupiedDonetsk),
-        KabTarget("Kramatorsk", 100..160, 45..65, occupiedDonetsk, weight = 2),
-        KabTarget("Zaporizhzhia", 150..200, 40..60, occupiedZaporizhzhia, weight = 3),
-        KabTarget("Nikopol", 150..210, 25..45, occupiedZaporizhzhia),
-        KabTarget("Marhanets", 160..220, 25..40, occupiedZaporizhzhia),
-        KabTarget("Kherson", 110..200, 25..45, occupiedKherson, weight = 2),
+    val KAB_TARGETS: List<KabTarget> = listOf(
+        KabTarget("Kharkiv", 0..45, 55..70, BELGOROD, weight = 4),
+        KabTarget("Sumy", 40..90, 48..60, KURSK, weight = 3),
+        KabTarget("Okhtyrka", 50..70, 55..65, BELGOROD),
+        KabTarget("Trostianets", 60..90, 45..55, BELGOROD),
+        KabTarget("Zolochiv", -30..30, 30..50, BELGOROD),
+        KabTarget("Bohodukhiv", 0..30, 45..60, BELGOROD),
+        KabTarget("Chuhuiv", 0..25, 65..80, BELGOROD),
+        KabTarget("Kupiansk", 60..120, 40..60, OCCUPIED_LUHANSK, weight = 2),
+        KabTarget("Izium", 80..130, 50..65, OCCUPIED_LUHANSK),
+        KabTarget("Sloviansk", 90..140, 50..65, OCCUPIED_DONETSK),
+        KabTarget("Kramatorsk", 100..160, 45..65, OCCUPIED_DONETSK, weight = 2),
+        KabTarget("Zaporizhzhia", 150..200, 40..60, OCCUPIED_ZAPORIZHZHIA, weight = 3),
+        KabTarget("Nikopol", 150..210, 25..45, OCCUPIED_ZAPORIZHZHIA),
+        KabTarget("Marhanets", 160..220, 25..40, OCCUPIED_ZAPORIZHZHIA),
+        KabTarget("Kherson", 110..200, 25..45, OCCUPIED_KHERSON, weight = 2),
     )
 
     /** Where reconnaissance drones work: from the occupied side over the towns behind the front. */
-    val reconSectors = listOf(
+    val RECON_SECTORS: List<ReconSector> = listOf(
         ReconSector(GeoPoint(49.75, 38.25), listOf("Kupiansk", "Izium", "Balakliia", "Chuhuiv")),
         ReconSector(GeoPoint(48.60, 38.15), listOf("Kramatorsk", "Sloviansk", "Izium")),
         ReconSector(GeoPoint(47.40, 35.75), listOf("Zaporizhzhia")),
@@ -156,7 +147,7 @@ internal object StrikeGeography {
     /** Whether air surveillance sees a low-flying target at [point]: over the mainland, or near a border settlement. */
     fun inCoverage(point: GeoPoint): Boolean {
         Regions.oblastByPolygon(point)?.let { return it !in UNCOVERED_REGIONS }
-        return SimulatedLocations.settlements.any { GeoMath.distanceKm(point, it.city.point) <= COVERAGE_KM }
+        return SimulatedLocations.SETTLEMENTS.any { GeoMath.distanceKm(point, it.city.point) <= COVERAGE_KM }
     }
 
     fun point(settlement: String): GeoPoint = SimulatedLocations.settlement(settlement).city.point

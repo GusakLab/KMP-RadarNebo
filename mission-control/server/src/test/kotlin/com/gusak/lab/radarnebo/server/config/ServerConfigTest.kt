@@ -16,7 +16,8 @@ class ServerConfigTest {
 
     @Test
     fun blankValuesGiveTheDefaults() {
-        assertEquals(ServerConfig(), ServerConfig.fromEnv(mapOf("PORT" to " ", "SIM_SEED" to "", "TRUST_PROXY_HEADERS" to " ")))
+        val blank = mapOf("PORT" to " ", "SIM_SEED" to "", "TRUST_PROXY_HEADERS" to " ")
+        assertEquals(ServerConfig(), ServerConfig.fromEnv(blank))
     }
 
     @Test
@@ -29,7 +30,9 @@ class ServerConfigTest {
             "TRUST_PROXY_HEADERS" to "1",
             "LOG_HTTP" to "yes",
         ).forEach { (name, value) ->
-            val error = assertFailsWith<IllegalArgumentException>("$name=$value") { ServerConfig.fromEnv(mapOf(name to value)) }
+            val error = assertFailsWith<IllegalArgumentException>("$name=$value") {
+                ServerConfig.fromEnv(mapOf(name to value))
+            }
             assertTrue("$name='$value'" in error.message.orEmpty(), error.message)
         }
     }
@@ -39,14 +42,20 @@ class ServerConfigTest {
         val error = assertFailsWith<IllegalArgumentException> {
             ServerConfig.fromEnv(mapOf("PORT" to "80a", "ARCHIVE_RETENTION_DAYS" to "30d"))
         }
-        assertTrue("PORT='80a'" in error.message.orEmpty() && "ARCHIVE_RETENTION_DAYS='30d'" in error.message.orEmpty(), error.message)
+        val message = error.message.orEmpty()
+        assertTrue("PORT='80a'" in message && "ARCHIVE_RETENTION_DAYS='30d'" in message, error.message)
     }
 
     @Test
     fun theArchiveHasItsOwnClientLimit() {
         assertEquals(10, ServerConfig.fromEnv(emptyMap()).clients.archiveRequestsPerMinute)
-        assertEquals(30, ServerConfig.fromEnv(mapOf("ARCHIVE_REQUESTS_PER_MINUTE" to "30")).clients.archiveRequestsPerMinute)
-        assertFailsWith<IllegalArgumentException> { ServerConfig.fromEnv(mapOf("ARCHIVE_REQUESTS_PER_MINUTE" to "ten")) }
+        assertEquals(
+            30,
+            ServerConfig.fromEnv(mapOf("ARCHIVE_REQUESTS_PER_MINUTE" to "30")).clients.archiveRequestsPerMinute,
+        )
+        assertFailsWith<IllegalArgumentException> {
+            ServerConfig.fromEnv(mapOf("ARCHIVE_REQUESTS_PER_MINUTE" to "ten"))
+        }
     }
 
     @Test
@@ -80,7 +89,9 @@ class ServerConfigTest {
             "ARCHIVE_REQUESTS_PER_MINUTE" to "0",
             "PORT" to "70000",
         ).forEach { (name, value) ->
-            val error = assertFailsWith<IllegalArgumentException>("$name=$value") { ServerConfig.fromEnv(mapOf(name to value)) }
+            val error = assertFailsWith<IllegalArgumentException>("$name=$value") {
+                ServerConfig.fromEnv(mapOf(name to value))
+            }
             assertTrue(name in error.message.orEmpty(), error.message)
         }
         assertEquals(0, ServerConfig.fromEnv(mapOf("PORT" to "0")).port, "an ephemeral port is allowed")
@@ -90,7 +101,10 @@ class ServerConfigTest {
     fun theServerPicksItsSourceFromTheConfiguration() {
         assertEquals(DataSourceKind.Simulation, ServerConfig.fromEnv(emptyMap()).dataSource)
         assertEquals(DataSourceKind.AlertsInUa, ServerConfig.fromEnv(mapOf("ALERTS_API_TOKEN" to "t")).dataSource)
-        assertEquals(DataSourceKind.Simulation, ServerConfig.fromEnv(mapOf("ALERTS_API_TOKEN" to "t", "DATA_SOURCE" to "simulation")).dataSource)
+        assertEquals(
+            DataSourceKind.Simulation,
+            ServerConfig.fromEnv(mapOf("ALERTS_API_TOKEN" to "t", "DATA_SOURCE" to "simulation")).dataSource,
+        )
     }
 
     @Test
@@ -120,7 +134,10 @@ class ServerConfigTest {
     fun clientKeysAreTrimmedAndCommaSeparatedWithTheOldNameAsAFallback() {
         assertEquals(setOf("a", "b"), ServerConfig.fromEnv(mapOf("CLIENT_KEYS" to " a, b ,")).clients.keys)
         assertEquals(setOf("old"), ServerConfig.fromEnv(mapOf("PROXY_CLIENT_KEYS" to "old ,")).clients.keys)
-        assertEquals(setOf("new"), ServerConfig.fromEnv(mapOf("CLIENT_KEYS" to "new", "PROXY_CLIENT_KEYS" to "old")).clients.keys)
+        assertEquals(
+            setOf("new"),
+            ServerConfig.fromEnv(mapOf("CLIENT_KEYS" to "new", "PROXY_CLIENT_KEYS" to "old")).clients.keys,
+        )
     }
 
     @Test

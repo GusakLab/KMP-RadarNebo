@@ -28,7 +28,9 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 /** An archive whose next [save] fails once [failNextSave] is set, like a database that is briefly unavailable. */
-private class FlakyAlertArchive(private val delegate: InMemoryAlertArchive = InMemoryAlertArchive()) : AlertArchive by delegate {
+private class FlakyAlertArchive(
+    private val delegate: InMemoryAlertArchive = InMemoryAlertArchive(),
+) : AlertArchive by delegate {
     var failNextSave = false
 
     override suspend fun save(alerts: Collection<AirAlert>) {
@@ -41,7 +43,9 @@ private class FlakyAlertArchive(private val delegate: InMemoryAlertArchive = InM
 }
 
 /** The track counterpart of [FlakyAlertArchive]. */
-private class FlakyTrackArchive(private val delegate: InMemoryTrackArchive = InMemoryTrackArchive()) : TrackArchive by delegate {
+private class FlakyTrackArchive(
+    private val delegate: InMemoryTrackArchive = InMemoryTrackArchive(),
+) : TrackArchive by delegate {
     var failNextSave = false
 
     override suspend fun save(tracks: Collection<DroneTrack>) {
@@ -53,7 +57,10 @@ private class FlakyTrackArchive(private val delegate: InMemoryTrackArchive = InM
     }
 }
 
-/** Serves no tracks and reports [track] as ended on update number [endOnCall], so archiving can be tested on its own. */
+/**
+ * Serves no tracks and reports [track] as ended on update number [endOnCall], so archiving can be tested on its
+ * own.
+ */
 private class EndingTracking(private val endOnCall: Int, private val track: DroneTrack) : TargetTracking {
     private var calls = 0
 
@@ -62,18 +69,18 @@ private class EndingTracking(private val endOnCall: Int, private val track: Dron
 }
 
 class SituationServiceTest {
-    private val t0 = Fixtures.t0
+    private val t0 = Fixtures.T0
     private val archive = FlakyAlertArchive()
     private val trackArchive = FlakyTrackArchive()
     private val situation = newSituation(ObservationTracking())
 
-    private val brovary = alert(1, Fixtures.brovary)
-    private val kharkiv = alert(2, Fixtures.kharkiv, startedAt = t0 + 1.minutes)
+    private val brovary = alert(1, Fixtures.BROVARY)
+    private val kharkiv = alert(2, Fixtures.KHARKIV, startedAt = t0 + 1.minutes)
 
     private val endedTrack = DroneTrack(
         id = "track-1",
         level = ThreatLevel.Red,
-        oblastUid = Fixtures.brovary.oblastUid,
+        oblastUid = Fixtures.BROVARY.oblastUid,
         active = false,
         firstSeen = t0.toEpochMilliseconds(),
         lastSeen = (t0 + 5.minutes).toEpochMilliseconds(),
@@ -89,9 +96,12 @@ class SituationServiceTest {
         simulated = false,
     )
 
-    private fun report(at: Instant, vararg alerts: AirAlert) = SituationReport(at.toEpochMilliseconds(), alerts.toList())
+    private fun report(at: Instant, vararg alerts: AirAlert) =
+        SituationReport(at.toEpochMilliseconds(), alerts.toList())
 
-    private suspend fun archivedTrackIds() = trackArchive.history(TrackQuery((t0 - 3.days).toEpochMilliseconds(), (t0 + 4.days).toEpochMilliseconds())).map { it.id }
+    private suspend fun archivedTrackIds() = trackArchive
+        .history(TrackQuery((t0 - 3.days).toEpochMilliseconds(), (t0 + 4.days).toEpochMilliseconds()))
+        .map { it.id }
 
     @Test
     fun aFailedArchiveWriteIsRepairedByTheNextPublish() = runTest {
@@ -101,8 +111,14 @@ class SituationServiceTest {
         assertFailsWith<IOException> { situation.publish(report(t0 + 1.minutes, kharkiv)) }
 
         situation.publish(report(t0 + 2.minutes, kharkiv))
-        assertNull(archive.history(Fixtures.kharkiv.uid, t0, limit = 10).single().finishedAt, "the opened alert is archived")
-        assertNotNull(archive.history(Fixtures.brovary.uid, t0, limit = 10).single().finishedAt, "the finished alert is archived as finished")
+        assertNull(
+            archive.history(Fixtures.KHARKIV.uid, t0, limit = 10).single().finishedAt,
+            "the opened alert is archived",
+        )
+        assertNotNull(
+            archive.history(Fixtures.BROVARY.uid, t0, limit = 10).single().finishedAt,
+            "the finished alert is archived as finished",
+        )
         assertEquals(listOf(kharkiv), archive.unfinished())
     }
 
@@ -151,7 +167,7 @@ class SituationServiceTest {
         situation.replay(report(t0 + 1.minutes))
         situation.publish(report(t0 + 2.minutes, kharkiv))
 
-        assertTrue(archive.history(Fixtures.brovary.uid, t0, limit = 10).isEmpty())
+        assertTrue(archive.history(Fixtures.BROVARY.uid, t0, limit = 10).isEmpty())
         assertEquals(listOf(kharkiv), archive.unfinished())
     }
 
@@ -162,11 +178,11 @@ class SituationServiceTest {
         assertNull(situation.board, "nothing to confirm before the first report")
 
         situation.publish(report(t0, brovary))
-        val version = situation.board!!.version
+        val version = assertNotNull(situation.board).version
 
         situation.confirm((t0 + 10.minutes).toEpochMilliseconds())
-        assertEquals(t0 + 10.minutes, situation.board!!.confirmedAt)
-        assertEquals(version, situation.board!!.version)
+        assertEquals(t0 + 10.minutes, assertNotNull(situation.board).confirmedAt)
+        assertEquals(version, assertNotNull(situation.board).version)
         assertEquals(listOf(endedTrack.id), archivedTrackIds())
     }
 }

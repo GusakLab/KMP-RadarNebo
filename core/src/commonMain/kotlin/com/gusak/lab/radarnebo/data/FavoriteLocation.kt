@@ -10,5 +10,5 @@ data class FavoriteLocation(
     val lat: Double,
     val lon: Double,
 ) {
-    val point get() = GeoPoint(lat, lon)
+    val point: GeoPoint get() = GeoPoint(lat, lon)
 }

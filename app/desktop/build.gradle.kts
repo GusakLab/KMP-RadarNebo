@@ -1,3 +1,4 @@
+import com.gusak.lab.radarnebo.buildlogic.launchAs
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -10,6 +11,7 @@ plugins {
 kotlin {
     compilerOptions {
         jvmTarget = JvmTarget.JVM_17
+        allWarningsAsErrors.set(true)
     }
 }
 
@@ -35,15 +37,18 @@ tasks.withType<JavaExec>().configureEach {
 
 dependencies {
     implementation(project(":shared"))
-    implementation(compose.desktop.currentOs)
+    implementation(libs.compose.ui)
+    implementation(libs.compose.foundation)
     implementation(libs.kotlinx.coroutines.swing)
+    implementation(libs.androidx.lifecycle.runtimeCompose)
     implementation(libs.logback.classic)
 
     testImplementation(libs.kotlin.test)
     testImplementation(libs.androidx.lifecycle.viewmodelCompose)
-    testImplementation(compose.desktop.uiTestJUnit4)
+    testImplementation(libs.compose.uiTestJunit4)
     testImplementation(libs.koin.test)
     testImplementation(libs.ktor.client.mock)
+    testImplementation(libs.kotlinx.coroutines.test)
 }
 
 tasks.test {
@@ -85,5 +90,6 @@ compose.desktop {
     }
 }
 
-// The process is called "RadarNebo" rather than "java" (buildSrc/src/main/kotlin/LaunchAs.kt).
+// The process is called "RadarNebo" rather than "java"
+// (buildSrc/src/main/kotlin/com/gusak/lab/radarnebo/buildlogic/LaunchAs.kt).
 launchAs("RadarNebo")

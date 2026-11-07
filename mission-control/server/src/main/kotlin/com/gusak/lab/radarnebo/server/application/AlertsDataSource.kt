@@ -1,44 +1,8 @@
 package com.gusak.lab.radarnebo.server.application
 
 import com.gusak.lab.radarnebo.server.config.DataSourceKind
-import com.gusak.lab.radarnebo.server.domain.alert.AirAlert
 import com.gusak.lab.radarnebo.server.domain.alert.AlertLocation
-import com.gusak.lab.radarnebo.server.domain.tracking.TargetObservation
 import kotlin.time.Duration
-
-/** Everything a data source knew at [observedAt]: the active alerts and, if it has surveillance, target sightings. */
-data class SituationReport(
-    val observedAt: Long,
-    val alerts: List<AirAlert>,
-    val observations: List<TargetObservation> = emptyList(),
-    /** The active-alerts body exactly as the source sent it, served to clients unchanged; null for the simulation. */
-    val rawAlerts: String? = null,
-    /**
-     * Alerts from further sources ([com.gusak.lab.radarnebo.server.infrastructure.CompositeAlertsSource]): they feed
-     * tracking only and are never served as alerts, so `/v1/alerts/active.json` stays the primary source's.
-     */
-    val trackingAlerts: List<AirAlert> = emptyList(),
-)
-
-/** What one fetch from an [AlertsDataSource] produced. */
-sealed interface FetchResult {
-    /** New content. [lastModified] is the source's validator for the next conditional fetch. */
-    data class Fresh(val report: SituationReport, val lastModified: String? = null) : FetchResult
-
-    /** The content is unchanged since the `lastModified` passed to [AlertsDataSource.fetch]. */
-    data object NotModified : FetchResult
-
-    /**
-     * Wait at least [minWaitMs] (or the source's [retryAfterMs]) before trying again.
-     * [maxWaitMs] caps the exponential backoff, so a transient outage doesn't delay recovery for long.
-     */
-    data class Failed(
-        val message: String,
-        val minWaitMs: Long,
-        val retryAfterMs: Long? = null,
-        val maxWaitMs: Long = 60_000,
-    ) : FetchResult
-}
 
 /**
  * Where the server's alerts come from: alerts.in.ua or the simulation. Only the server knows; clients get
@@ -53,7 +17,10 @@ interface AlertsDataSource : AutoCloseable {
     /** How often to fetch. */
     val pollInterval: Duration
 
-    /** True when the source reports [SituationReport.observations], so tracks come from sightings rather than alerts. */
+    /**
+     * True when the source reports [SituationReport.observations], so tracks come from sightings rather than
+     * alerts.
+     */
     val providesObservations: Boolean
 
     /** Locations the source declares alerts for, when it knows them in advance. */
@@ -63,7 +30,10 @@ interface AlertsDataSource : AutoCloseable {
     val requestsInLastMinute: Int get() = 0
     val requestsTotal: Long get() = 0
 
-    /** Upstream outcomes since start, the early warning for a block (DESIGN.md §11); zero or null for sources that make no requests. */
+    /**
+     * Upstream outcomes since start, the early warning for a block (DESIGN.md §11); zero or null for sources that
+     * make no requests.
+     */
     val rateLimitedTotal: Long get() = 0
     val rejectedTotal: Long get() = 0
     val otherFailuresTotal: Long get() = 0

@@ -12,50 +12,58 @@ import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.tooling.preview.Preview
-import com.gusak.lab.radarnebo.data.MapBackground
-import com.gusak.lab.radarnebo.data.ThemeMode
-import com.gusak.lab.radarnebo.ui.RadarTheme
-import com.gusak.lab.radarnebo.ui.preview.PreviewData
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.ProvidableCompositionLocal
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.input.pointer.isCtrlPressed
-import androidx.compose.ui.input.pointer.isMetaPressed
-import androidx.compose.ui.input.pointer.isShiftPressed
-import androidx.compose.ui.layout.onSizeChanged
-import kotlinx.coroutines.flow.Flow
-import kotlin.math.exp
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.center
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.PathFillType
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.input.pointer.PointerEvent
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerInputChange
+import androidx.compose.ui.input.pointer.isCtrlPressed
+import androidx.compose.ui.input.pointer.isMetaPressed
+import androidx.compose.ui.input.pointer.isShiftPressed
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.toSize
 import com.gusak.lab.radarnebo.data.FavoriteLocation
+import com.gusak.lab.radarnebo.data.MapBackground
+import com.gusak.lab.radarnebo.data.ThemeMode
 import com.gusak.lab.radarnebo.data.ThreatLevel
 import com.gusak.lab.radarnebo.domain.ThreatMarker
 import com.gusak.lab.radarnebo.geo.GeoMath
@@ -64,118 +72,29 @@ import com.gusak.lab.radarnebo.geo.MapCity
 import com.gusak.lab.radarnebo.geo.Regions
 import com.gusak.lab.radarnebo.geo.UkraineCities
 import com.gusak.lab.radarnebo.geo.UkraineGeometry
+import com.gusak.lab.radarnebo.tracking.ArrivalPrediction
 import com.gusak.lab.radarnebo.tracking.DroneTrack
 import com.gusak.lab.radarnebo.tracking.InterpolatedPosition
-import com.gusak.lab.radarnebo.tracking.PositionMode
-import com.gusak.lab.radarnebo.tracking.TrackInterpolator
-import com.gusak.lab.radarnebo.tracking.ArrivalPrediction
 import com.gusak.lab.radarnebo.tracking.Place
-import com.gusak.lab.radarnebo.tracking.TrackPredictor
+import com.gusak.lab.radarnebo.tracking.PositionMode
 import com.gusak.lab.radarnebo.tracking.TargetClassifier
 import com.gusak.lab.radarnebo.tracking.TargetKind
-import com.gusak.lab.radarnebo.data.ThreatType
-import com.gusak.lab.radarnebo.ui.formatTime
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.platform.LocalInspectionMode
-import androidx.compose.ui.text.TextLayoutResult
-import androidx.compose.ui.text.TextMeasurer
-import androidx.compose.ui.text.font.FontWeight
-import kotlin.time.Instant
-import kotlin.time.Clock
+import com.gusak.lab.radarnebo.tracking.TrackInterpolator
+import com.gusak.lab.radarnebo.tracking.TrackPredictor
 import com.gusak.lab.radarnebo.ui.LocalRadarColors
 import com.gusak.lab.radarnebo.ui.RadarColors
+import com.gusak.lab.radarnebo.ui.RadarTheme
+import com.gusak.lab.radarnebo.ui.formatTime
+import com.gusak.lab.radarnebo.ui.preview.PreviewData
+import kotlinx.coroutines.flow.Flow
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos
+import kotlin.math.exp
 import kotlin.math.log2
-import kotlin.math.min
 import kotlin.math.sin
-
-/**
- * Equirectangular projection centred on Ukraine. World units are degrees, with longitude squashed
- * by cos(48.5°) so shapes keep their proportions at Ukraine's latitude.
- */
-object MapProjection {
-    private const val K = 0.6626f
-    private const val KM_PER_DEGREE = 111.2f
-
-    val bounds = Rect(left = 22.0f * K, top = -52.5f, right = 40.3f * K, bottom = -44.2f)
-
-    fun toWorld(p: GeoPoint) = Offset((p.lon * K).toFloat(), (-p.lat).toFloat())
-    fun toGeo(world: Offset) = GeoPoint(lat = -world.y.toDouble(), lon = (world.x / K).toDouble())
-    fun kmToWorld(km: Float) = km / KM_PER_DEGREE
-}
-
-data class MapCamera(val center: Offset, val zoom: Float) {
-
-    fun scale(size: Size) = min(size.width / MapProjection.bounds.width, size.height / MapProjection.bounds.height) * 0.94f * zoom
-
-    fun toScreen(world: Offset, size: Size): Offset {
-        val s = scale(size)
-        return Offset(size.width / 2 + (world.x - center.x) * s, size.height / 2 + (world.y - center.y) * s)
-    }
-
-    fun toWorld(screen: Offset, size: Size): Offset {
-        val s = scale(size)
-        return Offset(center.x + (screen.x - size.width / 2) / s, center.y + (screen.y - size.height / 2) / s)
-    }
-
-    /** Applies a pinch/pan gesture keeping the point under [centroid] fixed. */
-    fun transformed(centroid: Offset, pan: Offset, zoomChange: Float, size: Size, maxZoom: Float): MapCamera {
-        val anchor = toWorld(centroid, size)
-        val newZoom = (zoom * zoomChange).coerceIn(MIN_ZOOM, maxZoom)
-        val zoomed = copy(zoom = newZoom)
-        val s = zoomed.scale(size)
-        val newCenter = Offset(
-            anchor.x - (centroid.x - size.width / 2) / s - pan.x / s,
-            anchor.y - (centroid.y - size.height / 2) / s - pan.y / s,
-        )
-        val b = MapProjection.bounds
-        return zoomed.copy(center = Offset(newCenter.x.coerceIn(b.left, b.right), newCenter.y.coerceIn(b.top, b.bottom)))
-    }
-
-    companion object {
-        const val MIN_ZOOM = 0.8f
-        const val MAX_ZOOM = 16f
-        val Overview = MapCamera(MapProjection.bounds.center, 1f)
-
-        /**
-         * Camera that fits [points] plus [marginKm] around them inside [visible], the part of the
-         * [viewport] not covered by other UI. It is centred on [focus] when given (the points then fit
-         * around it), otherwise on the middle of the points.
-         */
-        fun framing(points: List<GeoPoint>, viewport: Size, visible: Rect, marginKm: Float = 40f, focus: GeoPoint? = null): MapCamera {
-            if (points.isEmpty() || visible.isEmpty) return Overview
-            val world = points.map(MapProjection::toWorld)
-            val margin = MapProjection.kmToWorld(marginKm)
-            val minX = world.minOf { it.x } - margin
-            val maxX = world.maxOf { it.x } + margin
-            val minY = world.minOf { it.y } - margin
-            val maxY = world.maxOf { it.y } + margin
-            val center = focus?.let(MapProjection::toWorld) ?: Offset((minX + maxX) / 2, (minY + maxY) / 2)
-            // Half the extent on each side of the centre, so every point stays in view around it.
-            val halfWidth = maxOf(center.x - minX, maxX - center.x)
-            val halfHeight = maxOf(center.y - minY, maxY - center.y)
-            val base = Overview.scale(viewport)
-            val zoom = min(visible.width / (2 * halfWidth * base), visible.height / (2 * halfHeight * base)).coerceIn(1f, 10f)
-            return centeredOn(center, zoom, viewport, visible)
-        }
-
-        /** Camera at [zoom] that puts the world point [focus] in the middle of [visible], a part of [viewport]. */
-        fun centeredOn(focus: Offset, zoom: Float, viewport: Size, visible: Rect): MapCamera {
-            val s = Overview.scale(viewport) * zoom
-            return MapCamera(
-                Offset(
-                    focus.x - (visible.center.x - viewport.width / 2) / s,
-                    focus.y - (visible.center.y - viewport.height / 2) / s,
-                ),
-                zoom,
-            )
-        }
-    }
-}
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 /** The camera as of the latest change, ahead of the `camera` parameter until the next recomposition. */
 private class LiveCamera(var value: MapCamera) {
@@ -223,19 +142,13 @@ private const val OUTSIDE_IMAGERY_ALPHA = 0.2f
  * Pinch-to-zoom factors from a platform gesture source that Compose doesn't surface as pointer
  * events — on desktop, the macOS trackpad magnify gesture. Each value multiplies the zoom.
  */
-val LocalPinchZoom = staticCompositionLocalOf<Flow<Float>?> { null }
+val LocalPinchZoom: ProvidableCompositionLocal<Flow<Float>?> = staticCompositionLocalOf { null }
 
 /**
  * Map scroll speed per wheel "line" (or equivalent trackpad travel). Matches Compose's own macOS
  * scroll config so the map pans at the same speed as lists.
  */
 private val ScrollStep = 10.dp
-
-sealed interface MapSelection {
-    data class Threat(val marker: ThreatMarker) : MapSelection
-    data class Favorite(val favorite: FavoriteLocation) : MapSelection
-    data class Track(val track: DroneTrack, val position: InterpolatedPosition) : MapSelection
-}
 
 @Composable
 fun UkraineMap(
@@ -260,302 +173,520 @@ fun UkraineMap(
     onCameraChange: ((MapCamera) -> Unit)? = null,
     onSelect: (MapSelection?) -> Unit = {},
     onLongPress: (GeoPoint) -> Unit = {},
+    /** Local time in epoch milliseconds; the server's is this plus [clockOffsetMs]. */
+    clock: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {
-    val paths = remember { buildOblastPaths() }
-    val country = remember(paths) { buildCountryPath(paths) }
-    val mapTiles = LocalMapTiles.current?.takeIf { tileSource != null }
-    val colors = LocalRadarColors.current
-    val textMeasurer = rememberTextMeasurer()
-    // City names are measured once, on first show, and recoloured per theme when drawn.
-    val cityLabels = remember(textMeasurer) { mutableMapOf<MapCity, TextLayoutResult>() }
-    val currentThreats by rememberUpdatedState(threats)
-    val currentFavorites by rememberUpdatedState(favorites)
-    val currentTracks by rememberUpdatedState(tracks)
-    val currentOffset by rememberUpdatedState(clockOffsetMs)
-    // Alerts that belong to a track are drawn as that track's moving drone instead of a static marker.
-    val trackedMarkerIds = remember(tracks) { tracks.flatMap { it.markerIds }.toSet() }
-    // Each target is drawn with its type's icon; classification only changes when the data does.
-    val trackKinds = remember(tracks) { tracks.associate { it.id to TargetClassifier.classify(it).kind } }
-    val markerKinds = remember(threats) { threats.associate { it.id to TargetClassifier.classify(it).kind } }
-    val trackSmoother = remember { TrackSmoother() }
-    val cityFader = remember { CityLabelFader() }
-    // IDE previews render only the first frames, so anything that animates in must start finished there.
-    val inspectionMode = LocalInspectionMode.current
-    val cameraCallback by rememberUpdatedState(onCameraChange)
     // Gesture steps arrive faster than recompositions (a trackpad pinch sends several per frame), so each
     // builds on the camera the previous step produced; [camera] only catches up at the next recomposition.
-    val liveCamera = remember { LiveCamera(camera) }
-    liveCamera.sync(camera)
-    val moveCamera = { next: MapCamera ->
-        liveCamera.value = next
-        cameraCallback?.invoke(next)
-    }
-    val selectCallback by rememberUpdatedState(onSelect)
-    val longPressCallback by rememberUpdatedState(onLongPress)
-
-    val transition = rememberInfiniteTransition()
-    val pulse by transition.animateFloat(0f, 1f, infiniteRepeatable(tween(1800, easing = LinearEasing)))
-    val blink by transition.animateFloat(0.35f, 1f, infiniteRepeatable(tween(700), RepeatMode.Reverse))
-
-    // Last pointer position and map size, so pinch gestures without coordinates zoom around the cursor.
-    var hover by remember { mutableStateOf<Offset?>(null) }
-    var mapSize by remember { mutableStateOf(Size.Zero) }
-    val pinch = LocalPinchZoom.current
-    if (onCameraChange != null && pinch != null) {
-        LaunchedEffect(pinch) {
-            pinch.collect { factor ->
-                if (mapSize != Size.Zero) {
-                    val anchor = hover ?: mapSize.center
-                    moveCamera(liveCamera.value.transformed(anchor, Offset.Zero, factor, mapSize, MapCamera.MAX_ZOOM))
-                }
-            }
-        }
-    }
-
-    val scope = rememberCoroutineScope()
-    val smoother = remember(scope) {
-        ScrollSmoother(scope) { pan, zoom, anchor ->
-            if (mapSize != Size.Zero) {
-                moveCamera(liveCamera.value.transformed(anchor, pan, zoom, mapSize, MapCamera.MAX_ZOOM))
-            }
-        }
-    }
-
+    val control = rememberCameraControl(camera, onCameraChange)
     val gestures = if (onCameraChange != null) {
+        PinchZoomEffect(control)
+        Modifier.mapGestures(control, rememberScrollSmoother(control))
+    } else {
         Modifier
-            .pointerInput(Unit) {
-                detectTransformGestures { centroid, pan, zoom, _ ->
-                    smoother.stop()
-                    moveCamera(liveCamera.value.transformed(centroid, pan, zoom, size.toSize(), MapCamera.MAX_ZOOM))
-                }
-            }
-            .pointerInput(Unit) {
-                // Two-finger trackpad swipes and mouse wheels arrive as scroll events: pan the map.
-                // Holding Ctrl/Cmd turns the wheel into zoom for mouse users.
-                awaitPointerEventScope {
-                    while (true) {
-                        val event = awaitPointerEvent()
-                        val change = event.changes.firstOrNull() ?: continue
-                        when (event.type) {
-                            PointerEventType.Move, PointerEventType.Enter -> hover = change.position
-                            PointerEventType.Exit -> hover = null
-                            PointerEventType.Scroll -> {
-                                val delta = change.scrollDelta
-                                val mods = event.keyboardModifiers
-                                if (mods.isCtrlPressed || mods.isMetaPressed) {
-                                    smoother.zoom(exp(-delta.y * 0.12f), change.position)
-                                } else {
-                                    // Shift+wheel scrolls horizontally on mice without a horizontal wheel.
-                                    val pan = if (mods.isShiftPressed && delta.x == 0f) Offset(-delta.y, 0f) else -delta
-                                    smoother.pan(pan * ScrollStep.toPx())
-                                }
-                                change.consume()
-                            }
-                            else -> Unit
-                        }
-                    }
-                }
-            }
-    } else Modifier
-
+    }
+    val taps = rememberTapTargets(threats, favorites, tracks, clockOffsetMs, clock, onSelect, onLongPress)
+    val content = MapContent(
+        threats, alertedOblasts, favorites, alertedFavoriteIds, proximityRadiusKm, highlightedThreatId,
+        selectedTrackId, predictionPlaces, tracks, pendingFavorite,
+        serverNow = { clock() + clockOffsetMs },
+    )
+    val scene = rememberMapScene(camera, tileSource, control, content)
     Canvas(
         modifier
-            .onSizeChanged { mapSize = it.toSize() }
+            .onSizeChanged { control.mapSize = it.toSize() }
             .then(gestures)
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onDoubleTap = { moveCamera(MapCamera.Overview) },
-                    onLongPress = { offset -> longPressCallback(MapProjection.toGeo(liveCamera.value.toWorld(offset, size.toSize()))) },
-                    onTap = { offset ->
-                        val positions = trackPositions(currentTracks, nowMs(currentOffset))
-                        selectCallback(hitTest(offset, size, liveCamera.value, currentThreats, currentFavorites, positions))
-                    },
-                )
-            }
-    ) {
-        drawRect(colors.mapBackground)
-        val ink = MapInk.over(tileSource, colors)
-        val scale = camera.scale(size)
-        if (mapTiles != null && tileSource != null) {
-            // Reading it makes the canvas redraw as tiles arrive.
-            mapTiles.loaded
-            drawMapTiles(mapTiles, tileSource, camera)
-        }
-        // Over a real map the oblasts are tinted rather than painted, so the map shows through.
-        val idleFill = when {
-            tileSource == null -> colors.oblastIdle
-            tileSource.isImagery -> colors.oblastIdle.copy(alpha = 0.12f)
-            else -> colors.oblastIdle.copy(alpha = 0.3f)
-        }
+            .mapTaps(control, taps),
+    ) { drawUkraineMap(scene) }
+}
 
-        withTransform({
-            translate(size.width / 2, size.height / 2)
-            scale(scale, scale, pivot = Offset.Zero)
-            translate(-camera.center.x, -camera.center.y)
-        }) {
-            if (mapTiles == null) drawGrid(scale, colors)
-            // Over satellite imagery the country stands out: the land around it is darkened.
-            if (mapTiles != null && tileSource?.isImagery == true) {
-                val area = Rect(camera.toWorld(Offset.Zero, size), camera.toWorld(Offset(size.width, size.height), size))
-                drawPath(outsideUkraine(country, area), Color.Black.copy(alpha = 1f - OUTSIDE_IMAGERY_ALPHA))
-            }
-            paths.forEach { oblast ->
-                val fill = when (alertedOblasts[oblast.uid]) {
-                    true -> colors.oblastAlertFull
-                    false -> colors.oblastAlertPartial
-                    null -> idleFill
-                }
-                drawPath(oblast.path, fill)
-                drawPath(oblast.path, colors.oblastBorder, style = Stroke(width = 1.1f / scale))
-            }
-            listOf(Regions.KYIV_CITY_UID, Regions.SEVASTOPOL_UID).forEach { uid ->
-                val center = MapProjection.toWorld(Regions.center(uid)!!)
-                drawCircle(idleFill, radius = 0.09f, center = center)
-                if (alertedOblasts.containsKey(uid)) drawCircle(colors.oblastAlertFull, radius = 0.09f, center = center)
-                drawCircle(colors.oblastBorder, radius = 0.09f, center = center, style = Stroke(1.1f / scale))
-            }
-        }
+/** The map's camera between recompositions, and where the pointer is, for gestures to build on. */
+private class CameraControl(initial: MapCamera, private val onChange: State<((MapCamera) -> Unit)?>) {
+    val live = LiveCamera(initial)
 
-        // Favorites draw their own name, so city names keep clear of the star and its label.
-        val favoriteAreas = (favorites.map { it.point } + listOfNotNull(pendingFavorite)).map { point ->
-            val p = camera.toScreen(MapProjection.toWorld(point), size)
-            val glyph = 10.dp.toPx()
-            Rect(p.x - glyph - 40.dp.toPx(), p.y - glyph, p.x + glyph + 40.dp.toPx(), p.y + 26.dp.toPx())
-        }
-        drawCities(camera, ink, favoriteAreas, cityFader, nowMs(clockOffsetMs), instantLabels = inspectionMode) { city ->
-            cityLabels.getOrPut(city) {
-                val style = when {
-                    city in UkraineCities.oblastCentres -> OblastCentreLabel
-                    city.population >= MAJOR_CITY -> MajorCityLabel
-                    else -> CityLabel
-                }
-                textMeasurer.measure(city.name, style)
-            }
-        }
-        // Reading the animation clock keeps frames coming until every fade has finished.
-        if (cityFader.isAnimating) pulse
+    // Last pointer position and map size, so pinch gestures without coordinates zoom around the cursor.
+    var hover: Offset? by mutableStateOf(null)
+    var mapSize: Size by mutableStateOf(Size.Zero)
 
-        val radiusPx = MapProjection.kmToWorld(proximityRadiusKm.toFloat()) * scale
-        favorites.forEach { favorite ->
-            val p = camera.toScreen(MapProjection.toWorld(favorite.point), size)
-            val alerted = favorite.id in alertedFavoriteIds
-            val ringColor = if (alerted) colors.danger.copy(alpha = 0.18f + 0.25f * blink) else colors.favorite.copy(alpha = 0.16f)
-            drawCircle(ringColor, radiusPx, p)
-            drawCircle(
-                if (alerted) colors.danger else colors.favorite.copy(alpha = 0.6f),
-                radiusPx, p,
-                style = Stroke(1.5.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 8f))),
-            )
-            drawFavoriteGlyph(p, 9.dp.toPx(), if (alerted) colors.danger else colors.favorite, colors.glyphOutline)
-            val label = textMeasurer.measure(favorite.name, FavoriteLabel)
-            drawHaloText(label, ink.label, ink.halo, Offset(p.x - label.size.width / 2, p.y + 11.dp.toPx()))
-        }
+    fun move(next: MapCamera) {
+        live.value = next
+        onChange.value?.invoke(next)
+    }
 
-        pendingFavorite?.let { point ->
-            val p = camera.toScreen(MapProjection.toWorld(point), size)
-            val ring = 11.dp.toPx()
-            drawCircle(colors.favorite.copy(alpha = (1f - pulse) * 0.6f), ring + pulse * ring * 1.8f, p, style = Stroke(2.dp.toPx()))
-            drawCircle(colors.favorite.copy(alpha = 0.18f), ring, p)
-            drawFavoriteGlyph(p, 10.dp.toPx(), colors.favorite, colors.glyphOutline)
-        }
-
-        val now = nowMs(clockOffsetMs)
-        // Re-evaluated every frame (the pulse animation keeps the canvas drawing), so drones keep moving.
-        val visibleTracks = trackSmoother.smooth(trackPositions(tracks, now), now)
-        // Trajectories (where a target came from and where it is heading) only for the target in focus: the
-        // selected one, or the one the cinematic camera is on. With dozens of targets they would bury the map.
-        val focused = { track: DroneTrack -> track.id == selectedTrackId || highlightedThreatId?.let { it in track.markerIds } == true }
-        if (predictionPlaces.isNotEmpty()) {
-            visibleTracks.filter { focused(it.first) }.forEach { (track, position) ->
-                if (track.id == selectedTrackId) {
-                    drawPredictedRoute(track, position, now, predictionPlaces, camera, colors, textMeasurer)
-                } else {
-                    TrackPredictor.predict(track, now, predictionPlaces)?.let { drawPrediction(position, it, camera, colors, textMeasurer) }
-                }
-            }
-        }
-        // The selected target's course over the ground, under everything in the air.
-        visibleTracks.firstOrNull { it.first.id == selectedTrackId }?.let { (track, position) ->
-            drawTrail(track, position, now, camera)
-            drawTrackTimestamps(track, camera, colors, textMeasurer)
-        }
-
-        // Threats reported for the same place (an oblast centre, Kyiv city) fan out so their icons don't stack.
-        val spread = 16.dp.toPx()
-        threats.filter { it.id !in trackedMarkerIds }.groupBy { it.point }.values.forEach { group ->
-            group.forEachIndexed { index, marker ->
-                val angle = 2 * PI * index / group.size - PI / 2
-                val offset = if (group.size == 1) Offset.Zero else Offset((spread * cos(angle)).toFloat(), (spread * sin(angle)).toFloat())
-                val p = camera.toScreen(MapProjection.toWorld(marker.point), size) + offset
-                if (p.x < -40 || p.y < -40 || p.x > size.width + 40 || p.y > size.height + 40) return@forEachIndexed
-                val color = if (marker.level == ThreatLevel.Red) colors.danger else colors.warning
-                val base = (if (marker.isRegionWide) 13.dp else 8.dp).toPx()
-                val highlighted = marker.id == highlightedThreatId
-                val phase = (pulse + (abs(marker.id.hashCode()) % 100) / 100f) % 1f
-                drawCircle(color.copy(alpha = (1f - phase) * 0.55f), base + phase * base * 2.4f, p, style = Stroke(1.5.dp.toPx()))
-                if (marker.isRegionWide) {
-                    drawCircle(color.copy(alpha = 0.6f), base * 1.6f, p, style = Stroke(1.5f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 6f))))
-                }
-                if (highlighted) {
-                    drawCircle(colors.mapLabel, base * 2.2f, p, style = Stroke(2.dp.toPx()))
-                }
-                val glyphSize = base * (if (highlighted) 1.4f else 1f)
-                drawTargetGlyph(markerKinds[marker.id] ?: TargetKind.Unknown, p, glyphSize * 1.15f, headingFor(marker), color, colors.glyphOutline)
-            }
-        }
-
-        // Air layer: targets fly over everything on the ground, the higher ones over the lower ones.
-        visibleTracks
-            .map { Triple(it.first, it.second, trackKinds[it.first.id] ?: TargetKind.AttackDrone) }
-            .sortedWith(compareBy({ it.third.typicalAltitudeM ?: 0 }, { it.first.id == selectedTrackId }))
-            .forEach { (track, position, kind) ->
-                val dimmed = selectedTrackId != null && track.id != selectedTrackId
-                drawTarget(track, position, camera, focused(track), dimmed, pulse, colors, kind)
-            }
+    /** Applies a gesture step to the latest camera, keeping the point under [anchor] fixed. */
+    fun transform(anchor: Offset, pan: Offset, zoom: Float, size: Size) {
+        move(live.value.transformed(anchor, pan, zoom, size, MapCamera.MAX_ZOOM))
     }
 }
 
+@Composable
+private fun rememberCameraControl(camera: MapCamera, onCameraChange: ((MapCamera) -> Unit)?): CameraControl {
+    val callback = rememberUpdatedState(onCameraChange)
+    val control = remember { CameraControl(camera, callback) }
+    control.live.sync(camera)
+    return control
+}
+
+/** Zooms with the platform's pinch gesture ([LocalPinchZoom]), around the pointer or else the middle. */
+@Composable
+private fun PinchZoomEffect(control: CameraControl) {
+    val pinch = LocalPinchZoom.current ?: return
+    LaunchedEffect(pinch) {
+        pinch.collect { factor ->
+            val size = control.mapSize
+            if (size != Size.Zero) control.transform(control.hover ?: size.center, Offset.Zero, factor, size)
+        }
+    }
+}
+
+@Composable
+private fun rememberScrollSmoother(control: CameraControl): ScrollSmoother {
+    val scope = rememberCoroutineScope()
+    return remember(scope) {
+        ScrollSmoother(scope) { pan, zoom, anchor ->
+            val size = control.mapSize
+            if (size != Size.Zero) control.transform(anchor, pan, zoom, size)
+        }
+    }
+}
+
+/** Pinch and drag move the camera; scroll events pan it, or zoom it with Ctrl/Cmd held. */
+private fun Modifier.mapGestures(control: CameraControl, smoother: ScrollSmoother): Modifier = this
+    .pointerInput(Unit) {
+        detectTransformGestures { centroid, pan, zoom, _ ->
+            smoother.stop()
+            control.transform(centroid, pan, zoom, size.toSize())
+        }
+    }
+    .pointerInput(Unit) {
+        // Two-finger trackpad swipes and mouse wheels arrive as scroll events: pan the map.
+        // Holding Ctrl/Cmd turns the wheel into zoom for mouse users.
+        awaitPointerEventScope {
+            while (true) {
+                val event = awaitPointerEvent()
+                val change = event.changes.firstOrNull() ?: continue
+                when (event.type) {
+                    PointerEventType.Move, PointerEventType.Enter -> control.hover = change.position
+                    PointerEventType.Exit -> control.hover = null
+                    PointerEventType.Scroll -> {
+                        scroll(event, change, smoother, ScrollStep.toPx())
+                        change.consume()
+                    }
+                    else -> Unit
+                }
+            }
+        }
+    }
+
+private fun scroll(event: PointerEvent, change: PointerInputChange, smoother: ScrollSmoother, stepPx: Float) {
+    val delta = change.scrollDelta
+    val mods = event.keyboardModifiers
+    if (mods.isCtrlPressed || mods.isMetaPressed) {
+        smoother.zoom(exp(-delta.y * 0.12f), change.position)
+    } else {
+        // Shift+wheel scrolls horizontally on mice without a horizontal wheel.
+        val pan = if (mods.isShiftPressed && delta.x == 0f) Offset(-delta.y, 0f) else -delta
+        smoother.pan(pan * stepPx)
+    }
+}
+
+/** What taps can hit, as of the latest recomposition, and whom to tell. */
+private class TapTargets(
+    val threats: State<List<ThreatMarker>>,
+    val favorites: State<List<FavoriteLocation>>,
+    val tracks: State<List<DroneTrack>>,
+    val clockOffsetMs: State<Long>,
+    val clock: State<() -> Long>,
+    val onSelect: State<(MapSelection?) -> Unit>,
+    val onLongPress: State<(GeoPoint) -> Unit>,
+)
+
+@Composable
+private fun rememberTapTargets(
+    threats: List<ThreatMarker>,
+    favorites: List<FavoriteLocation>,
+    tracks: List<DroneTrack>,
+    clockOffsetMs: Long,
+    clock: () -> Long,
+    onSelect: (MapSelection?) -> Unit,
+    onLongPress: (GeoPoint) -> Unit,
+): TapTargets = TapTargets(
+    threats = rememberUpdatedState(threats),
+    favorites = rememberUpdatedState(favorites),
+    tracks = rememberUpdatedState(tracks),
+    clockOffsetMs = rememberUpdatedState(clockOffsetMs),
+    clock = rememberUpdatedState(clock),
+    onSelect = rememberUpdatedState(onSelect),
+    onLongPress = rememberUpdatedState(onLongPress),
+)
+
+/** Double-tap returns to the overview, long-press offers a spot as a favorite, a tap selects what it hits. */
+private fun Modifier.mapTaps(control: CameraControl, taps: TapTargets): Modifier = pointerInput(Unit) {
+    detectTapGestures(
+        onDoubleTap = { control.move(MapCamera.Overview) },
+        onLongPress = { offset ->
+            taps.onLongPress.value(MapProjection.toGeo(control.live.value.toWorld(offset, size.toSize())))
+        },
+        onTap = { offset ->
+            val positions = trackPositions(taps.tracks.value, taps.clock.value() + taps.clockOffsetMs.value)
+            val hit = hitTest(offset, size, control.live.value, taps.threats.value, taps.favorites.value, positions)
+            taps.onSelect.value(hit)
+        },
+    )
+}
+
+/** What the map shows, as the caller passed it. */
+private class MapContent(
+    val threats: List<ThreatMarker>,
+    val alertedOblasts: Map<Int, Boolean>,
+    val favorites: List<FavoriteLocation>,
+    val alertedFavoriteIds: Set<String>,
+    val proximityRadiusKm: Int,
+    val highlightedThreatId: String?,
+    val selectedTrackId: String?,
+    val predictionPlaces: List<Place>,
+    val tracks: List<DroneTrack>,
+    val pendingFavorite: GeoPoint?,
+    /** Server time now, in epoch milliseconds; read while drawing. */
+    val serverNow: () -> Long,
+) {
+    // Trajectories (where a target came from and where it is heading) only for the target in focus: the
+    // selected one, or the one the cinematic camera is on. With dozens of targets they would bury the map.
+    fun isFocused(track: DroneTrack): Boolean =
+        track.id == selectedTrackId || highlightedThreatId?.let { it in track.markerIds } == true
+}
+
+/**
+ * Everything one frame of the map draws: what was gathered in composition, the helpers that persist between
+ * frames, and the animations, which are only read while drawing so they redraw without recomposing.
+ */
+private class MapScene(
+    val camera: MapCamera,
+    val colors: RadarColors,
+    val tileSource: TileSource?,
+    val mapTiles: MapTiles?,
+    /** Where tiles are drawn from: [mapTiles], or in previews the view's tiles read ahead (null until read). */
+    val tiles: TileLookup?,
+    val oblasts: List<OblastPath>,
+    val country: Path,
+    val content: MapContent,
+    val glyphs: MapGlyphs,
+    val labels: CityLabels,
+    val trackSmoother: TrackSmoother,
+    val cityFader: CityLabelFader,
+    val textMeasurer: TextMeasurer,
+    /** IDE previews render only the first frames, so anything that animates in must start finished there. */
+    val instantLabels: Boolean,
+    val pulse: State<Float>,
+    val blink: State<Float>,
+)
+
+/** Each target is drawn with its type's icon; classification only changes when the data does. */
+private class MapGlyphs(threats: List<ThreatMarker>, tracks: List<DroneTrack>) {
+    // Alerts that belong to a track are drawn as that track's moving drone instead of a static marker.
+    val trackedMarkerIds: Set<String> = tracks.flatMap { it.markerIds }.toSet()
+    private val trackKinds = tracks.associate { it.id to TargetClassifier.classify(it).kind }
+    private val markerKinds = threats.associate { it.id to TargetClassifier.classify(it).kind }
+
+    fun kindOf(track: DroneTrack): TargetKind = trackKinds[track.id] ?: TargetKind.AttackDrone
+    fun kindOf(marker: ThreatMarker): TargetKind = markerKinds[marker.id] ?: TargetKind.Unknown
+}
+
+/** City names are measured once, on first show, and recoloured per theme when drawn. */
+private class CityLabels(private val textMeasurer: TextMeasurer) {
+    private val measured = mutableMapOf<MapCity, TextLayoutResult>()
+
+    fun of(city: MapCity): TextLayoutResult = measured.getOrPut(city) {
+        val style = when {
+            city in UkraineCities.oblastCentres -> OblastCentreLabel
+            city.population >= MAJOR_CITY -> MajorCityLabel
+            else -> CityLabel
+        }
+        textMeasurer.measure(city.name, style)
+    }
+}
+
+@Composable
+private fun rememberMapScene(
+    camera: MapCamera,
+    tileSource: TileSource?,
+    control: CameraControl,
+    content: MapContent,
+): MapScene {
+    val paths = remember { buildOblastPaths() }
+    val country = remember(paths) { buildCountryPath(paths) }
+    val mapTiles = LocalMapTiles.current?.takeIf { tileSource != null }
+    val textMeasurer = rememberTextMeasurer()
+    val inspectionMode = LocalInspectionMode.current
+    // Previews render only their first frames: they draw the view's tiles read ahead, not tiles arriving one by one.
+    val tiles = if (inspectionMode && mapTiles != null && tileSource != null) {
+        rememberPreloadedTiles(mapTiles, tileSource, camera, control.mapSize)
+    } else {
+        mapTiles
+    }
+    val transition = rememberInfiniteTransition()
+    return MapScene(
+        camera = camera,
+        colors = LocalRadarColors.current,
+        tileSource = tileSource,
+        mapTiles = mapTiles,
+        tiles = tiles,
+        oblasts = paths,
+        country = country,
+        content = content,
+        glyphs = remember(content.threats, content.tracks) { MapGlyphs(content.threats, content.tracks) },
+        labels = remember(textMeasurer) { CityLabels(textMeasurer) },
+        trackSmoother = remember { TrackSmoother() },
+        cityFader = remember { CityLabelFader() },
+        textMeasurer = textMeasurer,
+        instantLabels = inspectionMode,
+        pulse = transition.animateFloat(0f, 1f, infiniteRepeatable(tween(1800, easing = LinearEasing))),
+        blink = transition.animateFloat(0.35f, 1f, infiniteRepeatable(tween(700), RepeatMode.Reverse)),
+    )
+}
+
+/** The bundled tiles a view of [size] through [camera] shows, read in the background; null until they are. */
+@Composable
+private fun rememberPreloadedTiles(tiles: MapTiles, source: TileSource, camera: MapCamera, size: Size): TileLookup? {
+    val preloaded by produceState<TileLookup?>(null, tiles, source, camera, size) {
+        if (size != Size.Zero) value = tiles.preload(source, camera, size)
+    }
+    return preloaded
+}
+
+private fun DrawScope.drawUkraineMap(scene: MapScene) {
+    val colors = scene.colors
+    drawRect(colors.mapBackground)
+    val ink = MapInk.over(scene.tileSource, colors)
+    val scale = scene.camera.scale(size)
+    if (scene.mapTiles != null && scene.tileSource != null) {
+        // Reading it makes the canvas redraw as tiles arrive.
+        scene.mapTiles.loaded
+        scene.tiles?.let { drawMapTiles(it, scene.tileSource, scene.camera) }
+    }
+    drawOblasts(scene, scale)
+    drawCityLayer(scene, ink)
+    drawFavorites(scene, ink, scale)
+    drawPendingFavorite(scene)
+
+    val now = scene.content.serverNow()
+    // Re-evaluated every frame (the pulse animation keeps the canvas drawing), so drones keep moving.
+    val visibleTracks = scene.trackSmoother.smooth(trackPositions(scene.content.tracks, now), now)
+    drawFocusedCourses(scene, visibleTracks, now)
+    drawThreatMarkers(scene)
+    drawAirLayer(scene, visibleTracks)
+}
+
+/** The oblasts, shaded by alert, over the grid or the tiles; Kyiv and Sevastopol as dots of their own. */
+private fun DrawScope.drawOblasts(scene: MapScene, scale: Float) {
+    val colors = scene.colors
+    val camera = scene.camera
+    // Over a real map the oblasts are tinted rather than painted, so the map shows through.
+    val idleFill = when {
+        scene.tileSource == null -> colors.oblastIdle
+        scene.tileSource.isImagery -> colors.oblastIdle.copy(alpha = 0.12f)
+        else -> colors.oblastIdle.copy(alpha = 0.3f)
+    }
+    val alerted = scene.content.alertedOblasts
+    withTransform({
+        translate(size.width / 2, size.height / 2)
+        scale(scale, scale, pivot = Offset.Zero)
+        translate(-camera.center.x, -camera.center.y)
+    }) {
+        if (scene.mapTiles == null) drawGrid(scale, colors)
+        // Over satellite imagery the country stands out: the land around it is darkened.
+        if (scene.mapTiles != null && scene.tileSource?.isImagery == true) {
+            val area = Rect(camera.toWorld(Offset.Zero, size), camera.toWorld(Offset(size.width, size.height), size))
+            drawPath(outsideUkraine(scene.country, area), Color.Black.copy(alpha = 1f - OUTSIDE_IMAGERY_ALPHA))
+        }
+        scene.oblasts.forEach { oblast ->
+            val fill = when (alerted[oblast.uid]) {
+                true -> colors.oblastAlertFull
+                false -> colors.oblastAlertPartial
+                null -> idleFill
+            }
+            drawPath(oblast.path, fill)
+            drawPath(oblast.path, colors.oblastBorder, style = Stroke(width = 1.1f / scale))
+        }
+        listOf(Regions.KYIV_CITY_UID, Regions.SEVASTOPOL_UID).forEach { uid ->
+            val center = MapProjection.toWorld(checkNotNull(Regions.center(uid)) { "No centre for city $uid" })
+            drawCircle(idleFill, radius = 0.09f, center = center)
+            if (alerted.containsKey(uid)) drawCircle(colors.oblastAlertFull, radius = 0.09f, center = center)
+            drawCircle(colors.oblastBorder, radius = 0.09f, center = center, style = Stroke(1.1f / scale))
+        }
+    }
+}
+
+/** City dots and names, kept clear of the favorites, which draw their own name. */
+private fun DrawScope.drawCityLayer(scene: MapScene, ink: MapInk) {
+    val content = scene.content
+    // Favorites draw their own name, so city names keep clear of the star and its label.
+    val favoriteAreas = (content.favorites.map { it.point } + listOfNotNull(content.pendingFavorite)).map { point ->
+        val p = scene.camera.toScreen(MapProjection.toWorld(point), size)
+        val glyph = 10.dp.toPx()
+        Rect(p.x - glyph - 40.dp.toPx(), p.y - glyph, p.x + glyph + 40.dp.toPx(), p.y + 26.dp.toPx())
+    }
+    drawCities(scene.camera, ink, favoriteAreas, scene.cityFader, content.serverNow(), scene.instantLabels) {
+        scene.labels.of(it)
+    }
+    // Reading the animation clock keeps frames coming until every fade has finished.
+    if (scene.cityFader.isAnimating) scene.pulse.value
+}
+
+/** Each favorite as a star with its name, inside its warning ring; the ring blinks while a threat is near. */
+private fun DrawScope.drawFavorites(scene: MapScene, ink: MapInk, scale: Float) {
+    val colors = scene.colors
+    val radiusPx = MapProjection.kmToWorld(scene.content.proximityRadiusKm.toFloat()) * scale
+    scene.content.favorites.forEach { favorite ->
+        val p = scene.camera.toScreen(MapProjection.toWorld(favorite.point), size)
+        val alerted = favorite.id in scene.content.alertedFavoriteIds
+        val ringColor = if (alerted) {
+            colors.danger.copy(alpha = 0.18f + 0.25f * scene.blink.value)
+        } else {
+            colors.favorite.copy(alpha = 0.16f)
+        }
+        drawCircle(ringColor, radiusPx, p)
+        drawCircle(
+            if (alerted) colors.danger else colors.favorite.copy(alpha = 0.6f),
+            radiusPx, p,
+            style = Stroke(1.5.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 8f))),
+        )
+        drawFavoriteGlyph(p, 9.dp.toPx(), if (alerted) colors.danger else colors.favorite, colors.glyphOutline)
+        val label = scene.textMeasurer.measure(favorite.name, FavoriteLabel)
+        drawHaloText(label, ink.label, ink.halo, Offset(p.x - label.size.width / 2, p.y + 11.dp.toPx()))
+    }
+}
+
+/** The spot offered as a new favorite, under a pulsing ring. */
+private fun DrawScope.drawPendingFavorite(scene: MapScene) {
+    val point = scene.content.pendingFavorite ?: return
+    val colors = scene.colors
+    val pulse = scene.pulse.value
+    val p = scene.camera.toScreen(MapProjection.toWorld(point), size)
+    val ring = 11.dp.toPx()
+    val ringStroke = Stroke(2.dp.toPx())
+    drawCircle(colors.favorite.copy(alpha = (1f - pulse) * 0.6f), ring + pulse * ring * 1.8f, p, style = ringStroke)
+    drawCircle(colors.favorite.copy(alpha = 0.18f), ring, p)
+    drawFavoriteGlyph(p, 10.dp.toPx(), colors.favorite, colors.glyphOutline)
+}
+
+/** Where focused targets are heading, and the selected one's course over the ground with its report times. */
+private fun DrawScope.drawFocusedCourses(scene: MapScene, visibleTracks: List<TrackPosition>, now: Long) {
+    val content = scene.content
+    val places = content.predictionPlaces
+    if (places.isNotEmpty()) {
+        visibleTracks.filter { content.isFocused(it.track) }.forEach { (track, position) ->
+            if (track.id == content.selectedTrackId) {
+                drawPredictedRoute(track, position, now, places, scene.camera, scene.colors, scene.textMeasurer)
+            } else {
+                TrackPredictor.predict(track, now, places)
+                    ?.let { drawPrediction(position, it, scene.camera, scene.colors, scene.textMeasurer) }
+            }
+        }
+    }
+    // The selected target's course over the ground, under everything in the air.
+    visibleTracks.firstOrNull { it.track.id == content.selectedTrackId }?.let { (track, position) ->
+        drawTrail(track, position, now, scene.camera)
+        drawTrackTimestamps(track, scene.camera, scene.colors, scene.textMeasurer)
+    }
+}
+
+/** Threats no track follows, each a pulsing icon where it was reported. */
+private fun DrawScope.drawThreatMarkers(scene: MapScene) {
+    val content = scene.content
+    // Threats reported for the same place (an oblast centre, Kyiv city) fan out so their icons don't stack.
+    val spread = 16.dp.toPx()
+    content.threats.filter { it.id !in scene.glyphs.trackedMarkerIds }.groupBy { it.point }.values.forEach { group ->
+        group.forEachIndexed { index, marker ->
+            val angle = 2 * PI * index / group.size - PI / 2
+            val offset = if (group.size == 1) {
+                Offset.Zero
+            } else {
+                Offset((spread * cos(angle)).toFloat(), (spread * sin(angle)).toFloat())
+            }
+            val p = scene.camera.toScreen(MapProjection.toWorld(marker.point), size) + offset
+            if (p.x < -40 || p.y < -40 || p.x > size.width + 40 || p.y > size.height + 40) return@forEachIndexed
+            drawThreatMarker(scene, marker, p)
+        }
+    }
+}
+
+private fun DrawScope.drawThreatMarker(scene: MapScene, marker: ThreatMarker, p: Offset) {
+    val colors = scene.colors
+    val color = if (marker.level == ThreatLevel.Red) colors.danger else colors.warning
+    val base = (if (marker.isRegionWide) 13.dp else 8.dp).toPx()
+    val highlighted = marker.id == scene.content.highlightedThreatId
+    val phase = (scene.pulse.value + (abs(marker.id.hashCode()) % 100) / 100f) % 1f
+    drawCircle(color.copy(alpha = (1f - phase) * 0.55f), base + phase * base * 2.4f, p, style = Stroke(1.5.dp.toPx()))
+    if (marker.isRegionWide) {
+        val dashes = PathEffect.dashPathEffect(floatArrayOf(6f, 6f))
+        drawCircle(color.copy(alpha = 0.6f), base * 1.6f, p, style = Stroke(1.5f, pathEffect = dashes))
+    }
+    if (highlighted) {
+        drawCircle(colors.mapLabel, base * 2.2f, p, style = Stroke(2.dp.toPx()))
+    }
+    val glyphSize = base * (if (highlighted) 1.4f else 1f)
+    drawTargetGlyph(scene.glyphs.kindOf(marker), p, glyphSize * 1.15f, headingFor(marker), color, colors.glyphOutline)
+}
+
+/** Air layer: targets fly over everything on the ground, the higher ones over the lower ones. */
+private fun DrawScope.drawAirLayer(scene: MapScene, visibleTracks: List<TrackPosition>) {
+    val content = scene.content
+    visibleTracks
+        .sortedWith(
+            compareBy(
+                { scene.glyphs.kindOf(it.track).typicalAltitudeM ?: 0 },
+                { it.track.id == content.selectedTrackId },
+            ),
+        )
+        .forEach { (track, position) ->
+            val dimmed = content.selectedTrackId != null && track.id != content.selectedTrackId
+            val style = TargetStyle(highlighted = content.isFocused(track), dimmed = dimmed, pulse = scene.pulse.value)
+            drawTarget(track, position, scene.camera, style, scene.colors, scene.glyphs.kindOf(track))
+        }
+}
+
+/** Where [offset] (a tap) lands: the nearest target in the air, threat or favorite within reach. */
 private fun Density.hitTest(
     offset: Offset,
     size: IntSize,
     camera: MapCamera,
     threats: List<ThreatMarker>,
     favorites: List<FavoriteLocation>,
-    tracks: List<Pair<DroneTrack, InterpolatedPosition>>,
+    tracks: List<TrackPosition>,
 ): MapSelection? {
     val s = size.toSize()
     val threshold = 28.dp.toPx()
-    val threat = threats
-        .map { it to (camera.toScreen(MapProjection.toWorld(it.point), s) - offset).getDistance() }
-        .filter { it.second < threshold }
-        .minByOrNull { it.second }
-    val favorite = favorites
-        .map { it to (camera.toScreen(MapProjection.toWorld(it.point), s) - offset).getDistance() }
-        .filter { it.second < threshold }
-        .minByOrNull { it.second }
+    fun distanceTo(point: GeoPoint) = (camera.toScreen(MapProjection.toWorld(point), s) - offset).getDistance()
+    val threat = nearest(threats, threshold) { distanceTo(it.point) }
+    val favorite = nearest(favorites, threshold) { distanceTo(it.point) }
     // Targets are tapped where they are drawn, in the air.
-    val track = tracks
-        .map {
-            val ground = camera.toScreen(MapProjection.toWorld(it.second.point), s)
-            it to (elevate(ground, TargetClassifier.classify(it.first).kind.typicalAltitudeM, s).air - offset).getDistance()
-        }
-        .filter { it.second < threshold }
-        .minByOrNull { it.second }
-    if (track != null && (threat == null || track.second <= threat.second) && (favorite == null || track.second <= favorite.second)) {
-        return MapSelection.Track(track.first.first, track.first.second)
+    val track = nearest(tracks, threshold) {
+        val ground = camera.toScreen(MapProjection.toWorld(it.position.point), s)
+        (elevate(ground, TargetClassifier.classify(it.track).kind.typicalAltitudeM, s).air - offset).getDistance()
+    }
+    if (track != null && (threat == null || track.distance <= threat.distance) &&
+        (favorite == null || track.distance <= favorite.distance)
+    ) {
+        return MapSelection.Track(track.target.track, track.target.position)
     }
     return when {
-        threat != null && (favorite == null || threat.second <= favorite.second) -> MapSelection.Threat(threat.first)
-        favorite != null -> MapSelection.Favorite(favorite.first)
+        threat != null && (favorite == null || threat.distance <= favorite.distance) ->
+            MapSelection.Threat(threat.target)
+        favorite != null -> MapSelection.Favorite(favorite.target)
         else -> null
     }
 }
 
-private fun nowMs(clockOffsetMs: Long) = Clock.System.now().toEpochMilliseconds() + clockOffsetMs
+/** Something on the map a tap came within [distance] pixels of. */
+private class Hit<T>(val target: T, val distance: Float)
+
+private fun <T> nearest(items: List<T>, threshold: Float, distance: (T) -> Float): Hit<T>? =
+    items.map { Hit(it, distance(it)) }.filter { it.distance < threshold }.minByOrNull { it.distance }
 
 /** Interpolated positions of [tracks], already narrowed to active ones and those within the targets timeline. */
-private fun trackPositions(tracks: List<DroneTrack>, now: Long): List<Pair<DroneTrack, InterpolatedPosition>> = tracks
-    .mapNotNull { track -> TrackInterpolator.positionAt(track, now)?.let { track to it } }
+private fun trackPositions(tracks: List<DroneTrack>, now: Long): List<TrackPosition> = tracks
+    .mapNotNull { track -> TrackInterpolator.positionAt(track, now)?.let { TrackPosition(track, it) } }
 
 /**
  * The selected target's trail over the ground up to where it is now: a dashed white line that fades out towards
@@ -592,7 +723,10 @@ private fun catmullRom(points: List<Offset>, steps: Int = 4): List<Offset> {
             val t = j.toFloat() / steps
             val t2 = t * t
             val t3 = t2 * t
-            out += (p1 * 2f + (p2 - p0) * t + (p0 * 2f - p1 * 5f + p2 * 4f - p3) * t2 + (p1 * 3f - p0 - p2 * 3f + p3) * t3) * 0.5f
+            out += (
+                p1 * 2f + (p2 - p0) * t + (p0 * 2f - p1 * 5f + p2 * 4f - p3) * t2 +
+                    (p1 * 3f - p0 - p2 * 3f + p3) * t3
+                ) * 0.5f
         }
     }
     out += points.last()
@@ -600,8 +734,9 @@ private fun catmullRom(points: List<Offset>, steps: Int = 4): List<Offset> {
 }
 
 /**
- * The server's forecast as a cone that widens with the growing uncertainty ([com.gusak.lab.radarnebo.tracking.ForecastPoint.sigmaKm]),
- * so the course ahead reads as a likely corridor rather than a promise.
+ * The server's forecast as a cone that widens with the growing uncertainty
+ * ([com.gusak.lab.radarnebo.tracking.ForecastPoint.sigmaKm]), so the course ahead reads as a likely corridor
+ * rather than a promise.
  */
 private fun DrawScope.drawForecastCone(track: DroneTrack, camera: MapCamera, color: Color) {
     val forecast = track.forecast
@@ -621,40 +756,50 @@ private fun DrawScope.drawForecastCone(track: DroneTrack, camera: MapCamera, col
     drawPath(cone, color.copy(alpha = 0.14f), style = Fill)
 }
 
-/** The target's icon, up in the air at its class's typical altitude, as the camera above the map sees it (see [elevate]). */
+/** How a target's icon stands out: in focus, dimmed behind the selected one, and the phase of its pulse. */
+private class TargetStyle(val highlighted: Boolean, val dimmed: Boolean, val pulse: Float)
+
+/**
+ * The target's icon, up in the air at its class's typical altitude, as the camera above the map sees it (see
+ * [elevate]).
+ */
 private fun DrawScope.drawTarget(
     track: DroneTrack,
     position: InterpolatedPosition,
     camera: MapCamera,
-    highlighted: Boolean,
-    dimmed: Boolean,
-    pulse: Float,
+    style: TargetStyle,
     colors: RadarColors,
     kind: TargetKind,
 ) {
+    val pulse = style.pulse
     val color = if (track.level == ThreatLevel.Red) colors.danger else colors.warning
-    val alpha = (if (track.active) 1f else 0.45f) * (if (dimmed) 0.35f else 1f)
+    val alpha = (if (track.active) 1f else 0.45f) * (if (style.dimmed) 0.35f else 1f)
     val ground = camera.toScreen(MapProjection.toWorld(position.point), size)
     val elevated = elevate(ground, kind.typicalAltitudeM, size)
     val air = elevated.air
     val scaled = 9.dp.toPx() * elevated.scale
-    drawCircle(color.copy(alpha = (1f - pulse) * 0.5f * alpha), scaled + pulse * scaled * 2.4f, air, style = Stroke(1.5.dp.toPx()))
+    val ring = Stroke(1.5.dp.toPx())
+    drawCircle(color.copy(alpha = (1f - pulse) * 0.5f * alpha), scaled + pulse * scaled * 2.4f, air, style = ring)
     if (position.mode == PositionMode.Extrapolated) {
         // Dead-reckoned past the last report: show an uncertainty ring.
-        drawCircle(color.copy(alpha = 0.35f), scaled * 2f, air, style = Stroke(1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(4f, 6f))))
+        val dashes = PathEffect.dashPathEffect(floatArrayOf(4f, 6f))
+        drawCircle(color.copy(alpha = 0.35f), scaled * 2f, air, style = Stroke(1.dp.toPx(), pathEffect = dashes))
     }
-    if (highlighted) drawCircle(colors.mapLabel, scaled * 2.2f, air, style = Stroke(2.dp.toPx()))
+    if (style.highlighted) drawCircle(colors.mapLabel, scaled * 2.2f, air, style = Stroke(2.dp.toPx()))
     drawTargetGlyph(
         kind,
         air,
-        scaled * (if (highlighted) 1.6f else 1.2f),
+        scaled * (if (style.highlighted) 1.6f else 1.2f),
         (position.headingDeg ?: 270.0).toFloat(),
         color.copy(alpha = alpha),
         colors.glyphOutline.copy(alpha = colors.glyphOutline.alpha * alpha),
     )
 }
 
-/** Where a target at some altitude appears: [ground] is its spot on the map, [air] where it is drawn, [scale] times larger. */
+/**
+ * Where a target at some altitude appears: [ground] is its spot on the map, [air] where it is drawn, [scale] times
+ * larger.
+ */
 private class Elevated(val ground: Offset, val air: Offset, val scale: Float)
 
 /**
@@ -671,10 +816,13 @@ private fun Density.elevate(ground: Offset, altitudeM: Int?, viewport: Size): El
 }
 
 /** Where on the screen the ground under a target [altitudeM] high must be for the target to show up at [air]. */
-fun Density.groundUnder(air: Offset, altitudeM: Int?, viewport: Size): Offset =
+internal fun Density.groundUnder(air: Offset, altitudeM: Int?, viewport: Size): Offset =
     viewport.center + (air - viewport.center) / magnification(altitudeM, viewport)
 
-/** Pinhole projection: what is some height closer to the camera spreads out by cameraHeight / (cameraHeight - height). */
+/**
+ * Pinhole projection: what is some height closer to the camera spreads out by cameraHeight / (cameraHeight -
+ * height).
+ */
 private fun Density.magnification(altitudeM: Int?, viewport: Size): Float {
     val altitude = altitudeM ?: 0
     if (altitude <= 0) return 1f
@@ -777,19 +925,28 @@ private fun DrawScope.drawPredictedRoute(
         )
         // Alternate above/below the course line so neighbouring labels don't collide.
         val dy = if (index % 2 == 0) -label.size.height - 6.dp.toPx() else 6.dp.toPx()
-        val topLeft = Offset(p.x + 6.dp.toPx(), p.y + dy)
-        drawRoundRect(
-            colors.warning,
-            topLeft = topLeft - Offset(5.dp.toPx(), 2.dp.toPx()),
-            size = Size(label.size.width + 10.dp.toPx(), label.size.height + 4.dp.toPx()),
-            cornerRadius = CornerRadius(6.dp.toPx()),
-        )
-        drawText(label, topLeft = topLeft)
+        drawWarningChip(label, Offset(p.x + 6.dp.toPx(), p.y + dy), colors)
     }
 }
 
+/** [label] on a rounded [RadarColors.warning] chip whose text starts at [topLeft]. */
+private fun DrawScope.drawWarningChip(label: TextLayoutResult, topLeft: Offset, colors: RadarColors) {
+    drawRoundRect(
+        colors.warning,
+        topLeft = topLeft - Offset(5.dp.toPx(), 2.dp.toPx()),
+        size = Size(label.size.width + 10.dp.toPx(), label.size.height + 4.dp.toPx()),
+        cornerRadius = CornerRadius(6.dp.toPx()),
+    )
+    drawText(label, topLeft = topLeft)
+}
+
 /** Time label next to every reported position of the selected track. */
-private fun DrawScope.drawTrackTimestamps(track: DroneTrack, camera: MapCamera, colors: RadarColors, textMeasurer: TextMeasurer) {
+private fun DrawScope.drawTrackTimestamps(
+    track: DroneTrack,
+    camera: MapCamera,
+    colors: RadarColors,
+    textMeasurer: TextMeasurer,
+) {
     val style = TextStyle(color = colors.onOverlay, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
     track.samples.forEach { sample ->
         val p = camera.toScreen(MapProjection.toWorld(sample.point), size)
@@ -823,15 +980,11 @@ private fun DrawScope.drawPrediction(
     drawCircle(color, ring, to, style = Stroke(2.dp.toPx()))
     drawCircle(color, 2.5.dp.toPx(), to)
     val text = "${prediction.place.name} · ~${prediction.etaMinutes} min"
-    val label = textMeasurer.measure(text, TextStyle(color = colors.onWarning, fontSize = 11.sp, fontWeight = FontWeight.Bold))
-    val topLeft = Offset(to.x - label.size.width / 2, to.y + 10.dp.toPx())
-    drawRoundRect(
-        colors.warning,
-        topLeft = topLeft - Offset(5.dp.toPx(), 2.dp.toPx()),
-        size = Size(label.size.width + 10.dp.toPx(), label.size.height + 4.dp.toPx()),
-        cornerRadius = CornerRadius(6.dp.toPx()),
+    val label = textMeasurer.measure(
+        text,
+        TextStyle(color = colors.onWarning, fontSize = 11.sp, fontWeight = FontWeight.Bold),
     )
-    drawText(label, topLeft = topLeft)
+    drawWarningChip(label, Offset(to.x - label.size.width / 2, to.y + 10.dp.toPx()), colors)
 }
 
 /** Zoom from which city names are shown; below it cities are dots only. */
@@ -844,6 +997,9 @@ private val OblastCentreLabel = TextStyle(fontSize = 13.sp, fontWeight = FontWei
 
 /** Oblast centres in the order their names claim space: the largest city wins a collision. */
 private val CentresByPopulation = UkraineCities.oblastCentres.sortedByDescending { it.population }
+
+/** Space between a city's dot, its name and the next name. */
+private val CityLabelGap = 3.dp
 
 /**
  * Every settlement with city status as a dot, sized by population. Oblast centres are named at every zoom,
@@ -861,57 +1017,69 @@ private fun DrawScope.drawCities(
     instantLabels: Boolean,
     label: (MapCity) -> TextLayoutResult,
 ) {
-    val showLabels = camera.zoom >= CITY_LABEL_ZOOM
-    val placed = reserved.toMutableList()
-    val gap = 3.dp.toPx()
-    val wanted = HashSet<MapCity>()
-    fun onScreen(p: Offset) = p.x >= -120 && p.y >= -20 && p.x <= size.width + 20 && p.y <= size.height + 20
-    fun labelBox(city: MapCity, p: Offset): Rect {
-        val text = label(city)
-        val topLeft = Offset(p.x + cityDotRadius(city) + gap, p.y - text.size.height / 2f)
-        return Rect(topLeft, Size(text.size.width.toFloat(), text.size.height.toFloat())).inflate(gap)
-    }
-    // Oblast centres first, so other names keep clear of them.
-    CentresByPopulation.forEach { city ->
-        val p = cityOnScreen(city, camera)
-        if (!onScreen(p)) return@forEach
-        val box = labelBox(city, p)
-        if (placed.any { it.overlaps(box) }) return@forEach
-        placed += box
-        wanted += city
-    }
+    val wanted = cityNamesToShow(camera, reserved, label)
     UkraineCities.all.forEach { city ->
         if (city in UkraineCities.oblastCentres) return@forEach
         val p = cityOnScreen(city, camera)
-        if (!onScreen(p)) return@forEach
-        drawCityDot(ink, cityDotRadius(city), p)
-        if (!showLabels) return@forEach
-        val box = labelBox(city, p)
-        if (placed.any { it.overlaps(box) }) return@forEach
-        placed += box
-        wanted += city
+        if (isOnScreen(p)) drawCityDot(ink, cityDotRadius(city), p)
     }
     val labels = fader.update(wanted, nowMs, instantLabels)
-    // Ease out, so names settle gently; they rise into place and sink as they go.
-    fun eased(city: MapCity) = (labels[city] ?: 0f).let { 1f - (1f - it) * (1f - it) }
     val collapsedRadius = 5.5.dp.toPx()
     CentresByPopulation.forEach { city ->
         val p = cityOnScreen(city, camera)
-        if (!onScreen(p)) return@forEach
-        val named = eased(city)
+        if (!isOnScreen(p)) return@forEach
+        val named = easeOut(labels[city] ?: 0f)
         val r = collapsedRadius + (cityDotRadius(city) - collapsedRadius) * named
         drawCircle(ink.halo.copy(alpha = ink.halo.alpha * (1f - named)), r + 1.5.dp.toPx(), p)
-        drawCircle(androidx.compose.ui.graphics.lerp(ink.cityLabel, ink.cityDot, named), r, p)
+        drawCircle(lerp(ink.cityLabel, ink.cityDot, named), r, p)
     }
     val rise = 4.dp.toPx()
-    labels.keys.forEach { city ->
+    val gap = CityLabelGap.toPx()
+    labels.forEach { (city, opacity) ->
         val p = cityOnScreen(city, camera)
         val text = label(city)
-        val shown = eased(city)
+        val shown = easeOut(opacity)
         val topLeft = Offset(p.x + cityDotRadius(city) + gap, p.y - text.size.height / 2f + (1f - shown) * rise)
         drawHaloText(text, ink.cityLabel, ink.halo, topLeft, alpha = shown)
     }
 }
+
+/** The cities whose names fit: oblast centres first, so other names keep clear of them, then, zoomed in, the rest. */
+private fun DrawScope.cityNamesToShow(
+    camera: MapCamera,
+    reserved: List<Rect>,
+    label: (MapCity) -> TextLayoutResult,
+): Set<MapCity> {
+    val placed = reserved.toMutableList()
+    val wanted = HashSet<MapCity>()
+    fun claim(city: MapCity) {
+        val p = cityOnScreen(city, camera)
+        if (!isOnScreen(p)) return
+        val box = cityLabelBox(city, p, label(city))
+        if (placed.any { it.overlaps(box) }) return
+        placed += box
+        wanted += city
+    }
+    // Oblast centres first, so other names keep clear of them.
+    CentresByPopulation.forEach(::claim)
+    if (camera.zoom >= CITY_LABEL_ZOOM) {
+        UkraineCities.all.forEach { city -> if (city !in UkraineCities.oblastCentres) claim(city) }
+    }
+    return wanted
+}
+
+private fun DrawScope.isOnScreen(p: Offset) =
+    p.x >= -120 && p.y >= -20 && p.x <= size.width + 20 && p.y <= size.height + 20
+
+/** Where [city]'s name [text] goes beside its dot at [p], with room to spare around it. */
+private fun DrawScope.cityLabelBox(city: MapCity, p: Offset, text: TextLayoutResult): Rect {
+    val gap = CityLabelGap.toPx()
+    val topLeft = Offset(p.x + cityDotRadius(city) + gap, p.y - text.size.height / 2f)
+    return Rect(topLeft, Size(text.size.width.toFloat(), text.size.height.toFloat())).inflate(gap)
+}
+
+/** Ease out, so names settle gently; they rise into place and sink as they go. */
+private fun easeOut(opacity: Float) = 1f - (1f - opacity) * (1f - opacity)
 
 /**
  * Colours of what is drawn straight onto the map: names, city dots and the halo around them. Over satellite
@@ -927,14 +1095,24 @@ private class MapInk(val label: Color, val cityLabel: Color, val cityDot: Color,
             halo = Color(0xD9000000),
         )
 
-        fun over(tileSource: TileSource?, colors: RadarColors) =
-            if (tileSource?.isImagery == true) Imagery else MapInk(colors.mapLabel, colors.cityLabel, colors.cityDot, colors.mapBackground.copy(alpha = 0.85f))
+        fun over(tileSource: TileSource?, colors: RadarColors) = if (tileSource?.isImagery == true) {
+            Imagery
+        } else {
+            MapInk(colors.mapLabel, colors.cityLabel, colors.cityDot, colors.mapBackground.copy(alpha = 0.85f))
+        }
     }
 }
 
 /** [text] with a solid outline in [halo], so it stays legible over tiles, imagery, oblast fills and borders. */
-private fun DrawScope.drawHaloText(text: TextLayoutResult, color: Color, halo: Color, topLeft: Offset, alpha: Float = 1f) {
-    drawText(text, color = halo, topLeft = topLeft, alpha = alpha, drawStyle = Stroke(HaloWidth.toPx(), join = StrokeJoin.Round))
+private fun DrawScope.drawHaloText(
+    text: TextLayoutResult,
+    color: Color,
+    halo: Color,
+    topLeft: Offset,
+    alpha: Float = 1f,
+) {
+    val outline = Stroke(HaloWidth.toPx(), join = StrokeJoin.Round)
+    drawText(text, color = halo, topLeft = topLeft, alpha = alpha, drawStyle = outline)
     // Fill must be explicit: on Android the text paint keeps the last draw style, so without it the stroke above
     // carries over and the name is drawn as a thick outline too.
     drawText(text, color = color, topLeft = topLeft, alpha = alpha, drawStyle = Fill)
@@ -974,7 +1152,6 @@ private fun DrawScope.drawGrid(scale: Float, colors: RadarColors) {
     }
 }
 
-
 private fun DrawScope.drawFavoriteGlyph(center: Offset, outer: Float, color: Color, outline: Color) {
     val inner = outer * 0.45f
     val path = Path()
@@ -996,7 +1173,7 @@ private fun DrawScope.drawFavoriteGlyph(center: Offset, outer: Float, color: Col
 @Composable
 private fun UkraineMapPreview(theme: ThemeMode, camera: MapCamera = MapCamera.Overview, streets: Boolean = true) {
     val state = PreviewData.scenario(theme)
-    val tiles = remember(streets) { if (streets) MapTiles(client = null, blocking = true) else null }
+    val tiles = remember(streets) { if (streets) MapTiles(client = null) else null }
     RadarTheme(theme) {
         CompositionLocalProvider(LocalMapTiles provides tiles) {
             UkraineMap(
@@ -1007,10 +1184,12 @@ private fun UkraineMapPreview(theme: ThemeMode, camera: MapCamera = MapCamera.Ov
                 alertedFavoriteIds = state.proximity.map { it.favorite.id }.toSet(),
                 proximityRadiusKm = state.settings.proximityRadiusKm,
                 modifier = Modifier.fillMaxSize(),
-                predictionPlaces = state.favorites.map { Place(it.name, it.point, isFavorite = true) } + TrackPredictor.cityPlaces,
+                predictionPlaces = state.favorites.map { Place(it.name, it.point, isFavorite = true) } +
+                    TrackPredictor.cityPlaces,
                 tracks = state.tracks,
                 clockOffsetMs = state.clockOffsetMs,
-                tileSource = if (streets) TileSource.of(MapBackground.Streets, dark = theme == ThemeMode.Dark) else null,
+                tileSource = TileSource.of(MapBackground.Streets, dark = theme == ThemeMode.Dark).takeIf { streets },
+                clock = PreviewData::nowMs,
             )
         }
     }
@@ -1026,7 +1205,8 @@ private fun UkraineMapLightPreview() = UkraineMapPreview(ThemeMode.Light)
 
 @Preview(name = "Ukraine map · street map · Kyiv close-up", widthDp = 420, heightDp = 860)
 @Composable
-private fun UkraineMapKyivPreview() = UkraineMapPreview(ThemeMode.Dark, PreviewData.camera(PreviewData.city("Kyiv"), 4f))
+private fun UkraineMapKyivPreview() =
+    UkraineMapPreview(ThemeMode.Dark, PreviewData.camera(PreviewData.city("Kyiv"), 4f))
 
 @Preview(name = "Ukraine map · no background", widthDp = 1100, heightDp = 760)
 @Composable

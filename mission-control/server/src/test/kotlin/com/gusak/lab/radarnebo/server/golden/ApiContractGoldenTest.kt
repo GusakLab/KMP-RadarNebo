@@ -37,7 +37,8 @@ private class ScriptedSource(private val clock: () -> Long) : AlertsDataSource {
     override val description = "scripted"
     override val pollInterval: Duration = 15.seconds
     override val providesObservations = false
-    override suspend fun fetch(lastModified: String?): FetchResult = failure ?: FetchResult.Fresh(SituationReport(clock(), alerts))
+    override suspend fun fetch(lastModified: String?): FetchResult =
+        failure ?: FetchResult.Fresh(SituationReport(clock(), alerts))
     override fun close() {}
 }
 
@@ -47,11 +48,18 @@ private class ScriptedSource(private val clock: () -> Long) : AlertsDataSource {
  * one transcript; on a change the new transcript is written under `build/golden-actual/`.
  */
 class ApiContractGoldenTest {
-    private var now = Fixtures.t0.toEpochMilliseconds()
+    private var now = Fixtures.T0.toEpochMilliseconds()
     private val source = ScriptedSource { now }
 
-    private fun ApplicationTestBuilder.server(clients: ClientApiConfig = ClientApiConfig(requestsPerMinute = 10_000, historyRequestsPerMinute = 100)): ServerComponents {
-        val components = ServerComponents.create(ServerConfig(clients = clients), clock = { now }, source = source, archives = Archives.inMemory())
+    private fun ApplicationTestBuilder.server(
+        clients: ClientApiConfig = ClientApiConfig(requestsPerMinute = 10_000, historyRequestsPerMinute = 100),
+    ): ServerComponents {
+        val components = ServerComponents.create(
+            ServerConfig(clients = clients),
+            clock = { now },
+            source = source,
+            archives = Archives.inMemory(),
+        )
         application { radarServer(components, startPoller = false) }
         return components
     }
@@ -66,11 +74,19 @@ class ApiContractGoldenTest {
         val response = client.get(path) { headers.forEach { (name, value) -> header(name, value) } }
         val body = response.bodyAsText()
         transcript.append("GET ").append(path)
-        headers.forEach { (name, value) -> transcript.append(" [").append(name).append(": ").append(value).append(']') }
+        headers.forEach { (name, value) ->
+            transcript.append(" [").append(name).append(": ").append(value).append(']')
+        }
         transcript.append('\n').append(response.status.value).append('\n')
-        PINNED_HEADERS.forEach { name -> response.headers[name]?.let { transcript.append(name).append(": ").append(pinned(name, it)).append('\n') } }
+        PINNED_HEADERS.forEach { name ->
+            response.headers[name]?.let { transcript.append(name).append(": ").append(pinned(name, it)).append('\n') }
+        }
         val pinnedBody = roundLongFractions(body)
-        if (pinnedBody.length <= inlineLimit) transcript.append(pinnedBody) else transcript.append("<${body.length} chars, sha256 ${Golden.sha256(body)}>")
+        if (pinnedBody.length <= inlineLimit) {
+            transcript.append(pinnedBody)
+        } else {
+            transcript.append("<${body.length} chars, sha256 ${Golden.sha256(body)}>")
+        }
         transcript.append("\n\n")
     }
 
@@ -88,7 +104,9 @@ class ApiContractGoldenTest {
      * with more than six decimals are pinned to six.
      */
     private fun roundLongFractions(body: String): String =
-        Regex("""-?\d+\.\d{7,}(?:[eE]-?\d+)?""").replace(body) { BigDecimal(it.value).setScale(6, RoundingMode.HALF_UP).toPlainString() }
+        Regex("""-?\d+\.\d{7,}(?:[eE]-?\d+)?""").replace(body) {
+            BigDecimal(it.value).setScale(6, RoundingMode.HALF_UP).toPlainString()
+        }
 
     @Test
     fun whileWarmingUp() = testApplication {
@@ -111,31 +129,61 @@ class ApiContractGoldenTest {
     @Test
     fun servingData() = testApplication {
         val server = server()
+        publishTwoReports(server)
+
+        val transcript = StringBuilder()
+        recordLiveData(transcript)
+        // Kyiv city clears: its track ends and goes to the archive.
+        now += 40.minutes.inWholeMilliseconds
+        source.alerts = listOf(alert(1, Fixtures.region(22)))
+        server.poller.pollOnce()
+        recordArchivedData(transcript)
+
+        // The source fails: the last data is still served, and health says so.
+        source.failure =
+            FetchResult.Failed(message = "HTTP 502 from upstream", minWaitMs = 1_000, retryAfterMs = 30_000)
+        now += 15.seconds.inWholeMilliseconds
+        server.poller.pollOnce()
+        record(transcript, "/health")
+        record(transcript, "/v1/alerts/active.json")
+        assertText("api-serving", ApiTranscripts.SERVING, transcript.toString().trimEnd())
+    }
+
+    /** Kharkiv oblast, Brovary and Kharkiv city alerted, then the report twenty minutes later; 45 s pass. */
+    private suspend fun publishTwoReports(server: ServerComponents) {
         source.alerts = listOf(
             alert(1, Fixtures.region(22)),
-            alert(2, Fixtures.brovary, level = ThreatLevel.Yellow),
-            alert(3, Fixtures.kharkiv, threat = ThreatType.CruiseMissiles, message = "Крилаті ракети"),
+            alert(2, Fixtures.BROVARY, level = ThreatLevel.Yellow),
+            alert(3, Fixtures.KHARKIV, threat = ThreatType.CruiseMissiles, message = "Крилаті ракети"),
         )
         server.poller.pollOnce()
         // Twenty minutes later Brovary clears and Kyiv city is alerted: the drone track moves on.
         now += 20.minutes.inWholeMilliseconds
         source.alerts = listOf(
             alert(1, Fixtures.region(22)),
-            alert(3, Fixtures.kharkiv, threat = ThreatType.CruiseMissiles, message = "Крилаті ракети"),
-            alert(4, Fixtures.region(31), startedAt = Fixtures.t0 + 20.minutes),
+            alert(3, Fixtures.KHARKIV, threat = ThreatType.CruiseMissiles, message = "Крилаті ракети"),
+            alert(4, Fixtures.region(31), startedAt = Fixtures.T0 + 20.minutes),
         )
         server.poller.pollOnce()
         now += 45.seconds.inWholeMilliseconds
+    }
 
-        val transcript = StringBuilder()
+    /** Every endpoint that serves the current situation. */
+    private suspend fun ApplicationTestBuilder.recordLiveData(transcript: StringBuilder) {
         record(transcript, "/health")
         record(transcript, "/v1/alerts/active.json", mapOf(HttpHeaders.Origin to "https://example.org"))
         record(transcript, "/v1/alerts/active.json", mapOf(HttpHeaders.IfNoneMatch to "\"v2\""))
-        record(transcript, "/v1/alerts/active.json", mapOf(HttpHeaders.IfModifiedSince to "Mon, 19 Oct 2026 10:20:00 GMT"))
+        record(
+            transcript,
+            "/v1/alerts/active.json",
+            mapOf(HttpHeaders.IfModifiedSince to "Mon, 19 Oct 2026 10:20:00 GMT"),
+        )
         listOf("v1", "v2").forEach { v ->
             record(transcript, "/$v/iot/active_air_raid_alerts_by_oblast.json")
             record(transcript, "/$v/iot/active_air_raid_alerts.json", inlineLimit = 0)
-            listOf("22", "1293", "14", "1100", "31", "7").forEach { uid -> record(transcript, "/$v/iot/active_air_raid_alerts/$uid.json") }
+            listOf("22", "1293", "14", "1100", "31", "7").forEach { uid ->
+                record(transcript, "/$v/iot/active_air_raid_alerts/$uid.json")
+            }
         }
         record(transcript, "/v1/regions/14/alerts/month_ago.json")
         record(transcript, "/v1/regions/22/alerts/week_ago.json")
@@ -144,30 +192,25 @@ class ApiContractGoldenTest {
         record(transcript, "/v1/drones/tracks.json?active=true")
         record(transcript, "/v1/drones/positions.json")
         record(transcript, "/v1/drones/positions.json?at=2026-10-19T10:10:00Z")
-        // Kyiv city clears: its track ends and goes to the archive.
-        now += 40.minutes.inWholeMilliseconds
-        source.alerts = listOf(alert(1, Fixtures.region(22)))
-        server.poller.pollOnce()
+    }
+
+    /** The current tracks, the track archive and history, once a track has ended. */
+    private suspend fun ApplicationTestBuilder.recordArchivedData(transcript: StringBuilder) {
         record(transcript, "/v1/drones/tracks.json")
-        record(transcript, "/v1/drones/archive.json?from=${Fixtures.t0.toEpochMilliseconds()}")
-        record(transcript, "/v1/drones/archive.json?from=2026-10-19T09:00:00Z&to=2026-10-19T12:00:00Z&type=drones&limit=5")
+        record(transcript, "/v1/drones/archive.json?from=${Fixtures.T0.toEpochMilliseconds()}")
+        record(
+            transcript,
+            "/v1/drones/archive.json?from=2026-10-19T09:00:00Z&to=2026-10-19T12:00:00Z&type=drones&limit=5",
+        )
         record(transcript, "/v1/drones/archive.json?type=cruise_missiles")
         record(transcript, "/v1/regions/31/alerts/day_ago.json")
         record(transcript, "/v1/alerts/active.json")
-
-        // The source fails: the last data is still served, and health says so.
-        source.failure = FetchResult.Failed(message = "HTTP 502 from upstream", minWaitMs = 1_000, retryAfterMs = 30_000)
-        now += 15.seconds.inWholeMilliseconds
-        server.poller.pollOnce()
-        record(transcript, "/health")
-        record(transcript, "/v1/alerts/active.json")
-        assertText("api-serving", ApiTranscripts.SERVING, transcript.toString().trimEnd())
     }
 
     @Test
     fun badRequestsAndUnknownPaths() = testApplication {
         val server = server()
-        source.alerts = listOf(alert(1, Fixtures.brovary))
+        source.alerts = listOf(alert(1, Fixtures.BROVARY))
         server.poller.pollOnce()
         val transcript = StringBuilder()
         listOf(
@@ -190,8 +233,10 @@ class ApiContractGoldenTest {
 
     @Test
     fun clientKeysAndRateLimits() = testApplication {
-        val server = server(ClientApiConfig(keys = setOf("app-key"), requestsPerMinute = 10_000, historyRequestsPerMinute = 1))
-        source.alerts = listOf(alert(1, Fixtures.brovary))
+        val server = server(
+            ClientApiConfig(keys = setOf("app-key"), requestsPerMinute = 10_000, historyRequestsPerMinute = 1),
+        )
+        source.alerts = listOf(alert(1, Fixtures.BROVARY))
         server.poller.pollOnce()
         val transcript = StringBuilder()
         record(transcript, "/v1/alerts/active.json")
@@ -199,7 +244,11 @@ class ApiContractGoldenTest {
         record(transcript, "/v1/alerts/active.json", mapOf(HttpHeaders.Authorization to "Bearer wrong"))
         record(transcript, "/v1/drones/tracks.json")
         record(transcript, "/v1/nope")
-        record(transcript, "/v1/iot/active_air_raid_alerts/14.json", mapOf(HttpHeaders.Authorization to "Bearer app-key"))
+        record(
+            transcript,
+            "/v1/iot/active_air_raid_alerts/14.json",
+            mapOf(HttpHeaders.Authorization to "Bearer app-key"),
+        )
         record(transcript, "/v1/regions/14/alerts/day_ago.json?token=app-key")
         record(transcript, "/v1/regions/14/alerts/day_ago.json?token=app-key")
         record(transcript, "/health")

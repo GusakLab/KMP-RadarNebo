@@ -10,13 +10,13 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 
 /** How a drone glyph is rendered: attack drones solid, decoys hollow. */
-enum class DroneGlyphStyle { Attack, Decoy }
+internal enum class DroneGlyphStyle { Attack, Decoy }
 
 /**
  * Top-down silhouette of a Shahed-type delta-wing drone, nose pointing along [headingDeg]
  * (clockwise from north). [size] is the distance from the centre to the nose.
  */
-fun DrawScope.drawDroneGlyph(
+internal fun DrawScope.drawDroneGlyph(
     center: Offset,
     size: Float,
     headingDeg: Float,
@@ -25,22 +25,7 @@ fun DrawScope.drawDroneGlyph(
     style: DroneGlyphStyle = DroneGlyphStyle.Attack,
 ) {
     fun p(x: Float, y: Float) = Offset(center.x + x * size, center.y + y * size)
-    // Delta wing with a rounded nose, swept leading edges and a straight trailing edge.
-    val wing = Path().apply {
-        moveTo(p(0f, -1f).x, p(0f, -1f).y)
-        cubicTo(p(0.10f, -1f).x, p(0.10f, -1f).y, p(0.16f, -0.82f).x, p(0.16f, -0.82f).y, p(0.20f, -0.62f).x, p(0.20f, -0.62f).y)
-        lineTo(p(0.98f, 0.52f).x, p(0.98f, 0.52f).y)
-        lineTo(p(0.98f, 0.66f).x, p(0.98f, 0.66f).y)
-        lineTo(p(0.20f, 0.66f).x, p(0.20f, 0.66f).y)
-        lineTo(p(0.12f, 0.80f).x, p(0.12f, 0.80f).y)
-        lineTo(p(-0.12f, 0.80f).x, p(-0.12f, 0.80f).y)
-        lineTo(p(-0.20f, 0.66f).x, p(-0.20f, 0.66f).y)
-        lineTo(p(-0.98f, 0.66f).x, p(-0.98f, 0.66f).y)
-        lineTo(p(-0.98f, 0.52f).x, p(-0.98f, 0.52f).y)
-        lineTo(p(-0.20f, -0.62f).x, p(-0.20f, -0.62f).y)
-        cubicTo(p(-0.16f, -0.82f).x, p(-0.16f, -0.82f).y, p(-0.10f, -1f).x, p(-0.10f, -1f).y, p(0f, -1f).x, p(0f, -1f).y)
-        close()
-    }
+    val wing = droneWing(::p)
     val line = (size * 0.12f).coerceAtLeast(1f)
     rotate(headingDeg, pivot = center) {
         when (style) {
@@ -59,5 +44,33 @@ fun DrawScope.drawDroneGlyph(
         drawLine(color, p(0.98f, 0.30f), p(0.98f, 0.74f), line * 1.4f, cap = StrokeCap.Round)
         drawLine(color, p(-0.98f, 0.30f), p(-0.98f, 0.74f), line * 1.4f, cap = StrokeCap.Round)
         drawLine(color, p(-0.30f, 0.92f), p(0.30f, 0.92f), line * 1.2f, cap = StrokeCap.Round)
+    }
+}
+
+/** The drone's outline, through [p], which maps unit glyph coordinates (nose at (0, -1)) to the screen. */
+private fun droneWing(p: (Float, Float) -> Offset): Path {
+    // Delta wing with a rounded nose, swept leading edges and a straight trailing edge.
+    return Path().apply {
+        moveTo(p(0f, -1f).x, p(0f, -1f).y)
+        cubicTo(
+            p(0.10f, -1f).x, p(0.10f, -1f).y,
+            p(0.16f, -0.82f).x, p(0.16f, -0.82f).y,
+            p(0.20f, -0.62f).x, p(0.20f, -0.62f).y,
+        )
+        lineTo(p(0.98f, 0.52f).x, p(0.98f, 0.52f).y)
+        lineTo(p(0.98f, 0.66f).x, p(0.98f, 0.66f).y)
+        lineTo(p(0.20f, 0.66f).x, p(0.20f, 0.66f).y)
+        lineTo(p(0.12f, 0.80f).x, p(0.12f, 0.80f).y)
+        lineTo(p(-0.12f, 0.80f).x, p(-0.12f, 0.80f).y)
+        lineTo(p(-0.20f, 0.66f).x, p(-0.20f, 0.66f).y)
+        lineTo(p(-0.98f, 0.66f).x, p(-0.98f, 0.66f).y)
+        lineTo(p(-0.98f, 0.52f).x, p(-0.98f, 0.52f).y)
+        lineTo(p(-0.20f, -0.62f).x, p(-0.20f, -0.62f).y)
+        cubicTo(
+            p(-0.16f, -0.82f).x, p(-0.16f, -0.82f).y,
+            p(-0.10f, -1f).x, p(-0.10f, -1f).y,
+            p(0f, -1f).x, p(0f, -1f).y,
+        )
+        close()
     }
 }

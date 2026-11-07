@@ -11,11 +11,7 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.RoutingContext
 import io.ktor.server.routing.get
 import kotlinx.serialization.builtins.serializer
-import java.time.ZoneOffset
-import kotlin.time.Duration.Companion.days
 import kotlin.time.Instant
-import kotlin.time.toJavaInstant
-import kotlin.time.toKotlinInstant
 
 /**
  * The alerts.in.ua API (https://devs.alerts.in.ua), served from the server's own data: the same paths,
@@ -23,7 +19,10 @@ import kotlin.time.toKotlinInstant
  * request gets a full answer from the latest data.
  */
 internal fun Route.alertsInUaRoutes(situation: SituationService, clock: () -> Long) {
-    /** Active alerts: `{"alerts": [...]}`, alerts.in.ua's body as it sent it, or the simulation's alerts in its format. */
+    /**
+     * Active alerts: `{"alerts": [...]}`, alerts.in.ua's body as it sent it, or the simulation's alerts in its
+     * format.
+     */
     boardGet("/v1/alerts/active.json", situation, clock) { board ->
         val body = situation.rawAlerts ?: AlertsInUaContract.encode(board.alerts, board.changedAt)
         call.respondText(body, ContentType.Application.Json)
@@ -44,7 +43,8 @@ internal fun Route.alertsInUaRoutes(situation: SituationService, clock: () -> Lo
 
         /** The status of one oblast, raion, hromada or city: `"A"`, `"P"` or `"N"` (v2: `"R"`, `"Y"`, `"P"`, `"N"`). */
         get("/$v/iot/active_air_raid_alerts/{file}") {
-            // The file name and UID are checked before the data, so a bad request is a 404 or 400 even while warming up.
+            // The file name and UID are checked before the data, so a bad request is a 404 or 400 even while
+            // warming up.
             val uid = call.parameters["file"].orEmpty().jsonFileStem()
             if (uid.toIntOrNull() == null) badRequest("Location UID must be a number")
             respondFromBoard(situation, clock) { board ->
@@ -91,27 +91,11 @@ internal fun Route.alertHistoryRoutes(situation: SituationService, clock: () -> 
     }
 }
 
-internal enum class HistoryPeriod(val apiValue: String) {
-    MonthAgo("month_ago"),
-    WeekAgo("week_ago"),
-    DayAgo("day_ago");
-
-    fun since(now: Instant): Instant = when (this) {
-        MonthAgo -> now.toJavaInstant().atZone(ZoneOffset.UTC).minusMonths(1).toInstant().toKotlinInstant()
-        WeekAgo -> now - 7.days
-        DayAgo -> now - 1.days
-    }
-
-    companion object {
-        fun from(value: String): HistoryPeriod? = entries.firstOrNull { it.apiValue == value }
-    }
-}
-
 private const val HISTORY_LIMIT = 1_000
 
 /** The file name without `.json`; answers 404 when it doesn't end in `.json`. */
 private fun String.jsonFileStem(): String = if (endsWith(".json")) removeSuffix(".json") else notFound("Not found")
 
 /** The IoT endpoints answer with a bare JSON string. */
-private suspend fun ApplicationCall.respondJsonString(value: String) =
+private suspend fun ApplicationCall.respondJsonString(value: String): Unit =
     respondText(AlertsInUaContract.json.encodeToString(String.serializer(), value), ContentType.Application.Json)

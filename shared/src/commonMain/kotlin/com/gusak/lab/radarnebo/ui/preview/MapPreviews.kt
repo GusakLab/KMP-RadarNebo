@@ -25,7 +25,6 @@ import com.gusak.lab.radarnebo.ui.map.UkraineMap
 import com.gusak.lab.radarnebo.ui.preview.PreviewData.Targets
 import com.gusak.lab.radarnebo.ui.preview.PreviewData.camera
 import com.gusak.lab.radarnebo.ui.preview.PreviewData.city
-import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
 
 // Previews of the map in every mode and state, built from PreviewData.scenario() so each one always
@@ -39,17 +38,22 @@ private fun Screen(
     start: MapScreenStart = MapScreenStart(),
     map: Boolean = false,
 ) {
-    val tiles = remember(map) { if (map) MapTiles(client = null, blocking = true) else null }
+    val tiles = remember(map) { if (map) MapTiles(client = null) else null }
     RadarTheme(theme) {
         CompositionLocalProvider(LocalMapTiles provides tiles) {
-            MapScreen(state, onModeChange = {}, onAddFavorite = { _, _ -> }, start = start)
+            MapScreen(state, onModeChange = {}, onAddFavorite = { _, _ -> }, start = start, clock = PreviewData::nowMs)
         }
     }
 }
 
 /** The map alone, without the screen's buttons and cards: for close-ups of what it draws. */
 @Composable
-private fun MapOnly(state: UiState, camera: MapCamera, selectedTrackId: String? = null, pendingFavorite: GeoPoint? = null) {
+private fun MapOnly(
+    state: UiState,
+    camera: MapCamera,
+    selectedTrackId: String? = null,
+    pendingFavorite: GeoPoint? = null,
+) {
     RadarTheme(state.settings.themeMode) {
         UkraineMap(
             camera = camera,
@@ -65,6 +69,7 @@ private fun MapOnly(state: UiState, camera: MapCamera, selectedTrackId: String? 
             tracks = state.tracks,
             clockOffsetMs = state.clockOffsetMs,
             pendingFavorite = pendingFavorite,
+            clock = PreviewData::nowMs,
         )
     }
 }
@@ -96,7 +101,8 @@ private fun MapQuietPreview() = Screen(PreviewData.quiet())
 
 @Preview(name = "Map · connection error", widthDp = 420, heightDp = 860)
 @Composable
-private fun MapErrorPreview() = Screen(PreviewData.quiet().copy(error = "Upstream rate limit hit (429)", lastUpdated = null))
+private fun MapErrorPreview() =
+    Screen(PreviewData.quiet().copy(error = "Upstream rate limit hit (429)", lastUpdated = null))
 
 @Preview(name = "Map · server unreachable, reconnecting", widthDp = 420, heightDp = 860)
 @Composable
@@ -104,13 +110,14 @@ private fun MapReconnectingPreview() = Screen(
     PreviewData.quiet().copy(
         error = "Failed to connect to localhost/[0:0:0:0:0:0:0:1]:8080",
         lastUpdated = null,
-        nextRetryAt = Clock.System.now() + 4.seconds,
+        nextRetryAt = PreviewData.NOW + 4.seconds,
     ),
 )
 
 @Preview(name = "Map · every threat type", widthDp = 420, heightDp = 860)
 @Composable
-private fun MapEveryThreatTypePreview() = Screen(PreviewData.scenario(), start = MapScreenStart(camera = camera(GeoPoint(49.4, 32.6), 1.9f)))
+private fun MapEveryThreatTypePreview() =
+    Screen(PreviewData.scenario(), start = MapScreenStart(camera = camera(GeoPoint(49.4, 32.6), 1.9f)))
 
 @Preview(name = "Map · satellite at night · overview", widthDp = 420, heightDp = 860)
 @Composable
@@ -119,10 +126,15 @@ private fun MapNightSatellitePreview() = Screen(nightSatellite(PreviewData.scena
 @Preview(name = "Map · satellite at night · Kyiv", widthDp = 420, heightDp = 860)
 @Composable
 private fun MapNightSatelliteKyivPreview() =
-    Screen(nightSatellite(PreviewData.quiet(favorites = emptyList())), start = MapScreenStart(camera = camera(city("Kyiv"), 6f)), map = true)
+    Screen(
+        nightSatellite(PreviewData.quiet(favorites = emptyList())),
+        start = MapScreenStart(camera = camera(city("Kyiv"), 6f)),
+        map = true,
+    )
 
 /** The dark theme's satellite view: NASA's night imagery, the only satellite tiles bundled. */
-private fun nightSatellite(state: UiState) = state.copy(settings = state.settings.copy(mapBackground = MapBackground.Satellite))
+private fun nightSatellite(state: UiState) =
+    state.copy(settings = state.settings.copy(mapBackground = MapBackground.Satellite))
 
 // --- Cities -------------------------------------------------------------------------------------------
 
@@ -132,17 +144,24 @@ private fun CitiesDotsPreview() = Screen(PreviewData.quiet(favorites = emptyList
 
 @Preview(name = "Cities · Kyiv, names", widthDp = 420, heightDp = 860)
 @Composable
-private fun CitiesKyivPreview() = Screen(PreviewData.quiet(favorites = emptyList()), start = MapScreenStart(camera = camera(city("Kyiv"), 5f)))
+private fun CitiesKyivPreview() =
+    Screen(PreviewData.quiet(favorites = emptyList()), start = MapScreenStart(camera = camera(city("Kyiv"), 5f)))
 
 @Preview(name = "Cities · Donbas, dense names", widthDp = 420, heightDp = 860)
 @Composable
 private fun CitiesDonbasPreview() =
-    Screen(PreviewData.quiet(favorites = emptyList()), start = MapScreenStart(camera = camera(GeoPoint(48.3, 38.2), 4.5f)))
+    Screen(
+        PreviewData.quiet(favorites = emptyList()),
+        start = MapScreenStart(camera = camera(GeoPoint(48.3, 38.2), 4.5f)),
+    )
 
 @Preview(name = "Cities · Lviv, names · light", widthDp = 420, heightDp = 860)
 @Composable
 private fun CitiesLvivLightPreview() =
-    Screen(PreviewData.quiet(ThemeMode.Light, favorites = emptyList()), start = MapScreenStart(camera = camera(city("Lviv"), 4f)))
+    Screen(
+        PreviewData.quiet(ThemeMode.Light, favorites = emptyList()),
+        start = MapScreenStart(camera = camera(city("Lviv"), 4f)),
+    )
 
 @Preview(name = "Cities · names clear of a favorite", widthDp = 420, heightDp = 860)
 @Composable
@@ -163,23 +182,28 @@ private fun TargetsEveryStateLightPreview() = MapOnly(PreviewData.scenario(Theme
 
 @Preview(name = "Targets on map · Shahed selected, others dimmed", widthDp = 420, heightDp = 860)
 @Composable
-private fun TargetSelectedOnMapPreview() = MapOnly(PreviewData.scenario(), targetsArea, selectedTrackId = Targets.SHAHED)
+private fun TargetSelectedOnMapPreview() =
+    MapOnly(PreviewData.scenario(), targetsArea, selectedTrackId = Targets.SHAHED)
 
 @Preview(name = "Targets on map · cruise missile selected", widthDp = 420, heightDp = 860)
 @Composable
-private fun MissileSelectedOnMapPreview() = MapOnly(PreviewData.scenario(), camera(GeoPoint(50.3, 29.6), 4f), selectedTrackId = Targets.MISSILE)
+private fun MissileSelectedOnMapPreview() =
+    MapOnly(PreviewData.scenario(), camera(GeoPoint(50.3, 29.6), 4f), selectedTrackId = Targets.MISSILE)
 
 @Preview(name = "Map · Shahed selected", widthDp = 420, heightDp = 860)
 @Composable
-private fun MapShahedSelectedPreview() = Screen(PreviewData.scenario(), start = MapScreenStart(selectedTrackId = Targets.SHAHED))
+private fun MapShahedSelectedPreview() =
+    Screen(PreviewData.scenario(), start = MapScreenStart(selectedTrackId = Targets.SHAHED))
 
 @Preview(name = "Map · Shahed selected · tablet", widthDp = 1100, heightDp = 760)
 @Composable
-private fun MapShahedSelectedTabletPreview() = Screen(PreviewData.scenario(), start = MapScreenStart(selectedTrackId = Targets.SHAHED))
+private fun MapShahedSelectedTabletPreview() =
+    Screen(PreviewData.scenario(), start = MapScreenStart(selectedTrackId = Targets.SHAHED))
 
 @Preview(name = "Map · cruise missile selected · tablet", widthDp = 1100, heightDp = 760)
 @Composable
-private fun MapMissileSelectedTabletPreview() = Screen(PreviewData.scenario(), start = MapScreenStart(selectedTrackId = Targets.MISSILE))
+private fun MapMissileSelectedTabletPreview() =
+    Screen(PreviewData.scenario(), start = MapScreenStart(selectedTrackId = Targets.MISSILE))
 
 @Preview(name = "Map · targets list open", widthDp = 420, heightDp = 860)
 @Composable
@@ -217,11 +241,13 @@ private fun FavoriteClearCardPreview() {
 
 @Preview(name = "Map · long-press, add favorite", widthDp = 420, heightDp = 860)
 @Composable
-private fun AddFavoritePinPreview() = Screen(PreviewData.scenario(), start = MapScreenStart(pendingFavorite = GeoPoint(48.86, 30.36)))
+private fun AddFavoritePinPreview() =
+    Screen(PreviewData.scenario(), start = MapScreenStart(pendingFavorite = GeoPoint(48.86, 30.36)))
 
 @Preview(name = "Map · warning radius control", widthDp = 420, heightDp = 860)
 @Composable
-private fun RadiusControlPreview() = Screen(PreviewData.scenario(radiusKm = 100), start = MapScreenStart(radiusOpen = true))
+private fun RadiusControlPreview() =
+    Screen(PreviewData.scenario(radiusKm = 100), start = MapScreenStart(radiusOpen = true))
 
 @Preview(name = "Map · pending favorite pin, close-up", widthDp = 420, heightDp = 600)
 @Composable
@@ -244,7 +270,8 @@ private fun CinematicPatrolPreview() = Screen(PreviewData.quiet(mapMode = MapMod
 
 @Preview(name = "Cinematic · overview, nothing to show", widthDp = 420, heightDp = 860)
 @Composable
-private fun CinematicOverviewPreview() = Screen(PreviewData.quiet(mapMode = MapMode.Cinematic, favorites = emptyList()))
+private fun CinematicOverviewPreview() =
+    Screen(PreviewData.quiet(mapMode = MapMode.Cinematic, favorites = emptyList()))
 
 @Preview(name = "Cinematic · light theme setting", widthDp = 420, heightDp = 860)
 @Composable
@@ -256,7 +283,8 @@ private fun CinematicMapThreatPreview() = Screen(PreviewData.scenario(mapMode = 
 
 @Preview(name = "Cinematic · street map · threat near a favorite · tablet", widthDp = 1100, heightDp = 760)
 @Composable
-private fun CinematicMapThreatTabletPreview() = Screen(PreviewData.scenario(mapMode = MapMode.Cinematic), map = true)
+private fun CinematicMapThreatTabletPreview() =
+    Screen(PreviewData.scenario(mapMode = MapMode.Cinematic), map = true)
 
 @Preview(name = "Cinematic · street map · quiet, overview", widthDp = 420, heightDp = 860)
 @Composable

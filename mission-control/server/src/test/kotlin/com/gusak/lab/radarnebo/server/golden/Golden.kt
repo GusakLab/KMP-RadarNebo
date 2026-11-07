@@ -12,18 +12,23 @@ import kotlin.test.fail
  * and writes the canonical text under `build/golden-actual/`, to diff against the text of the old code.
  */
 internal object Golden {
+    /** One golden check: the canonical text [canonical] must hash to [expected]; [name] names its dump file. */
+    data class Check(val name: String, val expected: String, val canonical: String)
+
     fun sha256(text: String): String =
         MessageDigest.getInstance("SHA-256").digest(text.toByteArray()).joinToString("") { "%02x".format(it) }
 
-    fun assertDigest(name: String, expected: String, canonical: String) = assertDigests(listOf(Triple(name, expected, canonical)))
+    fun assertDigest(name: String, expected: String, canonical: String) =
+        assertDigests(listOf(Check(name, expected, canonical)))
 
     /** Checks every `(name, expected digest, canonical text)` before failing, so one run reports all changes. */
-    fun assertDigests(goldens: List<Triple<String, String, String>>) {
+    fun assertDigests(goldens: List<Check>) {
         val changed = goldens.mapNotNull { (name, expected, canonical) ->
             val actual = sha256(canonical)
             if (actual == expected) return@mapNotNull null
             val dump = File("build/golden-actual/$name.txt").apply { parentFile.mkdirs(); writeText(canonical) }
-            "'$name': expected $expected, got $actual (${canonical.lines().size} lines, written to ${dump.absolutePath})"
+            "'$name': expected $expected, got $actual " +
+                "(${canonical.lines().size} lines, written to ${dump.absolutePath})"
         }
         if (changed.isNotEmpty()) fail("Golden output changed:\n" + changed.joinToString("\n"))
     }

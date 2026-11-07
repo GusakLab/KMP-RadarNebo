@@ -47,7 +47,7 @@ import androidx.compose.ui.unit.sp
  * button dismisses it. [content] fills the panel below its header and scrolls itself.
  */
 @Composable
-fun GlassDialog(
+internal fun GlassDialog(
     visible: Boolean,
     title: String,
     onDismiss: () -> Unit,
@@ -80,32 +80,52 @@ fun GlassDialog(
                 .padding(start = 12.dp, top = 12.dp, end = 12.dp, bottom = bottomInset + 12.dp),
             contentAlignment = Alignment.Center,
         ) {
-            val shape = RoundedCornerShape(28.dp)
-            Column(
-                Modifier
-                    .widthIn(max = 560.dp)
-                    .fillMaxWidth()
-                    .liquidGlass(backdrop, shape, blurRadius = 28.dp, magnification = 1.02f, tint = MaterialTheme.colorScheme.surface.copy(alpha = GlassDialogTint))
-                    .clip(shape)
-                    // Taps inside the panel must not reach the scrim.
-                    .clickable(remember { MutableInteractionSource() }, indication = null, onClick = {}),
+            GlassPanel(title, subtitle, onDismiss, backdrop, content)
+        }
+    }
+}
+
+/** The dialog's glass panel: a header with the close button over [content]. */
+@Composable
+private fun GlassPanel(
+    title: String,
+    subtitle: String?,
+    onDismiss: () -> Unit,
+    backdrop: GlassBackdrop,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val shape = RoundedCornerShape(28.dp)
+    val tint = MaterialTheme.colorScheme.surface.copy(alpha = GlassDialogTint)
+    Column(
+        Modifier
+            .widthIn(max = 560.dp)
+            .fillMaxWidth()
+            .liquidGlass(backdrop, shape, blurRadius = 28.dp, magnification = 1.02f, tint = tint)
+            .clip(shape)
+            // Taps inside the panel must not reach the scrim.
+            .clickable(remember { MutableInteractionSource() }, indication = null, onClick = {}),
+    ) {
+        // The panel is no Surface, so text in it would otherwise default to black, unreadable in dark themes.
+        CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
+            Row(
+                Modifier.fillMaxWidth().padding(start = 24.dp, top = 20.dp, end = 12.dp, bottom = 12.dp),
+                verticalAlignment = Alignment.Top,
             ) {
-                // The panel is no Surface, so text in it would otherwise default to black, unreadable in dark themes.
-                CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
-                    Row(Modifier.fillMaxWidth().padding(start = 24.dp, top = 20.dp, end = 12.dp, bottom = 12.dp), verticalAlignment = Alignment.Top) {
-                        Column(Modifier.weight(1f).padding(top = 4.dp)) {
-                            Text(title, style = MaterialTheme.typography.headlineSmall)
-                            if (subtitle != null) {
-                                Spacer(Modifier.height(4.dp))
-                                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                        }
-                        CloseButton(onDismiss)
+                Column(Modifier.weight(1f).padding(top = 4.dp)) {
+                    Text(title, style = MaterialTheme.typography.headlineSmall)
+                    if (subtitle != null) {
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
-                    HorizontalDivider(color = colors.glassRimShade)
-                    Column(Modifier.weight(1f, fill = false), verticalArrangement = Arrangement.Top, content = content)
                 }
+                CloseButton(onDismiss)
             }
+            HorizontalDivider(color = radarColors.glassRimShade)
+            Column(Modifier.weight(1f, fill = false), verticalArrangement = Arrangement.Top, content = content)
         }
     }
 }

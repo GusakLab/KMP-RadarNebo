@@ -5,7 +5,7 @@ import java.io.File
 import java.util.Properties
 
 /** Desktop storage: a properties file in the user's home directory (`~/.radarnebo/settings.properties`). */
-class FileStorage(
+internal class FileStorage(
     private val file: File = File(System.getProperty("user.home"), ".radarnebo/settings.properties"),
 ) : KeyValueStorage {
     private val props = Properties().apply {

@@ -2,8 +2,6 @@ package com.gusak.lab.radarnebo.geo
 
 // Generated from OpenStreetMap: every settlement with city status (place=city|town, name:prefix=місто),
 // with its OSM population. Sorted by population, largest first.
-class MapCity(val name: String, val lat: Float, val lon: Float, val population: Int)
-
 object UkraineCities {
     val all: List<MapCity> = listOf(
         MapCity("Kyiv", 50.4500f, 30.5241f, 2952301),

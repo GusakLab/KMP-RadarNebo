@@ -21,6 +21,7 @@ import org.jetbrains.skia.Surface
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 @OptIn(ExperimentalComposeUiApi::class)
 class CinematicToggleTest {
@@ -38,7 +39,8 @@ class CinematicToggleTest {
         val src = Rect.makeXYWH(button.x - crop / 2, button.y - crop / 2, crop.toFloat(), crop.toFloat())
         surface.canvas.drawImageRect(image, src, Rect.makeWH(crop * 2f, crop * 2f))
         val out = File(System.getProperty("snapshot.dir") ?: "build/snapshots").apply { mkdirs() }
-        File(out, name).writeBytes(surface.makeImageSnapshot().encodeToData(EncodedImageFormat.PNG)!!.bytes)
+        val png = assertNotNull(surface.makeImageSnapshot().encodeToData(EncodedImageFormat.PNG))
+        File(out, name).writeBytes(png.bytes)
     }
 
     @Test

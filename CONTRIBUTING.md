@@ -7,7 +7,7 @@ How we develop RadarNebo. These policies apply to everyone, people and AI agents
 | How code is written and reviewed | [CODE_STYLE.md](CODE_STYLE.md) |
 | Branches, commits, pull requests, reviews, CI, releases | This file |
 | How agents work in this repo | [CLAUDE.md](CLAUDE.md) |
-| Server deploy, Linux release, Android release | [docs/deployment.md](docs/deployment.md), [docs/linux-release.md](docs/linux-release.md), [docs/android-release-build.md](docs/android-release-build.md), [docs/mission-control-android-release.md](docs/mission-control-android-release.md) |
+| Server deploy, Linux release, Android release | [docs/deployment.md](docs/deployment.md), [docs/linux-release.md](docs/linux-release.md), [docs/android-release-build.md](docs/android-release-build.md) |
 
 ## Ground Rules
 
@@ -208,8 +208,7 @@ CI runs on every pull request and on every push to `main`:
   holds the deploy secrets. Image scans (Trivy) must pass. Details: [docs/deployment.md](docs/deployment.md).
 - **Linux desktop:** a `vMAJOR.MINOR.PATCH` tag publishes the AppImage, Flatpak and Snap as a GitHub release. Details:
   [docs/linux-release.md](docs/linux-release.md).
-- **Android:** [docs/android-release-build.md](docs/android-release-build.md) and
-  [docs/mission-control-android-release.md](docs/mission-control-android-release.md).
+- **Android:** [docs/android-release-build.md](docs/android-release-build.md).
 - Versions follow SemVer. A breaking change to the `/v1` contract is not allowed. Add a new versioned path instead.
 
 ## Security

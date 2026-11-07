@@ -1,3 +1,0 @@
-Is your RadarNebo server healthy?|Status, data source and situation at a glance
-Every upstream request in sight|Budget, failures and polling, refreshed every 5 s
-Watch any RadarNebo server|The public one or your own

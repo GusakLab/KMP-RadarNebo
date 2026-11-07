@@ -49,8 +49,6 @@ From a terminal:
 - Android app: `./gradlew :app:android:assembleDebug`
 - Android release build: `./gradlew :app:android:assembleRelease` (APK) or `bundleRelease` (AAB). Signing needs a
   keystore and `keystore.properties`; see [Android release build](./docs/android-release-build.md).
-- MissionControl-Nebo, the Android server monitor (not on Google Play): `./gradlew :mission-control:android:bundleRelease`; signing and the
-  details are in [MissionControl-Nebo release](./docs/mission-control-android-release.md).
 - Desktop app: `./gradlew :app:desktop:run`
 - Desktop app for Linux as an AppImage, Flatpak and Snap, published as a GitHub release on a `v1.2.3` tag:
   [Linux release](./docs/linux-release.md).

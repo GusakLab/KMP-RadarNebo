@@ -109,7 +109,7 @@ Module and package structure is design. It tells a reader which concept they are
 | `shared` | Compose UI, view models, repositories, use cases and Koin wiring for the client apps. | `core` |
 | `mission-control:server` | The Ktor server. | `core` |
 | `mission-control:ui` | The desktop server console. | `mission-control:server`, `shared` |
-| `app:*`, `mission-control:android` | Platform entry points: thin. | `shared` or nothing |
+| `app:*` | Platform entry points: thin. | `shared` or nothing |
 
 Keep `core` free of UI, Ktor server, Exposed and platform code. Both the server and the apps depend on it, so its
 public API is the widest promise in the repo.

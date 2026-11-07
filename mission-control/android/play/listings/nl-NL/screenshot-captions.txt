@@ -1,3 +1,0 @@
-Is je RadarNebo-server gezond?|Status, gegevensbron en situatie in één oogopslag
-Elk upstream-verzoek in beeld|Budget, fouten en polling, elke 5 s ververst
-Volg elke RadarNebo-server|De openbare of je eigen server

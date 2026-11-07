@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- Plain HTTP is allowed: a server console on the LAN listens on http://<address>:<port>, and /health is public
-     and carries no credentials. -->
-<network-security-config>
-    <base-config cleartextTrafficPermitted="true" />
-</network-security-config>

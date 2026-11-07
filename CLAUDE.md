@@ -1,7 +1,7 @@
 # RadarNebo: Agent Instructions
 
 RadarNebo maps air alerts and tracks drones and missiles over Ukraine. It is a Kotlin Multiplatform repo: Compose
-Multiplatform clients (Android, iOS, desktop), a Ktor server with a desktop console, and an Android server monitor.
+Multiplatform clients (Android, iOS, desktop) and a Ktor server with a desktop console.
 
 These instructions bind every agent session in this repository. [AGENTS.md](AGENTS.md) points other agents here.
 

@@ -79,6 +79,21 @@ class AppViewModel(
     }
 
     /**
+     * Stops polling while the app is in the background. The system cuts a background app's network, so a poll
+     * there would only fail and leave an error on screen when the app comes back.
+     */
+    fun pause() {
+        pollJob?.cancel()
+        pollJob = null
+        _state.update { it.copy(loading = false, nextRetryAt = null) }
+    }
+
+    /** Polls again, at once, when the app returns to the foreground; does nothing while polling already runs. */
+    fun resume() {
+        if (pollJob?.isActive != true) startPolling()
+    }
+
+    /**
      * Returns how long to wait before the next poll: the poll interval, or after a failure the reconnect delay,
      * so a server started after the app is picked up within seconds. Rate-limit and auth errors back off instead.
      */

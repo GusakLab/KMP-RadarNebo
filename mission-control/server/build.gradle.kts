@@ -43,11 +43,34 @@ dependencies {
     implementation(libs.exposed.core)
     implementation(libs.exposed.jdbc)
     implementation(libs.sqlite.jdbc)
+    implementation(libs.hikari)
+    // Local container in ServerComponents. Never GlobalContext.startKoin.
+    implementation(libs.koin.core)
+    implementation(libs.koin.logger.slf4j)
+    implementation(libs.ktor.server.metrics.micrometer)
+    implementation(libs.ktor.server.call.logging)
+    implementation(libs.micrometer.registry.prometheus)
+    implementation(libs.opentelemetry.ktor)
+    implementation(libs.opentelemetry.logback.mdc)
+    implementation(libs.opentelemetry.sdk)
+    implementation(libs.opentelemetry.exporter.otlp)
+    implementation(libs.resilience4j.circuitbreaker)
+    implementation(libs.resilience4j.micrometer)
+    implementation(libs.arrow.core)
 
     testImplementation(libs.kotlin.test)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.ktor.server.testHost)
     testImplementation(libs.ktor.client.mock)
+    testImplementation(libs.kotest.runner.junit5)
+    testImplementation(libs.kotest.assertions.core)
+    testImplementation(libs.mockk)
+    // kotlin.test classes are JUnit 4. Vintage keeps them on the JUnit Platform next to Kotest.
+    testImplementation(libs.junit.vintage.engine)
+}
+
+tasks.named<org.gradle.api.tasks.testing.Test>("test") {
+    useJUnitPlatform()
 }
 
 // Local secrets for `./gradlew :mission-control:server:run`: KEY=value lines from mission-control/server/.env

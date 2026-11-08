@@ -1,5 +1,7 @@
 package com.gusak.lab.radarnebo.server.infrastructure.persistence
 
+import com.gusak.lab.radarnebo.server.config.ObservabilityConfig
+import com.zaxxer.hikari.HikariDataSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.v1.core.DatabaseConfig
@@ -11,24 +13,39 @@ import java.io.File
 import java.sql.Connection
 
 /**
- * The archive database, SQLite by default (`jdbc:sqlite:data/radarnebo-archive.db`). The schema is created
- * on first use. Queries run on [Dispatchers.IO], so request and poller coroutines never block on JDBC.
+ * The archive database, SQLite by default (`jdbc:sqlite:data/radarnebo-archive.db`), behind a Hikari pool.
+ * The schema is created on first use. Queries run on [Dispatchers.IO], so request and poller coroutines
+ * never block on JDBC. [close] closes the pool.
  */
-internal class ArchiveDatabase(jdbcUrl: String) {
+internal class ArchiveDatabase(
+    jdbcUrl: String,
+    hikariMaxPool: Int = ObservabilityConfig.DEFAULT_MAX_POOL,
+) : AutoCloseable {
+    private val pool: HikariDataSource
     private val database: Database
 
     init {
-        val isSqlite = jdbcUrl.startsWith(SQLITE_PREFIX)
+        val sqlite = jdbcUrl.startsWith(SQLITE_PREFIX)
         sqliteFile(jdbcUrl)?.absoluteFile?.parentFile?.mkdirs()
+        pool = HikariDataSource().apply {
+            this.jdbcUrl = jdbcUrl
+            // SQLite has one writer. A larger pool would only queue on the file and trip SQLITE_BUSY.
+            maximumPoolSize = if (sqlite) 1 else hikariMaxPool
+            if (sqlite) {
+                driverClassName = "org.sqlite.JDBC"
+                connectionInitSql = "PRAGMA journal_mode=WAL"
+            }
+        }
         database = Database.connect(
-            url = jdbcUrl,
-            setupConnection = { connection ->
-                if (isSqlite) connection.createStatement().use { it.execute("PRAGMA journal_mode=WAL") }
-            },
+            datasource = pool,
             // SQLite supports only serializable transactions.
             databaseConfig = DatabaseConfig { defaultIsolationLevel = Connection.TRANSACTION_SERIALIZABLE },
         )
         transaction(database) { SchemaUtils.create(AlertsTable, TracksTable) }
+    }
+
+    override fun close() {
+        pool.close()
     }
 
     suspend fun <T> query(block: JdbcTransaction.() -> T): T =

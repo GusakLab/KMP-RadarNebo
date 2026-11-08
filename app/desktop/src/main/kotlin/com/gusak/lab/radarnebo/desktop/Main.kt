@@ -32,6 +32,8 @@ import java.awt.EventQueue
 import java.io.File
 
 fun main() {
+    // Taskbar inside applyAppIdentity starts AWT, and sun.java2d.uiScale is ignored after that.
+    applyLinuxDesktopScale()
     val icon = applyAppIdentity("RadarNebo", "radarnebo.png")
     // Compose Desktop jumps a whole step per mouse-wheel notch unless smooth scrolling is enabled;
     // this animates wheel scrolls in lists (Drones, Favorites, Settings). Must be set before any UI.
@@ -55,13 +57,13 @@ fun main() {
     val settings = koin.get<SettingsRepository>()
     val linuxNotices = linuxNoticesOrNull()
     try {
-        showDesktop(icon, traffic, settings, linuxNotices)
+        openWindows(icon, traffic, settings, linuxNotices)
     } finally {
         linuxNotices?.close()
     }
 }
 
-private fun showDesktop(
+private fun openWindows(
     icon: Painter?,
     traffic: TrafficLog?,
     settings: SettingsRepository,

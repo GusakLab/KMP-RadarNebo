@@ -20,6 +20,7 @@ class SituationPoller internal constructor(
     private val situation: SituationService,
     private val retention: Duration,
     private val clock: () -> Long = System::currentTimeMillis,
+    private val upstream: UpstreamGuard = UpstreamGuard.Allowing,
 ) {
     private val log = LoggerFactory.getLogger(SituationPoller::class.java)
     private var backoffMs = 0L
@@ -68,24 +69,41 @@ class SituationPoller internal constructor(
             primed = true
             prime()
         }
-        val result = source.fetch(lastModified)
+        // An open breaker is not an error: wait the normal interval and do not spend an upstream request.
+        if (!upstream.allow()) return source.pollInterval.inWholeMilliseconds
+        val result = fetchGuarded()
         val now = clock()
         status = status.copy(lastAttemptAt = now)
         val intervalMs = source.pollInterval.inWholeMilliseconds
         return when (result) {
             is FetchResult.Fresh -> {
+                upstream.recordSuccess()
                 situation.publish(result.report)
                 lastModified = result.lastModified ?: lastModified
                 succeeded(now)
                 intervalMs
             }
             FetchResult.NotModified -> {
+                upstream.recordSuccess()
                 situation.confirm(now)
                 succeeded(now)
                 intervalMs
             }
-            is FetchResult.Failed -> failed(result)
+            is FetchResult.Failed -> {
+                upstream.recordFailure()
+                failed(result)
+            }
         }
+    }
+
+    private suspend fun fetchGuarded(): FetchResult = try {
+        source.fetch(lastModified)
+    } catch (e: CancellationException) {
+        upstream.release()
+        throw e
+    } catch (e: Exception) {
+        upstream.recordFailure()
+        throw e
     }
 
     private suspend fun prime() {

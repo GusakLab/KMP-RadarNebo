@@ -1,1 +1,1 @@
-Cinematic mode's exit button now stays clearly visible above the letterbox, and opening Favorites or Settings dims the whole screen, including the status and navigation bars.
+Zoom the map with one hand: double-tap, then drag. Connection errors no longer appear after the app returns from the background, and the status strip now expands in place. The app also has a new icon.

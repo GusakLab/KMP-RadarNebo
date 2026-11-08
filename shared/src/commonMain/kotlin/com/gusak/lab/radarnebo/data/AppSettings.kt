@@ -1,7 +1,7 @@
 package com.gusak.lab.radarnebo.data
 
 data class AppSettings(
-    /** The RadarNebo server the app gets everything from. */
+    /** The RadarNebo server the app gets everything from, set by the build ([ServerDefaults]). */
     val serverUrl: String = RadarNeboApi.DEFAULT_SERVER_URL,
     /** Only needed when the server requires client keys. */
     val accessKey: String = "",
@@ -10,7 +10,7 @@ data class AppSettings(
     val colorPalette: ColorPalette = ColorPalette.Radar,
     val maxMapMarkers: Int = DEFAULT_MAX_MARKERS,
     val proximityRadiusKm: Int = 50,
-    val dronesOnly: Boolean = true,
+    val dronesOnly: Boolean = false,
     val pollSeconds: Int = 30,
     val targetFilter: TargetFilter = TargetFilter(),
     /** Targets last seen longer ago than this are hidden; active ones always show. */

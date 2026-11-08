@@ -42,8 +42,8 @@ jobs:
           distribution: temurin
           java-version: "21"
       - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
-      # No client.properties here: the packages start pointed at the public server with no key, and users enter
-      # the server's key in Settings.
+      # No client.properties here: the packages use the public server with no key, which users cannot change.
+      # See docs/linux-release.md.
       - name: Test and build the distributable
         env:
           VERSION: ${{ steps.version.outputs.version }}

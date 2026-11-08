@@ -1,5 +1,5 @@
 # Copy to client.properties (gitignored) and fill in. The build bakes these values into the client apps
-# (Android, desktop, iOS) as their default server; a server address or key set in the app's Settings wins.
+# (Android, desktop, iOS) as their server; the apps have no setting to change it.
 # Rebuild the app after changing this file.
 
 # The RadarNebo server the apps connect to. Leave blank for https://radar-nebo.worxbend.com.

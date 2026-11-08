@@ -3,10 +3,13 @@
 How to set up signing for the Android app (`:app:android`) and build a release APK or App Bundle.
 
 > **Google Play:** the app ships on the listing created for MissionControl-Nebo, so its application id is
-> `com.gusak.lab.radarnebo.missioncontrol` and release builds are signed with that listing's upload key, read from
-> `~/Keys/MissionControl-Nebo/keystore.properties` or the folder in `-PmissionControl.keystoreDir` /
-> `MISSIONCONTROL_KEYSTORE_DIR`. The `keystore.properties` at the repo root described below is no longer used by the
-> build. Store texts and graphics are in `app/android/play/`.
+> `com.gusak.lab.radarnebo.missioncontrol` and release builds are signed with that listing's upload key. The key and
+> its `keystore.properties` are kept on Google Drive, in
+> `~/Library/CloudStorage/GoogleDrive-<account>/My Drive/Projects/Android/MissionControl-Nebo/`. Point the build at that
+> folder with `missionControl.keystoreDir=<folder>` in `~/.gradle/gradle.properties`, `-PmissionControl.keystoreDir` or
+> `MISSIONCONTROL_KEYSTORE_DIR`. Without one of those the build looks in `~/Keys/MissionControl-Nebo/`. The
+> `keystore.properties` at the repo root described below is no longer used by the build. Store texts and graphics are
+> in `app/android/play/`.
 
 ## Where the files go
 

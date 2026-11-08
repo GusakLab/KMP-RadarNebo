@@ -1,18 +1,23 @@
 package com.gusak.lab.radarnebo.desktop
 
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.awt.ComposeWindow
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.gusak.lab.radarnebo.App
 import com.gusak.lab.radarnebo.data.SettingsRepository
 import com.gusak.lab.radarnebo.debug.TrafficLog
+import com.gusak.lab.radarnebo.ui.AppEvents
 import com.gusak.lab.radarnebo.ui.RadarTheme
 import com.gusak.lab.radarnebo.ui.applyAppIdentity
 import com.gusak.lab.radarnebo.ui.debug.RequestInspectorScreen
@@ -23,6 +28,7 @@ import com.gusak.lab.radarnebo.ui.map.LocalPinchZoom
 import com.gusak.lab.radarnebo.ui.rememberWindowPinch
 import io.ktor.client.plugins.logging.Logger
 import org.slf4j.LoggerFactory
+import java.awt.EventQueue
 import java.io.File
 
 fun main() {
@@ -47,16 +53,39 @@ fun main() {
     }.koin
     val traffic = koin.getOrNull<TrafficLog>()
     val settings = koin.get<SettingsRepository>()
+    val linuxNotices = linuxNoticesOrNull()
+    try {
+        showDesktop(icon, traffic, settings, linuxNotices)
+    } finally {
+        linuxNotices?.close()
+    }
+}
+
+private fun showDesktop(
+    icon: Painter?,
+    traffic: TrafficLog?,
+    settings: SettingsRepository,
+    linuxNotices: LinuxNotifications?,
+) {
     application {
         var requestsOpen by remember { mutableStateOf(false) }
+        val windowState = rememberWindowState(width = 1100.dp, height = 820.dp)
         Window(
             onCloseRequest = ::exitApplication,
             title = "RadarNebo",
             icon = icon,
-            state = rememberWindowState(width = 1100.dp, height = 820.dp),
+            state = windowState,
         ) {
+            if (linuxNotices != null) {
+                SideEffect {
+                    linuxNotices.events.onApplied = { raise(windowState, window) }
+                }
+            }
             CompositionLocalProvider(LocalPinchZoom provides rememberWindowPinch(window.rootPane)) {
-                App(onOpenRequests = if (traffic != null) ({ requestsOpen = true }) else null)
+                App(
+                    onOpenRequests = if (traffic != null) ({ requestsOpen = true }) else null,
+                    events = linuxNotices?.events,
+                )
             }
         }
         if (requestsOpen && traffic != null) {
@@ -74,4 +103,20 @@ fun main() {
             }
         }
     }
+}
+
+/** Linux is the only desktop with a notify-send session. macOS and Windows stay unchanged. */
+private fun linuxNoticesOrNull(): LinuxNotifications? {
+    if (!System.getProperty("os.name").orEmpty().startsWith("Linux")) return null
+    return LinuxNotifications(AppEvents(), ::startNotifySend, linuxNotificationIcon())
+}
+
+// shortcut: no xdg-activation token, so a compositor may ignore toFront. The brief always-on-top
+// is the raise XWayland accepts. Upgrade when Compose can pass notify-send's activation token.
+private fun raise(windowState: WindowState, window: ComposeWindow) {
+    windowState.isMinimized = false
+    window.isAlwaysOnTop = true
+    window.toFront()
+    window.requestFocus()
+    EventQueue.invokeLater { window.isAlwaysOnTop = false }
 }

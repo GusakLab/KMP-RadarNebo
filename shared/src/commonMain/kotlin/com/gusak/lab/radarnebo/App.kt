@@ -32,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
+import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.gusak.lab.radarnebo.data.MapMode
 import com.gusak.lab.radarnebo.data.ThemeMode
@@ -39,12 +40,12 @@ import com.gusak.lab.radarnebo.ui.AppEvents
 import com.gusak.lab.radarnebo.ui.AppRoute
 import com.gusak.lab.radarnebo.ui.AppViewModel
 import com.gusak.lab.radarnebo.ui.FavoritesScreen
-import com.gusak.lab.radarnebo.ui.MapFocus
 import com.gusak.lab.radarnebo.ui.GlassBackdrop
 import com.gusak.lab.radarnebo.ui.GlassDialog
 import com.gusak.lab.radarnebo.ui.GlassNavBarDefaults
 import com.gusak.lab.radarnebo.ui.GlassNavItem
 import com.gusak.lab.radarnebo.ui.GlassNavigationBar
+import com.gusak.lab.radarnebo.ui.MapFocus
 import com.gusak.lab.radarnebo.ui.MapScreen
 import com.gusak.lab.radarnebo.ui.RadarTheme
 import com.gusak.lab.radarnebo.ui.SettingsScreen
@@ -69,8 +70,8 @@ private enum class Tab(val label: String, val glyph: String) {
  *
  * @param onThemeApplied called with the chosen mode and whether the resolved theme is dark, so the
  * platform host can match system chrome (status bar icons, window appearance).
- * @param onOpenRequests opens the request inspector (a window on desktop, an activity on Android); null hides
- * the buttons for it.
+ * @param onOpenRequests opens the request inspector (a window on desktop, an activity on Android). Null marks a
+ * release build: it hides the inspector's buttons and raw request errors.
  * @param events host navigation, used by Linux notification clicks. Null on every other platform.
  */
 @Composable
@@ -83,6 +84,10 @@ fun App(
     // Provided by the platform modules only, so tests and previews never download map tiles.
     val mapTiles = getKoin().getOrNull<MapTiles>()
     val state by vm.state.collectAsStateWithLifecycle()
+    LifecycleStartEffect(vm) {
+        vm.resume()
+        onStopOrDispose { vm.pause() }
+    }
     var tab by rememberSaveable { mutableStateOf(Tab.Map) }
     var focus by remember { mutableStateOf<MapFocus?>(null) }
     val routeEvents = events

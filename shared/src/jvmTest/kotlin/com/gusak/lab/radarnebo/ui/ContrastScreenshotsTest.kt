@@ -121,9 +121,9 @@ class ContrastScreenshotsTest {
         save("favorite-card")
         scene = Scene()
         settle(holder)
-        // The status strip opens the server card.
+        // Tapping the status strip expands it into the server details.
         onNodeWithText("drone threats", substring = true).performClick()
-        save("server-card")
+        save("server-details")
         scene = Scene(mapMode = MapMode.Cinematic)
         save("cinematic")
         scene = Scene(dialog = Dialog.Favorites)

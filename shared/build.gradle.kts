@@ -11,13 +11,19 @@ plugins {
 
 // client.properties at the repo root (gitignored; see client.properties.example) sets the server address and access key
 // the apps start with. They're generated into ClientConfig.kt; without the file both are blank.
-// A public App Store build uses its own revocable key: -PclientProperties=client.ios.properties (also gitignored).
-val clientPropertiesFile = providers.gradleProperty("clientProperties").orElse("client.properties")
-val clientProperties = providers.fileContents(rootProject.layout.projectDirectory.file(clientPropertiesFile)).asText
+// A public App Store build uses its own revocable key from the file's ios.* entries: -PclientProfile=ios.
+val clientProfile = providers.gradleProperty("clientProfile").map { "$it." }.orElse("")
+val clientProperties = providers.fileContents(rootProject.layout.projectDirectory.file("client.properties")).asText
     .map { text -> Properties().apply { load(text.reader()) } }
+
+/** The profile's value for [key], or the plain [key]'s when the profile leaves it blank. */
+fun clientProperty(key: String): Provider<String> = clientProperties.zip(clientProfile) { props, profile ->
+    props.getProperty(profile + key).orEmpty().trim().ifEmpty { props.getProperty(key).orEmpty().trim() }
+}.orElse("")
+
 val generateClientConfig = tasks.register("generateClientConfig") {
-    val serverUrl = clientProperties.map { it.getProperty("server.url").orEmpty().trim() }.orElse("")
-    val accessKey = clientProperties.map { it.getProperty("server.accessKey").orEmpty().trim() }.orElse("")
+    val serverUrl = clientProperty("server.url")
+    val accessKey = clientProperty("server.accessKey")
     val outputDir = layout.buildDirectory.dir("generated/clientConfig")
     inputs.property("serverUrl", serverUrl)
     inputs.property("accessKey", accessKey)
@@ -164,6 +170,17 @@ dependencies {
 tasks.withType<JavaCompile>().configureEach {
     sourceCompatibility = "11"
     targetCompatibility = "11"
+}
+
+// The WCAG contrast check runs only on request: ./gradlew :shared:jvmTest --tests '*.ContrastTest' -PcontrastCheck
+tasks.withType<Test>().configureEach {
+    if (!providers.gradleProperty("contrastCheck").isPresent) {
+        filter {
+            excludeTestsMatching("*.ContrastTest")
+            // It is the only common test, so testAndroidHostTest has none left without it.
+            isFailOnNoMatchingTests = false
+        }
+    }
 }
 
 // ./gradlew :shared:jvmTest --tests '*ContrastScreenshotsTest*' -PcontrastScreenshots[=Radar,Nord,…] renders every

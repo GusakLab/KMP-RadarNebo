@@ -35,25 +35,31 @@ import java.io.IOException
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
-/** A server started after the app is picked up by the 5 s reconnect timer, or at once by Reconnect. */
+/**
+ * A server started after the app is picked up by the 5 s reconnect timer, or at once by Reconnect; a paused app
+ * does not poll.
+ */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ReconnectTest {
     // The view model's Main dispatcher, the mock server and the view model's clock share one virtual-time
     // scheduler, so the tests step over the 5 s timer instead of waiting for it.
     private val scheduler = TestCoroutineScheduler()
     private var serverUp = false
+    private var alertRequests = 0
 
     /** Refuses connections until [serverUp]; then serves no alerts (tracks and health are optional). */
     private val server = MockEngine(
         MockEngineConfig().apply {
             dispatcher = StandardTestDispatcher(scheduler)
             addHandler { request ->
+                if (request.url.encodedPath == RadarNeboApi.ACTIVE_ALERTS_PATH) alertRequests++
                 if (!serverUp) throw IOException("Failed to connect to localhost:8080")
                 when (request.url.encodedPath) {
                     RadarNeboApi.ACTIVE_ALERTS_PATH ->
@@ -120,6 +126,22 @@ class ReconnectTest {
         vm.reconnect()
         runCurrent()
         assertNotNull(vm.state.value.lastUpdated, "reconnected without waiting for the timer")
+    }
+
+    @Test
+    fun pausedAppSendsNoRequestsAndResumesAtOnce() = withViewModel { vm ->
+        serverUp = true
+        runCurrent()
+        vm.pause()
+        val sent = alertRequests
+        advanceTimeBy(600.seconds)
+        runCurrent()
+        assertEquals(sent, alertRequests, "no polls while in the background")
+
+        vm.resume()
+        runCurrent()
+        assertEquals(sent + 1, alertRequests, "polls as soon as the app is back")
+        assertNull(vm.state.value.error)
     }
 
     /**

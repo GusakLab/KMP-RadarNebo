@@ -2,6 +2,7 @@ package com.gusak.lab.radarnebo.ui
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.animateDpAsState
@@ -470,7 +471,7 @@ private fun StaticMap(
     )
 }
 
-/** The status strip and its server card on the left, the map's buttons on the right. */
+/** The status strip, which expands into server details, on the left; the map's buttons on the right. */
 @Composable
 private fun MapTopBar(data: MapScreenData, screen: MapScreenState, actions: MapActions, showProximity: Boolean) {
     val state = data.state
@@ -483,18 +484,11 @@ private fun MapTopBar(data: MapScreenData, screen: MapScreenState, actions: MapA
         Column(Modifier.weight(1f)) {
             StatusStrip(
                 state,
+                expanded = screen.serverInfoOpen,
                 onClick = { screen.serverInfoOpen = !screen.serverInfoOpen },
-                onReconnect = actions.onReconnect,
+                actions = actions,
                 clock = data.clock,
             )
-            AnimatedVisibility(visible = screen.serverInfoOpen, enter = fadeIn(), exit = fadeOut()) {
-                ServerStatusCard(
-                    state,
-                    actions.onOpenRequests,
-                    data.clock,
-                    Modifier.padding(top = 8.dp).widthIn(max = 360.dp),
-                )
-            }
             if (!data.cinematic && state.proximity.isNotEmpty() && showProximity) {
                 Spacer(Modifier.height(8.dp))
                 ProximityBanner(state)
@@ -796,9 +790,21 @@ private fun ShotCaptionCard(caption: ShotCaption, modifier: Modifier, bottom: Dp
     }
 }
 
+/**
+ * The data summary and the server's state; tapping it shows more about the server in place. Raw errors and the
+ * request inspector are for debug builds only (those with [MapActions.onOpenRequests]): network errors name the
+ * server's address.
+ */
 @Composable
-private fun StatusStrip(state: UiState, onClick: () -> Unit, onReconnect: () -> Unit, clock: () -> Long) {
+private fun StatusStrip(
+    state: UiState,
+    expanded: Boolean,
+    onClick: () -> Unit,
+    actions: MapActions,
+    clock: () -> Long,
+) {
     val server = ServerState.of(state)
+    val debug = actions.onOpenRequests != null
     val text = buildString {
         if (state.simulated) append("SIMULATED DATA · not the real situation · ")
         append("${state.threats.size} ${if (state.settings.dronesOnly) "drone threats" else "threats"}")
@@ -809,17 +815,50 @@ private fun StatusStrip(state: UiState, onClick: () -> Unit, onReconnect: () -> 
         Modifier
             .clip(RoundedCornerShape(8.dp))
             .background(radarColors.overlay)
-            .clickable(onClick = onClick)
+            .clickable(onClickLabel = if (expanded) "Hide server details" else "Show server details", onClick = onClick)
+            .animateContentSize()
             .padding(horizontal = 10.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.size(8.dp).background(server.color(), CircleShape))
+        // Level with the first line of text, which the dot stays beside while the strip expands.
+        Box(Modifier.padding(top = 4.dp).size(8.dp).background(server.color(), CircleShape))
         Spacer(Modifier.width(8.dp))
         Column {
             Text(text, color = radarColors.onOverlay, fontSize = 12.sp)
             Text(server.label, color = server.color(), fontSize = 11.sp)
-            state.error?.let { Text(it, color = radarColors.dangerText, fontSize = 12.sp) }
-            if (server == ServerState.Offline) ReconnectRow(state, onReconnect, clock)
+            if (debug) state.error?.let { Text(it, color = radarColors.dangerText, fontSize = 12.sp) }
+            if (server == ServerState.Offline) ReconnectRow(state, actions.onReconnect, clock)
+            if (expanded) ServerDetails(state, server, actions.onOpenRequests, clock)
+        }
+    }
+}
+
+/** What the expanded strip adds: where the data comes from, how fresh it is and how often it is refreshed. */
+@Composable
+private fun ServerDetails(state: UiState, server: ServerState, onOpenRequests: (() -> Unit)?, clock: () -> Long) {
+    Column(Modifier.padding(top = 6.dp).widthIn(max = 320.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        state.serverHealth?.let { health ->
+            StatusLine(
+                "Source",
+                if (health.simulated) "SIMULATED" else "LIVE",
+                if (health.simulated) radarColors.warningText else radarColors.okText,
+            )
+        }
+        StatusLine("Updated", state.lastUpdated?.let { rememberAgo(it, clock) } ?: "not yet")
+        StatusLine("Refresh", "every ${state.settings.pollSeconds} s, while the app is open")
+        if (server == ServerState.Offline) {
+            Text(
+                if (onOpenRequests != null) {
+                    "Is the server running? Start it with ./gradlew :mission-control:server:run, or change its " +
+                        "address in Settings."
+                } else {
+                    "Check your internet connection. The app keeps trying."
+                },
+                color = radarColors.onOverlayMuted,
+                fontSize = 11.sp,
+            )
+        }
+        if (onOpenRequests != null) {
+            StripButton("Show requests", Modifier.padding(top = 2.dp), onClick = onOpenRequests)
         }
     }
 }
@@ -837,7 +876,6 @@ private fun ReconnectRow(state: UiState, onReconnect: () -> Unit, clock: () -> L
     }
     val secondsLeft = retryAt?.let { ((it - now).inWholeMilliseconds + 999) / 1000 }?.coerceAtLeast(0)
     val trying = state.loading || secondsLeft == 0L
-    val primary = MaterialTheme.colorScheme.primary
     Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(
             when {
@@ -849,21 +887,28 @@ private fun ReconnectRow(state: UiState, onReconnect: () -> Unit, clock: () -> L
             fontSize = 11.sp,
         )
         Spacer(Modifier.width(10.dp))
-        Text(
-            "Reconnect",
-            Modifier
-                .clip(RoundedCornerShape(6.dp))
-                .border(1.dp, primary.copy(alpha = if (trying) 0.4f else 1f), RoundedCornerShape(6.dp))
-                .clickable(enabled = !trying, role = Role.Button, onClick = onReconnect)
-                .padding(horizontal = 8.dp, vertical = 2.dp),
-            color = primary.copy(alpha = if (trying) 0.4f else 1f),
-            fontSize = 11.sp,
-            fontWeight = FontWeight.SemiBold,
-        )
+        StripButton("Reconnect", enabled = !trying, onClick = onReconnect)
     }
 }
 
-/** The app's view of its server, shown by the status dot and [ServerStatusCard]. */
+/** A small outlined button sized for the status strip's text. */
+@Composable
+private fun StripButton(label: String, modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) {
+    val color = MaterialTheme.colorScheme.primary.copy(alpha = if (enabled) 1f else 0.4f)
+    Text(
+        label,
+        modifier
+            .clip(RoundedCornerShape(6.dp))
+            .border(1.dp, color, RoundedCornerShape(6.dp))
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 2.dp),
+        color = color,
+        fontSize = 11.sp,
+        fontWeight = FontWeight.SemiBold,
+    )
+}
+
+/** The app's view of its server, shown by the status strip's dot and label. */
 private enum class ServerState(val label: String) {
     Connecting("connecting…"),
     Live("server live"),
@@ -889,46 +934,6 @@ private enum class ServerState(val label: String) {
     }
 }
 
-/** Details behind the status dot: whether the data is live or simulated and how the server is doing. */
-@Composable
-private fun ServerStatusCard(
-    state: UiState,
-    onOpenRequests: (() -> Unit)?,
-    clock: () -> Long,
-    modifier: Modifier = Modifier,
-) {
-    val server = ServerState.of(state)
-    val health = state.serverHealth
-    Card(modifier, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(10.dp).background(server.color(), CircleShape))
-                Spacer(Modifier.width(8.dp))
-                Text("Server", style = MaterialTheme.typography.titleMedium)
-            }
-            StatusLine("Status", server.label.replaceFirstChar { it.uppercase() })
-            if (health != null) {
-                StatusLine(
-                    "Source",
-                    if (health.simulated) "SIMULATED" else "LIVE",
-                    if (health.simulated) radarColors.warningText else radarColors.okText,
-                )
-            }
-            state.lastUpdated?.let { StatusLine("Last request", rememberAgo(it, clock)) }
-            state.error?.let { StatusLine("Error", it, radarColors.dangerText) }
-            if (server == ServerState.Offline) {
-                Text(
-                    "Is the server running? Start it with ./gradlew :mission-control:server:run, or change its " +
-                        "address in Settings.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (onOpenRequests != null) TextButton(onClick = onOpenRequests) { Text("Show requests") }
-        }
-    }
-}
-
 /** How long ago [instant] was, to the second ("4 s ago", "2 min 5 s ago"), ticking while shown. */
 @Composable
 private fun rememberAgo(instant: Instant, clock: () -> Long): String {
@@ -947,16 +952,12 @@ private fun rememberAgo(instant: Instant, clock: () -> Long): String {
     }
 }
 
+/** A labelled value in the expanded status strip. */
 @Composable
-private fun StatusLine(label: String, value: String, valueColor: Color = MaterialTheme.colorScheme.onSurface) {
+private fun StatusLine(label: String, value: String, valueColor: Color = radarColors.onOverlay) {
     Row {
-        Text(
-            label,
-            Modifier.width(96.dp),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(value, style = MaterialTheme.typography.bodySmall, color = valueColor)
+        Text(label, Modifier.width(64.dp), color = radarColors.onOverlayMuted, fontSize = 11.sp)
+        Text(value, color = valueColor, fontSize = 11.sp)
     }
 }
 

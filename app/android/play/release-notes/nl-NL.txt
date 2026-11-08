@@ -1,1 +1,1 @@
-De knop om de cinematische modus te verlaten blijft nu goed zichtbaar boven de balken, en bij het openen van Favorieten of Instellingen wordt het hele scherm gedimd, ook de status- en navigatiebalk.
+Zoom met één hand op de kaart: dubbeltik en sleep. Verbindingsfouten verschijnen niet meer wanneer de app terugkeert uit de achtergrond, en de statusstrook klapt nu ter plekke uit. De app heeft ook een nieuw pictogram.

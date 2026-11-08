@@ -66,9 +66,9 @@ android {
         applicationId = "com.gusak.lab.radarnebo.missioncontrol"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        // The Google Play deploy workflow passes both. Play already has 1 (1.0.0) and 2 (1.0.1) on this listing.
-        versionCode = providers.gradleProperty("radarNebo.versionCode").orNull?.toInt() ?: 3
-        versionName = providers.gradleProperty("radarNebo.versionName").orNull ?: "1.0.2"
+        // The Google Play deploy workflow passes both. Play already has 1 (1.0.0), 2 (1.0.1) and 3 (1.0.2) on this listing.
+        versionCode = providers.gradleProperty("radarNebo.versionCode").orNull?.toInt() ?: 4
+        versionName = providers.gradleProperty("radarNebo.versionName").orNull ?: "1.0.3"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Only release builds report to Firebase (see the manifest), so development runs stay out of the statistics.
         manifestPlaceholders["firebaseCollection"] = "false"

@@ -75,7 +75,7 @@ Outputs:
 - `app/android/build/outputs/apk/release/android-release.apk`
 - `app/android/build/outputs/bundle/release/android-release.aab`
 
-A local build is `3 (1.0.2)` unless you pass `-PradarNebo.versionCode=<n>` and `-PradarNebo.versionName=<x.y.z>`.
+A local build is `4 (1.0.3)` unless you pass `-PradarNebo.versionCode=<n>` and `-PradarNebo.versionName=<x.y.z>`.
 
 ## Verifying the signature
 

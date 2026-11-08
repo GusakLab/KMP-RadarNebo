@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
@@ -26,6 +27,8 @@ import org.slf4j.LoggerFactory
 import java.io.File
 
 fun main() {
+    // Taskbar inside applyAppIdentity starts AWT, and sun.java2d.uiScale is ignored after that.
+    applyLinuxDesktopScale()
     val icon = applyAppIdentity("RadarNebo", "radarnebo.png")
     // Compose Desktop jumps a whole step per mouse-wheel notch unless smooth scrolling is enabled;
     // this animates wheel scrolls in lists (Drones, Favorites, Settings). Must be set before any UI.
@@ -45,8 +48,14 @@ fun main() {
     val koin = initKoin(desktopModule(System.getProperty("radarnebo.settings")?.let(::File), httpLogger)) {
         if (debugBuild) modules(trafficLogModule())
     }.koin
-    val traffic = koin.getOrNull<TrafficLog>()
-    val settings = koin.get<SettingsRepository>()
+    openWindows(icon, koin.getOrNull(), koin.get())
+}
+
+private fun openWindows(
+    icon: Painter?,
+    traffic: TrafficLog?,
+    settings: SettingsRepository,
+) {
     application {
         var requestsOpen by remember { mutableStateOf(false) }
         Window(

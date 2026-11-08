@@ -105,6 +105,10 @@ image's user, so the restored file stays writable for it.
 `GET /health` reports `status`, the data source, freshness (`dataAgeSeconds`), the upstream budget and outcome counts
 and the last error. It needs no key but is rate limited per IP like the other routes, and always answers 200.
 
+`GET /metrics` returns Prometheus text for the same process. It needs no client key and uses the same per-IP rate
+limit as `/health`. Metric tags drop the query string, and a tag named `token`, `authorization` or `key` is never
+recorded, so `GET /metrics?token=...` does not publish that token.
+
 `status` is `warming_up` (no data yet), `ok`, `degraded` (the data source is failing and the server is backing off;
 the last data is still served) or `stale` (the data is older than max(3 × poll interval, 60 s) while polls succeed,
 or the poller is more than two poll intervals overdue). `upstreamRateLimitedTotal` (429), `upstreamRejectedTotal`
@@ -129,7 +133,9 @@ so it can't see the VM itself go down: add one more uptime check from another pr
 | `SIM_TICK_SECONDS` | 10 | How often the simulation reports |
 | `SIM_WARM_UP_MINUTES` | 120 | History replayed on start |
 | `SIM_SEED` | 20220224 | Change it for different attacks |
-| `ARCHIVE_JDBC_URL` | `jdbc:sqlite:data/radarnebo-archive.db` | `memory` for no persistence |
+| `ARCHIVE_JDBC_URL` | `jdbc:sqlite:data/radarnebo-archive.db` | `memory` for no persistence. A `jdbc:sqlite` URL uses one Hikari connection even when `HIKARI_MAX_POOL` is higher, because SQLite has one writer. That connection sets `PRAGMA journal_mode=WAL` |
+| `HIKARI_MAX_POOL` | 10 | Pool size for a non-SQLite archive. An integer from 1 to 16. Ignored for SQLite, which stays at 1 |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | – | OTLP/gRPC endpoint for traces, for example `http://localhost:4317`. Unset or blank disables tracing, so responses carry no trace headers. Authorization headers and query strings are not exported |
 | `ARCHIVE_RETENTION_DAYS` | 45 | At least 1; 0 would prune the whole archive |
 | `CLIENT_KEYS` | – | Comma-separated client keys (`PROXY_CLIENT_KEYS` still works) |
 | `CLIENT_REQUESTS_PER_MINUTE` | 120 | Per-IP limit for clients, at least 1 |

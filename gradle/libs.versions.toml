@@ -25,6 +25,15 @@ kotlin = "2.4.21"
 koin = "4.2.2"
 exposed = "1.6.0"
 sqlite-jdbc = "3.54.1.0"
+micrometer = "1.17.1"
+opentelemetry-instrumentation = "2.18.1-alpha"
+opentelemetry = "1.52.0"
+hikari = "7.1.0"
+resilience4j = "2.3.0"
+arrow = "2.3.0.1"
+kotest = "6.2.6"
+mockk = "1.14.12"
+junit-platform = "5.13.4"
 material3 = "1.13.0-beta01"
 firebase-bom = "35.1.0"
 googleServices = "4.5.0"
@@ -86,7 +95,23 @@ koin-compose = { module = "io.insert-koin:koin-compose", version.ref = "koin" }
 koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel", version.ref = "koin" }
 koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
 koin-test = { module = "io.insert-koin:koin-test", version.ref = "koin" }
+koin-logger-slf4j = { module = "io.insert-koin:koin-logger-slf4j", version.ref = "koin" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+ktor-server-metrics-micrometer = { module = "io.ktor:ktor-server-metrics-micrometer", version.ref = "ktor" }
+ktor-server-call-logging = { module = "io.ktor:ktor-server-call-logging", version.ref = "ktor" }
+micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus", version.ref = "micrometer" }
+opentelemetry-ktor = { module = "io.opentelemetry.instrumentation:opentelemetry-ktor-3.0", version.ref = "opentelemetry-instrumentation" }
+opentelemetry-logback-mdc = { module = "io.opentelemetry.instrumentation:opentelemetry-logback-mdc-1.0", version.ref = "opentelemetry-instrumentation" }
+opentelemetry-sdk = { module = "io.opentelemetry:opentelemetry-sdk", version.ref = "opentelemetry" }
+opentelemetry-exporter-otlp = { module = "io.opentelemetry:opentelemetry-exporter-otlp", version.ref = "opentelemetry" }
+hikari = { module = "com.zaxxer:HikariCP", version.ref = "hikari" }
+resilience4j-circuitbreaker = { module = "io.github.resilience4j:resilience4j-circuitbreaker", version.ref = "resilience4j" }
+resilience4j-micrometer = { module = "io.github.resilience4j:resilience4j-micrometer", version.ref = "resilience4j" }
+arrow-core = { module = "io.arrow-kt:arrow-core", version.ref = "arrow" }
+kotest-runner-junit5 = { module = "io.kotest:kotest-runner-junit5", version.ref = "kotest" }
+kotest-assertions-core = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
+mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
+junit-vintage-engine = { module = "org.junit.vintage:junit-vintage-engine", version.ref = "junit-platform" }
 kotlinx-coroutines-swing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebase-bom" }
 firebase-analytics = { module = "com.google.firebase:firebase-analytics" }

@@ -15,7 +15,6 @@ import com.gusak.lab.radarnebo.data.SettingsRepository
 import com.gusak.lab.radarnebo.di.desktopModule
 import com.gusak.lab.radarnebo.di.initKoin
 import com.gusak.lab.radarnebo.server.SingleInstance
-import com.gusak.lab.radarnebo.server.config.ServerConfig
 import com.gusak.lab.radarnebo.ui.RadarTheme
 import com.gusak.lab.radarnebo.ui.applyAppIdentity
 import com.gusak.lab.radarnebo.ui.map.LocalPinchZoom
@@ -31,7 +30,8 @@ fun main() {
     val icon = applyAppIdentity("RadarNebo Server", "radarnebo-server.png")
     // Before anything logs, so the Logs tab has the server's whole output.
     val logs = LogCapture().apply { install() }
-    val server = ConsoleServer(configOrExit())
+    val startup = startupOrExit()
+    val server = ConsoleServer(startup.config, startup.observability)
     // The embedded client app: its own settings file, so it starts out pointed at this server rather than whatever
     // the desktop app was last set to.
     val clientSettings = embeddedClientSettings(server)
@@ -46,8 +46,8 @@ fun main() {
 }
 
 /** The server's settings from the environment and its .env; a value it rejects ends the console with a message. */
-private fun configOrExit(): ServerConfig = try {
-    consoleConfig()
+private fun startupOrExit(): ConsoleStartup = try {
+    consoleStartup()
 } catch (e: IllegalArgumentException) {
     // No window exists yet, so an out-of-range value in .env would otherwise end the console without a word.
     JOptionPane.showMessageDialog(null, e.message, "RadarNebo Server", JOptionPane.ERROR_MESSAGE)

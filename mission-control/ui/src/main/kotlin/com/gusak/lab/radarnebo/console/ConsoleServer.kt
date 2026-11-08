@@ -7,6 +7,7 @@ import com.gusak.lab.radarnebo.server.ServerComponents
 import com.gusak.lab.radarnebo.server.api.Health
 import com.gusak.lab.radarnebo.server.api.health
 import com.gusak.lab.radarnebo.server.config.DataSourceKind
+import com.gusak.lab.radarnebo.server.config.ObservabilityConfig
 import com.gusak.lab.radarnebo.server.config.ServerConfig
 import com.gusak.lab.radarnebo.server.infrastructure.upstream.UpstreamRateLimiter
 import com.gusak.lab.radarnebo.server.radarServer
@@ -33,6 +34,7 @@ private typealias CioServer = EmbeddedServer<CIOApplicationEngine, CIOApplicatio
  */
 internal class ConsoleServer(
     private val baseConfig: ServerConfig,
+    private val observability: ObservabilityConfig = ObservabilityConfig(),
     private val clock: () -> Long = System::currentTimeMillis,
 ) {
     private val log = LoggerFactory.getLogger("Console")
@@ -101,7 +103,12 @@ internal class ConsoleServer(
         val config = baseConfig.copy(port = port, dataSourceOverride = _dataSource.value)
         try {
             val built = withContext(Dispatchers.IO) {
-                ServerComponents.create(config, traffic = recorder, upstreamLimiter = upstreamLimiter)
+                ServerComponents.create(
+                    config,
+                    traffic = recorder,
+                    upstreamLimiter = upstreamLimiter,
+                    observability = observability,
+                )
             }
             // Started outside withContext: it would wait for the server's coroutines, which run until it stops.
             val server = embeddedServer(CIO, port = port, host = "0.0.0.0") { radarServer(built) }

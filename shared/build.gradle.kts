@@ -172,6 +172,17 @@ tasks.withType<JavaCompile>().configureEach {
     targetCompatibility = "11"
 }
 
+// The WCAG contrast check runs only on request: ./gradlew :shared:jvmTest --tests '*.ContrastTest' -PcontrastCheck
+tasks.withType<Test>().configureEach {
+    if (!providers.gradleProperty("contrastCheck").isPresent) {
+        filter {
+            excludeTestsMatching("*.ContrastTest")
+            // It is the only common test, so testAndroidHostTest has none left without it.
+            isFailOnNoMatchingTests = false
+        }
+    }
+}
+
 // ./gradlew :shared:jvmTest --tests '*ContrastScreenshotsTest*' -PcontrastScreenshots[=Radar,Nord,…] renders every
 // overlay and dialog per map background and theme (downloading satellite tiles) into build/contrast.
 tasks.named<Test>("jvmTest") {

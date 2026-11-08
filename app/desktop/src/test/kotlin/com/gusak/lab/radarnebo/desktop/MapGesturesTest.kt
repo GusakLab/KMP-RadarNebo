@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.use
 import com.gusak.lab.radarnebo.ui.MacTrackpad
@@ -91,6 +92,90 @@ class MapGesturesTest {
             repeat(3) { frame() }
             assertEquals(1.05.pow(10).toFloat(), camera.zoom, 1e-3f, "every step counts")
         }
+    }
+
+    /** A bare map driven by touch: [touch] sends one event at a time, [camera] is where the map ended up. */
+    private class TouchMap(start: MapCamera) {
+        var camera by mutableStateOf(start)
+        private var timeMs = 0L
+        val scene = ImageComposeScene(width = 1000, height = 800, density = Density(1f)) {
+            RadarTheme {
+                UkraineMap(
+                    camera = camera, threats = emptyList(), alertedOblasts = emptyMap(), favorites = emptyList(),
+                    alertedFavoriteIds = emptySet(), proximityRadiusKm = 50, modifier = Modifier.fillMaxSize(),
+                    onCameraChange = { camera = it },
+                )
+            }
+        }
+
+        /** Sends [type] at [x], [y] after [afterMs], then renders a frame so the gesture detectors run. */
+        fun touch(type: PointerEventType, x: Float, y: Float, afterMs: Long = 16) {
+            timeMs += afterMs
+            scene.sendPointerEvent(type, Offset(x, y), timeMillis = timeMs, type = PointerType.Touch)
+            scene.render(timeMs * 1_000_000)
+        }
+
+        /** A quick tap, then a second touch at the same spot that stays down. */
+        fun doubleTapAndHold(x: Float, y: Float) {
+            touch(PointerEventType.Press, x, y)
+            touch(PointerEventType.Release, x, y, afterMs = 60)
+            touch(PointerEventType.Press, x, y, afterMs = 100)
+        }
+    }
+
+    private fun touchMap(start: MapCamera, test: TouchMap.() -> Unit) {
+        val map = TouchMap(start)
+        map.scene.use {
+            repeat(3) { map.touch(PointerEventType.Move, 0f, 0f) }
+            map.test()
+        }
+    }
+
+    @Test
+    fun doubleTapAndDragDownZoomsInAroundTheTappedSpot() = touchMap(MapCamera.Overview) {
+        val tapped = Offset(400f, 300f)
+        val spot = camera.toWorld(tapped, Size(1000f, 800f))
+
+        doubleTapAndHold(tapped.x, tapped.y)
+        touch(PointerEventType.Move, tapped.x, 330f) // past the touch slop: the drag starts here
+        touch(PointerEventType.Move, tapped.x, 450f)
+        touch(PointerEventType.Move, tapped.x, 570f)
+        touch(PointerEventType.Release, tapped.x, 570f)
+
+        assertEquals(4f, camera.zoom, 1e-3f, "240 px down doubles the zoom twice")
+        val after = camera.toWorld(tapped, Size(1000f, 800f))
+        assertTrue(abs(after.x - spot.x) < 1e-3f && abs(after.y - spot.y) < 1e-3f, "the tapped spot stays put")
+    }
+
+    @Test
+    fun doubleTapAndDragUpZoomsOut() = touchMap(MapCamera.Overview.copy(zoom = 4f)) {
+        doubleTapAndHold(500f, 400f)
+        touch(PointerEventType.Move, 500f, 370f)
+        touch(PointerEventType.Move, 500f, 250f)
+        touch(PointerEventType.Release, 500f, 250f)
+
+        assertEquals(2f, camera.zoom, 1e-3f)
+    }
+
+    @Test
+    fun aDoubleTapWithoutDraggingStillReturnsToTheOverview() = touchMap(MapCamera.Overview.copy(zoom = 3f)) {
+        doubleTapAndHold(500f, 400f)
+        touch(PointerEventType.Release, 500f, 400f, afterMs = 60)
+
+        assertEquals(MapCamera.Overview, camera)
+    }
+
+    @Test
+    fun aSingleFingerDragStillPansWithoutZooming() = touchMap(MapCamera.Overview.copy(zoom = 2f)) {
+        val start = camera
+
+        touch(PointerEventType.Press, 500f, 400f)
+        touch(PointerEventType.Move, 500f, 450f)
+        touch(PointerEventType.Move, 500f, 550f)
+        touch(PointerEventType.Release, 500f, 550f)
+
+        assertEquals(start.zoom, camera.zoom)
+        assertTrue(camera.center != start.center, "the drag moved the map")
     }
 
     private fun smoother(applied: MutableList<Offset>) = ScrollSmoother(scope = null) { pan, _, _ -> applied += pan }

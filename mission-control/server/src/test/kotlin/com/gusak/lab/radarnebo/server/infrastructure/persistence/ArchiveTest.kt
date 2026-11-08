@@ -33,6 +33,7 @@ class ArchiveTest {
 
     @AfterTest
     fun cleanUp() {
+        db.close()
         dir.deleteRecursively()
     }
 

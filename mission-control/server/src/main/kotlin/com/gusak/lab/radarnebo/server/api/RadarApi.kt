@@ -5,6 +5,7 @@ import com.gusak.lab.radarnebo.server.application.SituationService
 import com.gusak.lab.radarnebo.server.config.ClientApiConfig
 import com.gusak.lab.radarnebo.debug.TrafficRecorder
 import com.gusak.lab.radarnebo.server.contract.AlertsInUaContract
+import com.gusak.lab.radarnebo.server.infrastructure.observability.installPrometheusMetrics
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
@@ -24,6 +25,7 @@ import io.ktor.server.plugins.compression.deflate
 import io.ktor.server.plugins.compression.gzip
 import io.ktor.server.plugins.compression.minimumSize
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.server.plugins.calllogging.CallLogging
 import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.plugins.forwardedheaders.XForwardedHeaders
 import io.ktor.server.plugins.origin
@@ -32,14 +34,17 @@ import io.ktor.server.plugins.ratelimit.RateLimitName
 import io.ktor.server.plugins.ratelimit.RateLimitProviderConfig
 import io.ktor.server.plugins.ratelimit.rateLimit
 import io.ktor.server.plugins.statuspages.StatusPages
+import io.ktor.server.request.httpMethod
 import io.ktor.server.request.path
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.routing
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.coroutines.CancellationException
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.slf4j.event.Level
 import kotlin.time.Duration.Companion.minutes
 
 private val CLIENTS = RateLimitName("clients")
@@ -61,23 +66,43 @@ internal fun Application.radarApi(
     poller: SituationPoller,
     clients: ClientApiConfig,
     upstreamBudgetPerMinute: Int?,
+    metrics: PrometheusMeterRegistry,
     clock: () -> Long = System::currentTimeMillis,
     /** Receives every call with its response, for the server console. */
     traffic: TrafficRecorder? = null,
 ) {
     installTransport(clients, traffic, clock)
+    installServerErrorLogging()
     val log = LoggerFactory.getLogger("RadarApi")
     installErrorPages(log)
     installRateLimits(clients)
     val authRequired = clients.keys.isNotEmpty()
     if (authRequired) installClientAuth(clients) else log.warn("Client API is open: CLIENT_KEYS is not set")
+    installPrometheusMetrics(metrics)
 
     routing {
         // Throttled like everything else but never authenticated, so container health checks and monitors work.
         rateLimit(CLIENTS) {
             healthRoutes(situation, poller, upstreamBudgetPerMinute, clock)
+            metricsRoute(metrics)
         }
         clientRoutes(situation, poller, clock, authRequired)
+    }
+}
+
+/**
+ * INFO, and only for status 500 or above. The logger is not `io.ktor` (that one stays at WARN).
+ * The line is method, path without the query, and status. Authorization is not part of it.
+ */
+private fun Application.installServerErrorLogging() {
+    install(CallLogging) {
+        level = Level.INFO
+        logger = LoggerFactory.getLogger("com.gusak.lab.radarnebo.server.http")
+        filter { call -> (call.response.status()?.value ?: 0) >= 500 }
+        format { call ->
+            val status = call.response.status()?.value ?: 0
+            "${call.request.httpMethod.value} ${call.request.path()} $status"
+        }
     }
 }
 

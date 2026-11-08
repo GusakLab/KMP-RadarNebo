@@ -666,8 +666,10 @@ Use constructor injection everywhere. Dependencies are visible in the constructo
   Koin keeps singletons inside the module object, so a shared module would share state between containers. Use
   `singleOf` for stateful classes and `factoryOf` for stateless use cases. Platform-specific bindings go in the
   platform module.
-- **Server:** plain constructor wiring in `Main.kt` and its factories (`Archives.create`). Do not add a DI framework.
-- No field injection, and no `KoinComponent` / `by inject()` in domain, data or use-case classes.
+- **Server:** constructor wiring in `Main.kt` and `ServerComponents.create`. The metrics registry and the
+  upstream guard live in a local Koin container created there and closed with the components. Never
+  `GlobalContext.startKoin`. The rest of the graph stays constructor wiring.
+- No field injection, and no `KoinComponent` / `by inject()` in domain, data, application or infrastructure classes.
 
 ## Design Patterns in Kotlin
 
@@ -692,7 +694,9 @@ Tests make behavior obvious. A test that checks everything usually explains noth
 ### Layout
 
 Test source sets mirror production packages: `commonTest` and `jvmTest` in multiplatform modules, `src/test/kotlin`
-in JVM modules. Use `kotlin.test` (`@Test`, `assertEquals`, `assertNotNull`).
+in JVM modules. Use `kotlin.test` (`@Test`, `assertEquals`, `assertNotNull`). The server observability specs use
+Kotest `FunSpec` and MockK. That test task runs the JUnit Platform with `junit-vintage-engine`, so the
+`kotlin.test` classes still run.
 
 ### Unit tests
 

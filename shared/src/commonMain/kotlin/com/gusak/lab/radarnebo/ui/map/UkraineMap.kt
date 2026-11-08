@@ -7,6 +7,8 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.fillMaxSize
@@ -40,9 +42,12 @@ import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.input.pointer.AwaitPointerEventScope
 import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerInputChange
+import androidx.compose.ui.input.pointer.PointerType
+import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.ui.input.pointer.isCtrlPressed
 import androidx.compose.ui.input.pointer.isMetaPressed
 import androidx.compose.ui.input.pointer.isShiftPressed
@@ -92,6 +97,7 @@ import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.exp
 import kotlin.math.log2
+import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.time.Clock
 import kotlin.time.Instant
@@ -150,6 +156,9 @@ val LocalPinchZoom: ProvidableCompositionLocal<Flow<Float>?> = staticComposition
  */
 private val ScrollStep = 10.dp
 
+/** How far a one-handed zoom drag goes to double or halve the zoom. */
+private val QuickZoomDoubling = 120.dp
+
 @Composable
 fun UkraineMap(
     camera: MapCamera,
@@ -196,7 +205,8 @@ fun UkraineMap(
         modifier
             .onSizeChanged { control.mapSize = it.toSize() }
             .then(gestures)
-            .mapTaps(control, taps),
+            .mapTaps(control, taps)
+            .then(if (onCameraChange != null) Modifier.quickZoom(control) else Modifier),
     ) { drawUkraineMap(scene) }
 }
 
@@ -320,7 +330,10 @@ private fun rememberTapTargets(
     onLongPress = rememberUpdatedState(onLongPress),
 )
 
-/** Double-tap returns to the overview, long-press offers a spot as a favorite, a tap selects what it hits. */
+/**
+ * Double-tap returns to the overview, long-press offers a spot as a favorite, a tap selects what it hits.
+ * A double-tap that turns into a drag is [quickZoom]'s instead.
+ */
 private fun Modifier.mapTaps(control: CameraControl, taps: TapTargets): Modifier = pointerInput(Unit) {
     detectTapGestures(
         onDoubleTap = { control.move(MapCamera.Overview) },
@@ -333,6 +346,68 @@ private fun Modifier.mapTaps(control: CameraControl, taps: TapTargets): Modifier
             taps.onSelect.value(hit)
         },
     )
+}
+
+/**
+ * One-handed zoom, as in other map apps: double-tap, keep the finger down and drag down to zoom in or up to zoom
+ * out, around the tapped spot. Placed innermost, it sees each touch before the pan and tap detectors, and consumes
+ * the drag so they neither pan nor take it as a double-tap. A double-tap without the drag still reaches [mapTaps].
+ */
+private fun Modifier.quickZoom(control: CameraControl): Modifier = pointerInput(Unit) {
+    val doublingPx = QuickZoomDoubling.toPx()
+    awaitEachGesture {
+        val first = awaitFirstDown(requireUnconsumed = false)
+        if (first.type == PointerType.Mouse) return@awaitEachGesture
+        val tap = awaitTap(first) ?: return@awaitEachGesture
+        val second = withTimeoutOrNull(viewConfiguration.doubleTapTimeoutMillis) {
+            awaitFirstDown(requireUnconsumed = false)
+        } ?: return@awaitEachGesture
+        val reach = viewConfiguration.minimumTouchTargetSize.width.toPx()
+        if ((second.position - tap.position).getDistance() <= reach) dragToZoom(control, second, doublingPx)
+    }
+}
+
+/** The release of a tap that started with [down]; null when it moved, lasted too long or became a pinch. */
+private suspend fun AwaitPointerEventScope.awaitTap(down: PointerInputChange): PointerInputChange? {
+    while (true) {
+        val event = awaitPointerEvent()
+        if (event.changes.size > 1) return null
+        val change = event.changes.singleOrNull { it.id == down.id } ?: return null
+        if ((change.position - down.position).getDistance() > viewConfiguration.touchSlop) return null
+        if (change.uptimeMillis - down.uptimeMillis > viewConfiguration.longPressTimeoutMillis) return null
+        if (change.changedToUp()) return change
+    }
+}
+
+/**
+ * Zooms around [down] while its pointer drags vertically, once it moves past the touch slop. A pointer held still
+ * past the long-press timeout is left to the long-press. A second finger ends the zoom.
+ */
+private suspend fun AwaitPointerEventScope.dragToZoom(
+    control: CameraControl,
+    down: PointerInputChange,
+    doublingPx: Float,
+) {
+    var lastY: Float? = null
+    while (true) {
+        val event = awaitPointerEvent()
+        if (event.changes.size > 1) return
+        val change = event.changes.singleOrNull { it.id == down.id } ?: return
+        val y = lastY
+        if (y == null) {
+            if (change.changedToUp()) return
+            if (change.uptimeMillis - down.uptimeMillis > viewConfiguration.longPressTimeoutMillis) return
+            if ((change.position - down.position).getDistance() > viewConfiguration.touchSlop) {
+                lastY = change.position.y
+                change.consume()
+            }
+        } else {
+            change.consume()
+            if (change.changedToUp()) return
+            control.transform(down.position, Offset.Zero, 2f.pow((change.position.y - y) / doublingPx), size.toSize())
+            lastY = change.position.y
+        }
+    }
 }
 
 /** What the map shows, as the caller passed it. */

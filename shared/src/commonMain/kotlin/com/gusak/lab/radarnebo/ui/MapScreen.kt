@@ -133,8 +133,15 @@ fun MapScreen(
     start: MapScreenStart = MapScreenStart(),
     /** Local time in epoch milliseconds; the server's is this plus the state's clock offset. */
     clock: () -> Long = { Clock.System.now().toEpochMilliseconds() },
+    /** A threat to select after the map is showing. Null except for a Linux notification click. */
+    focus: MapFocus? = null,
 ) {
     val screen = rememberMapScreenState(start)
+    LaunchedEffect(focus?.token) {
+        val current = focus ?: return@LaunchedEffect
+        val marker = state.threats.firstOrNull { it.id == current.threatId } ?: return@LaunchedEffect
+        screen.select(MapSelection.Threat(marker), state)
+    }
     val data = rememberMapScreenData(state, screen, bottomInset, clock)
     val actions =
         MapActions(onModeChange, onAddFavorite, onRadiusChange, onTargetFilterChange, onOpenRequests, onReconnect)

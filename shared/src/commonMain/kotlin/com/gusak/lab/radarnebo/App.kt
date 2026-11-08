@@ -22,8 +22,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -34,6 +36,8 @@ import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.gusak.lab.radarnebo.data.MapMode
 import com.gusak.lab.radarnebo.data.ThemeMode
+import com.gusak.lab.radarnebo.ui.AppEvents
+import com.gusak.lab.radarnebo.ui.AppRoute
 import com.gusak.lab.radarnebo.ui.AppViewModel
 import com.gusak.lab.radarnebo.ui.FavoritesScreen
 import com.gusak.lab.radarnebo.ui.GlassBackdrop
@@ -41,6 +45,7 @@ import com.gusak.lab.radarnebo.ui.GlassDialog
 import com.gusak.lab.radarnebo.ui.GlassNavBarDefaults
 import com.gusak.lab.radarnebo.ui.GlassNavItem
 import com.gusak.lab.radarnebo.ui.GlassNavigationBar
+import com.gusak.lab.radarnebo.ui.MapFocus
 import com.gusak.lab.radarnebo.ui.MapScreen
 import com.gusak.lab.radarnebo.ui.RadarTheme
 import com.gusak.lab.radarnebo.ui.SettingsScreen
@@ -67,11 +72,13 @@ private enum class Tab(val label: String, val glyph: String) {
  * platform host can match system chrome (status bar icons, window appearance).
  * @param onOpenRequests opens the request inspector (a window on desktop, an activity on Android). Null marks a
  * release build: it hides the inspector's buttons and raw request errors.
+ * @param events host navigation, used by Linux notification clicks. Null on every other platform.
  */
 @Composable
 fun App(
     onThemeApplied: (mode: ThemeMode, dark: Boolean) -> Unit = { _, _ -> },
     onOpenRequests: (() -> Unit)? = null,
+    events: AppEvents? = null,
 ) {
     val vm = koinViewModel<AppViewModel>()
     // Provided by the platform modules only, so tests and previews never download map tiles.
@@ -82,11 +89,40 @@ fun App(
         onStopOrDispose { vm.pause() }
     }
     var tab by rememberSaveable { mutableStateOf(Tab.Map) }
+    var focus by remember { mutableStateOf<MapFocus?>(null) }
+    val routeEvents = events
+    if (routeEvents != null) {
+        ApplyAppRoute(routeEvents, state, onTab = { tab = it }, onFocus = { focus = it })
+    }
 
     RadarTheme(state.settings.themeMode, state.settings.colorPalette, onThemeApplied) {
         CompositionLocalProvider(LocalMapTiles provides mapTiles) {
-            AppContent(vm, state, tab, onTabChange = { tab = it }, onOpenRequests)
+            AppContent(vm, state, tab, onTabChange = { tab = it }, onOpenRequests, focus = focus)
         }
+    }
+}
+
+/** Switches to the screen a notification click asked for, then tells the host the switch is done. */
+@Composable
+private fun ApplyAppRoute(
+    events: AppEvents,
+    state: UiState,
+    onTab: (Tab) -> Unit,
+    onFocus: (MapFocus) -> Unit,
+) {
+    LaunchedEffect(state) { events.onState(state) }
+    val request = events.request
+    LaunchedEffect(request?.token) {
+        val current = request ?: return@LaunchedEffect
+        when (val route = current.route) {
+            AppRoute.Favorites -> onTab(Tab.Favorites)
+            AppRoute.Map -> onTab(Tab.Map)
+            is AppRoute.Threat -> {
+                onTab(Tab.Map)
+                onFocus(MapFocus(current.token, route.threatId))
+            }
+        }
+        events.onApplied()
     }
 }
 
@@ -98,6 +134,7 @@ private fun AppContent(
     tab: Tab,
     onTabChange: (Tab) -> Unit,
     onOpenRequests: (() -> Unit)?,
+    focus: MapFocus?,
 ) {
     val backdrop = rememberGlassBackdrop()
     // Screens run edge to edge underneath the floating bar and pad their scrollable content instead.
@@ -123,6 +160,7 @@ private fun AppContent(
                 onOpenRequests = onOpenRequests,
                 onReconnect = vm::reconnect,
                 bottomInset = mapBottomInset,
+                focus = focus,
             )
         }
         AppDialogs(vm, state, tab, onClose = { onTabChange(Tab.Map) }, backdrop, bottomInset, onOpenRequests)

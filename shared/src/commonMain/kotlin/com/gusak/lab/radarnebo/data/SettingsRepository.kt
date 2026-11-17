@@ -42,7 +42,7 @@ class SettingsRepository(
             maxMapMarkers = storage.getString(K_MAX_MARKERS)?.toIntOrNull()
                 ?.coerceIn(AppSettings.MAX_MARKERS_RANGE) ?: AppSettings.DEFAULT_MAX_MARKERS,
             proximityRadiusKm = storage.getString(K_RADIUS)?.toIntOrNull()?.coerceIn(AppSettings.RADIUS_RANGE) ?: 50,
-            dronesOnly = storage.getString(K_DRONES_ONLY)?.toBooleanStrictOrNull() ?: true,
+            dronesOnly = storage.getString(K_DRONES_ONLY)?.toBooleanStrictOrNull() ?: false,
             pollSeconds = storage.getString(K_POLL)?.toIntOrNull()?.coerceIn(AppSettings.POLL_RANGE) ?: 30,
             targetFilter = TargetFilter(
                 hiddenKinds = storage.getString(K_HIDDEN_KINDS).orEmpty().split(',')

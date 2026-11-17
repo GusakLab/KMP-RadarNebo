@@ -36,10 +36,10 @@ workflow artifacts without releasing anything. Those builds get version `0.0.<ru
 
 ### Server address and key
 
-The workflow builds without a `client.properties`, so the packages start pointed at
-`https://radar-nebo.worxbend.com` with no key. That server requires one of its `CLIENT_KEYS`, so users enter a key
-in the app's Settings. Baking a key in, as a local `client.properties` does, would publish it to anyone who
-downloads a package.
+A release builds with a `client.properties` written from the `RADARNEBO_ANDROID_CLIENT_KEY` repository secret, the
+same key the Android app carries, so the packages reach `https://radar-nebo.worxbend.com` without setup. The app has
+no server setting. The key is one of the server's `CLIENT_KEYS`, and anyone who downloads a package can read it.
+Revoking it cuts off the Android app too. Pull request and manual runs build without a key.
 
 ## Building locally
 

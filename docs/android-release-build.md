@@ -123,7 +123,8 @@ and resubmits everything together with the new release (the API's default, `CANC
 
 ### Credentials
 
-The secrets live in the repository's `google-play` environment, which only `main` can use:
+The secrets live in the repository's `google-play` environment, which only `main` can use, apart from
+`RADARNEBO_ANDROID_CLIENT_KEY`: it is a repository secret because the Linux release (a tag run) builds it in too.
 
 | Secret | Value |
 |---|---|

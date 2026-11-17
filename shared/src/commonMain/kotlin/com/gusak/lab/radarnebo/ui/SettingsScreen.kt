@@ -319,7 +319,7 @@ private fun TargetWindowSetting(minutes: Int, onChange: (Int) -> Unit) {
     val nearest = TARGET_WINDOW_STOPS.indices.minBy { kotlin.math.abs(TARGET_WINDOW_STOPS[it] - minutes) }
     SliderSetting(
         title = "Targets timeline",
-        description = "Show targets seen within this time; active ones always show.",
+        description = "Show targets and alert threats reported within this time; targets still in flight always show.",
         value = nearest,
         range = TARGET_WINDOW_STOPS.indices,
         format = { formatDuration(TARGET_WINDOW_STOPS[it]) },

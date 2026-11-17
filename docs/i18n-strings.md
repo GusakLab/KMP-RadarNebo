@@ -203,7 +203,7 @@ drift; the original literal is the reliable anchor. `shared/…/` = `shared/src/
 | `settings_drones_only` | shared/…/ui/SettingsScreen.kt:141 | `` title = "Drones only", `` | Drones only |  |
 | `settings_drones_only_description` | shared/…/ui/SettingsScreen.kt:142 | `` description = "Hide missiles, aviation and other threat types.", `` | Hide missiles, aviation and other threat types. |  |
 | `settings_targets_timeline` | shared/…/ui/SettingsScreen.kt | `` title = "Targets timeline", `` | Targets timeline |  |
-| `settings_targets_timeline_description` | shared/…/ui/SettingsScreen.kt | `` description = "Show targets seen within this time; active ones always show.", `` | Show targets and alert threats reported within this time; targets still in flight always show. |  |
+| `settings_targets_timeline_description` | shared/…/ui/SettingsScreen.kt | `` description = "Show targets and alert threats reported within this time; targets still in flight always show.", `` | Show targets and alert threats reported within this time; targets still in flight always show. |  |
 | `settings_refresh_interval` | shared/…/ui/SettingsScreen.kt:157 | `` title = "Refresh interval", `` | Refresh interval |  |
 | `settings_refresh_interval_description` | shared/…/ui/SettingsScreen.kt:158 | `` description = "The server refreshes its data every 10–15 s; polling faster only uses more battery.", `` | The server refreshes its data every 10–15 s; polling faster only uses more battery. |  |
 | `settings_connection` | shared/…/ui/SettingsScreen.kt:168 | `` "Connection", `` | Connection |  |

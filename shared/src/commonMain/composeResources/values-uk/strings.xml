@@ -184,7 +184,7 @@
     <string name="settings_drones_only">Лише дрони</string>
     <string name="settings_drones_only_description">Приховати ракети, авіацію та інші типи загроз.</string>
     <string name="settings_targets_timeline">Часовий проміжок цілей</string>
-    <string name="settings_targets_timeline_description">Показувати цілі, помічені за цей час; активні показуються завжди.</string>
+    <string name="settings_targets_timeline_description">Показувати цілі та загрози, про які повідомили за цей час; цілі, що ще летять, показуються завжди.</string>
     <string name="settings_refresh_interval">Інтервал оновлення</string>
     <string name="settings_refresh_interval_description">Сервер оновлює дані кожні 10–15 с; частіші запити лише витрачають більше заряду.</string>
     <string name="settings_connection">Підключення</string>

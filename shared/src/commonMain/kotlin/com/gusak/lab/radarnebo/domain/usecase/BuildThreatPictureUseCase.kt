@@ -24,8 +24,10 @@ class BuildThreatPictureUseCase(
         /** Server time, for the speeds that tell drone types apart. */
         now: Long = clock(),
     ): ThreatPicture {
-        val threats = ThreatMapper.toMarkers(alerts, settings.dronesOnly)
         val since = now - settings.targetWindowMinutes * 60_000L
+        val allThreats = ThreatMapper.toMarkers(alerts, settings.dronesOnly)
+        // alerts.in.ua keeps frontline alerts open for weeks; the timeline hides those, but they still warn.
+        val threats = allThreats.filter { (it.startedAt?.toEpochMilliseconds() ?: now) >= since }
         val shownTracks = tracks
             // The server's verdict is as of its last poll; a target can go stale before the next one.
             .map { if (it.active && !TrackInterpolator.isActive(it, now)) it.copy(active = false) else it }
@@ -33,7 +35,7 @@ class BuildThreatPictureUseCase(
         return ThreatPicture(
             threats = threats,
             mapThreats = ThreatMapper.capForMap(threats, settings.maxMapMarkers),
-            proximity = ThreatMapper.proximity(favorites, threats, settings.proximityRadiusKm),
+            proximity = ThreatMapper.proximity(favorites, allThreats, settings.proximityRadiusKm),
             alertedOblasts = alertedOblasts(alerts),
             tracks = shownTracks.filter { settings.targetFilter.allows(it, now) },
             unfilteredTracks = shownTracks,

@@ -13,7 +13,7 @@ data class AppSettings(
     val dronesOnly: Boolean = false,
     val pollSeconds: Int = 30,
     val targetFilter: TargetFilter = TargetFilter(),
-    /** Targets last seen longer ago than this are hidden; active ones always show. */
+    /** Targets last seen and alert threats started longer ago than this are hidden; targets in flight always show. */
     val targetWindowMinutes: Int = DEFAULT_TARGET_WINDOW_MINUTES,
     val mapBackground: MapBackground = MapBackground.Streets,
 ) {

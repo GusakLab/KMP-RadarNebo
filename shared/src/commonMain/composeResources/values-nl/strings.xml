@@ -184,7 +184,7 @@
     <string name="settings_drones_only">Alleen drones</string>
     <string name="settings_drones_only_description">Raketten, luchtvaart en andere dreigingen verbergen.</string>
     <string name="settings_targets_timeline">Tijdlijn doelen</string>
-    <string name="settings_targets_timeline_description">Doelen tonen die binnen deze tijd zijn gezien; actieve worden altijd getoond.</string>
+    <string name="settings_targets_timeline_description">Doelen en dreigingen tonen die binnen deze tijd zijn gemeld; doelen die nog vliegen worden altijd getoond.</string>
     <string name="settings_refresh_interval">Vernieuwingsinterval</string>
     <string name="settings_refresh_interval_description">De server ververst zijn gegevens elke 10–15 s; sneller opvragen kost alleen meer batterij.</string>
     <string name="settings_connection">Verbinding</string>

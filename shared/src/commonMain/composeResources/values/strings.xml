@@ -184,7 +184,7 @@
     <string name="settings_drones_only">Drones only</string>
     <string name="settings_drones_only_description">Hide missiles, aviation and other threat types.</string>
     <string name="settings_targets_timeline">Targets timeline</string>
-    <string name="settings_targets_timeline_description">Show targets seen within this time; active ones always show.</string>
+    <string name="settings_targets_timeline_description">Show targets and alert threats reported within this time; targets still in flight always show.</string>
     <string name="settings_refresh_interval">Refresh interval</string>
     <string name="settings_refresh_interval_description">The server refreshes its data every 10–15 s; polling faster only uses more battery.</string>
     <string name="settings_connection">Connection</string>

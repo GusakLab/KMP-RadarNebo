@@ -173,7 +173,6 @@ drift; the original literal is the reliable anchor. `shared/…/` = `shared/src/
 | `settings_category_targets` | _(new, not in code yet)_ |  | Targets | Requested for the redesign; not in code yet. |
 | `settings_category_alerts` | _(new, not in code yet)_ |  | Alerts | Requested for the redesign; not in code yet. |
 | `settings_category_alerts_tracking` | shared/…/ui/SettingsScreen.kt:130 | `` SettingsSection("Alerts & tracking", "⚠") { `` | Alerts & tracking |  |
-| `settings_category_server` | shared/…/ui/SettingsScreen.kt:166<br>shared/…/ui/MapScreen.kt:663 | `` SettingsSection("Server", "⇄") { `` | Server |  |
 | `settings_category_developer` | shared/…/ui/SettingsScreen.kt:198 | `` SettingsSection("Developer", "{ }") { `` | Developer |  |
 | `settings_category_about` | _(new, not in code yet)_ |  | About | Requested for the redesign; not in code yet. |
 | `settings_category_target_types` | shared/…/ui/SettingsScreen.kt:205 | `` SettingsSection("Target types", "✈") { `` | Target types |  |
@@ -204,14 +203,10 @@ drift; the original literal is the reliable anchor. `shared/…/` = `shared/src/
 | `settings_drones_only` | shared/…/ui/SettingsScreen.kt:141 | `` title = "Drones only", `` | Drones only |  |
 | `settings_drones_only_description` | shared/…/ui/SettingsScreen.kt:142 | `` description = "Hide missiles, aviation and other threat types.", `` | Hide missiles, aviation and other threat types. |  |
 | `settings_targets_timeline` | shared/…/ui/SettingsScreen.kt | `` title = "Targets timeline", `` | Targets timeline |  |
-| `settings_targets_timeline_description` | shared/…/ui/SettingsScreen.kt | `` description = "Show targets seen within this time; active ones always show.", `` | Show targets seen within this time; active ones always show. |  |
+| `settings_targets_timeline_description` | shared/…/ui/SettingsScreen.kt | `` description = "Show targets seen within this time; active ones always show.", `` | Show targets and alert threats reported within this time; targets still in flight always show. |  |
 | `settings_refresh_interval` | shared/…/ui/SettingsScreen.kt:157 | `` title = "Refresh interval", `` | Refresh interval |  |
 | `settings_refresh_interval_description` | shared/…/ui/SettingsScreen.kt:158 | `` description = "The server refreshes its data every 10–15 s; polling faster only uses more battery.", `` | The server refreshes its data every 10–15 s; polling faster only uses more battery. |  |
 | `settings_connection` | shared/…/ui/SettingsScreen.kt:168 | `` "Connection", `` | Connection |  |
-| `settings_server_description` | shared/…/ui/SettingsScreen.kt:169 | `` "RadarNebo gets alerts and tracked targets from a RadarNebo server, which keeps the history and does the " + `` | RadarNebo gets alerts and tracked targets from a RadarNebo server, which keeps the history and does the tracking. Run your own and enter its address; ask its operator for an access key if it needs one. | Concatenated literals in code. |
-| `settings_server_url` | shared/…/ui/SettingsScreen.kt:175 | `` label = { Text("Server URL") }, `` | Server URL |  |
-| `settings_access_key` | shared/…/ui/SettingsScreen.kt:183 | `` label = { Text("Access key (optional)") }, `` | Access key (optional) |  |
-| `settings_save_reconnect` | shared/…/ui/SettingsScreen.kt:193 | `` ) { Text("Save & reconnect") } `` | Save & reconnect |  |
 | `settings_request_inspector` | shared/…/ui/SettingsScreen.kt:199 | `` SettingRow("Request inspector", "Every request the app sends to its server and the JSON it gets back.") { `` | Request inspector |  |
 | `settings_request_inspector_description` | shared/…/ui/SettingsScreen.kt:199 | `` SettingRow("Request inspector", "Every request the app sends to its server and the JSON it gets back.") { `` | Every request the app sends to its server and the JSON it gets back. |  |
 | `settings_target_types_description` | shared/…/ui/SettingsScreen.kt:207 | `` "How each threat is drawn on the map. Red is a red-level alert, amber a yellow-level one.", `` | How each threat is drawn on the map. Red is a red-level alert, amber a yellow-level one. |  |
@@ -239,7 +234,7 @@ drift; the original literal is the reliable anchor. `shared/…/` = `shared/src/
 | `status_polled_value` | shared/…/ui/MapScreen.kt:680 | `` if (health.pollIntervalSeconds > 0) StatusLine("Polled", "every ${health.pollIntervalSeconds} s") `` | every %1$d s |  |
 | `status_last_poll` | shared/…/ui/MapScreen.kt:681 | `` health.lastAttemptAt?.let { StatusLine("Last poll", formatClock(it)) } `` | Last poll |  |
 | `status_source_error` | shared/…/ui/MapScreen.kt:682 | `` health.lastError?.let { StatusLine("Source error", it, radarColors.danger) } `` | Source error |  |
-| `status_server_hint` | shared/…/ui/MapScreen.kt:687 | `` "Is the server running? Start it with ./gradlew :mission-control:server:run, or change its address in Settings.", `` | Is the server running? Start it with ./gradlew :mission-control:server:run, or change its address in Settings. |  |
+| `status_server_hint` | shared/…/ui/MapScreen.kt:687 | `` "Is the server running? Start it with ./gradlew :mission-control:server:run.", `` | Is the server running? Start it with ./gradlew :mission-control:server:run. |  |
 | `status_show_requests` | shared/…/ui/MapScreen.kt:692 | `` if (onOpenRequests != null) TextButton(onClick = onOpenRequests) { Text("Show requests") } `` | Show requests |  |
 | `error_unauthorized` | core/…/data/RadarNeboApi.kt:80 | `` HttpStatusCode.Unauthorized -> FetchResult.Failure("The server needs a valid access key (401)", backOff = true) `` | The server needs a valid access key (401) | FetchResult.Failure messages (core) end up in UiState.error and are shown in the status strip/card. |
 | `error_rate_limited` | core/…/data/RadarNeboApi.kt:81 | `` HttpStatusCode.TooManyRequests -> FetchResult.Failure("Too many requests, slowing down (429)", backOff = true) `` | Too many requests, slowing down (429) |  |

@@ -142,7 +142,6 @@
     <string name="settings_category_targets">Цілі</string>
     <string name="settings_category_alerts">Тривоги</string>
     <string name="settings_category_alerts_tracking">Тривоги та відстеження</string>
-    <string name="settings_category_server">Сервер</string>
     <string name="settings_category_developer">Для розробників</string>
     <string name="settings_category_about">Про застосунок</string>
     <string name="settings_category_target_types">Типи цілей</string>
@@ -189,10 +188,6 @@
     <string name="settings_refresh_interval">Інтервал оновлення</string>
     <string name="settings_refresh_interval_description">Сервер оновлює дані кожні 10–15 с; частіші запити лише витрачають більше заряду.</string>
     <string name="settings_connection">Підключення</string>
-    <string name="settings_server_description">RadarNebo отримує тривоги та відстежувані цілі із сервера RadarNebo, який зберігає історію та виконує відстеження. Запустіть власний сервер і введіть його адресу; якщо потрібен ключ доступу, попросіть його в адміністратора сервера.</string>
-    <string name="settings_server_url">URL сервера</string>
-    <string name="settings_access_key">Ключ доступу (необов\'язково)</string>
-    <string name="settings_save_reconnect">Зберегти й перепідключитися</string>
     <string name="settings_request_inspector">Інспектор запитів</string>
     <string name="settings_request_inspector_description">Усі запити застосунку до сервера та JSON-відповіді на них.</string>
     <string name="settings_target_types_description">Як кожна загроза позначається на мапі. Червоний — тривога червоного рівня, бурштиновий — жовтого.</string>
@@ -228,7 +223,7 @@
     <string name="status_polled_value">кожні %1$d с</string>
     <string name="status_last_poll">Останнє опитування</string>
     <string name="status_source_error">Помилка джерела</string>
-    <string name="status_server_hint">Чи запущено сервер? Запустіть його командою ./gradlew :mission-control:server:run або змініть адресу в налаштуваннях.</string>
+    <string name="status_server_hint">Чи запущено сервер? Запустіть його командою ./gradlew :mission-control:server:run.</string>
     <string name="status_show_requests">Показати запити</string>
 
     <!-- error -->

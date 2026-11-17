@@ -12,7 +12,7 @@ What the app collects: RadarNebo has no accounts, and it does not access your lo
 
 Neither service receives your favorite places, settings or server access key. Google processes this data for us under the Google Analytics and Firebase terms and privacy policy (https://policies.google.com/privacy). Analytics data is kept for the retention period set in our Firebase project (2 months by default) and crash reports for 90 days.
 
-What stays on your device: your favorite places, including any names and coordinates you enter, your settings, and the server address and access key. None of this is sent to anyone else, except that the access key, if one is set, is sent to that server to authorize the app's requests. You can remove favorites in the app, and deleting the app removes all of it from your device, though a copy may remain in your device's own backup.
+What stays on your device: your favorite places, including any names and coordinates you enter, and your settings. None of this is sent to anyone else. You can remove favorites in the app, and deleting the app removes all of it from your device, though a copy may remain in your device's own backup.
 
 Network requests: the app requests alert and tracking data from the server address set in the app, by default https://radar-nebo.worxbend.com. Like any web request, this exposes your IP address and the app's name and version to that server, which uses them to deliver data, limit request rates and keep the service secure. If you set another server address, that server's operator is responsible for its logs.
 

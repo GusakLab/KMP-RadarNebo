@@ -142,7 +142,6 @@
     <string name="settings_category_targets">Doelen</string>
     <string name="settings_category_alerts">Meldingen</string>
     <string name="settings_category_alerts_tracking">Meldingen en tracking</string>
-    <string name="settings_category_server">Server</string>
     <string name="settings_category_developer">Ontwikkelaar</string>
     <string name="settings_category_about">Over</string>
     <string name="settings_category_target_types">Doeltypen</string>
@@ -189,10 +188,6 @@
     <string name="settings_refresh_interval">Vernieuwingsinterval</string>
     <string name="settings_refresh_interval_description">De server ververst zijn gegevens elke 10–15 s; sneller opvragen kost alleen meer batterij.</string>
     <string name="settings_connection">Verbinding</string>
-    <string name="settings_server_description">RadarNebo haalt meldingen en gevolgde doelen op van een RadarNebo-server, die de geschiedenis bijhoudt en de tracking doet. Draai je eigen server en vul het adres in; vraag de beheerder om een toegangssleutel als die nodig is.</string>
-    <string name="settings_server_url">Server-URL</string>
-    <string name="settings_access_key">Toegangssleutel (optioneel)</string>
-    <string name="settings_save_reconnect">Opslaan en opnieuw verbinden</string>
     <string name="settings_request_inspector">Verzoekinspector</string>
     <string name="settings_request_inspector_description">Elk verzoek dat de app naar de server stuurt en de JSON die terugkomt.</string>
     <string name="settings_target_types_description">Hoe elke dreiging op de kaart wordt getekend. Rood is een melding van niveau rood, oranje een van niveau geel.</string>
@@ -228,7 +223,7 @@
     <string name="status_polled_value">elke %1$d s</string>
     <string name="status_last_poll">Laatste opvraging</string>
     <string name="status_source_error">Bronfout</string>
-    <string name="status_server_hint">Draait de server? Start hem met ./gradlew :mission-control:server:run, of wijzig het adres in Instellingen.</string>
+    <string name="status_server_hint">Draait de server? Start hem met ./gradlew :mission-control:server:run.</string>
     <string name="status_show_requests">Verzoeken tonen</string>
 
     <!-- error -->

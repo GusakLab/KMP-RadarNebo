@@ -16,13 +16,14 @@ fun formatClock(epochMs: Long): String {
     return listOf(t.hour, t.minute, t.second).joinToString(":") { it.toString().padStart(2, '0') }
 }
 
-/** How long before [now] (local time) [instant] was: "just now", "5 min ago", "1 h 20 min ago". */
+/** How long before [now] (local time) [instant] was: "just now", "5 min ago", "1 h 20 min ago", "3 d ago". */
 internal fun formatAgo(instant: Instant, now: Instant): String {
     val minutes = (now - instant).inWholeMinutes
     return when {
         minutes < 1 -> "just now"
         minutes < 60 -> "$minutes min ago"
-        else -> "${minutes / 60} h ${minutes % 60} min ago"
+        minutes < 24 * 60 -> "${minutes / 60} h ${minutes % 60} min ago"
+        else -> "${minutes / (24 * 60)} d ago"
     }
 }
 

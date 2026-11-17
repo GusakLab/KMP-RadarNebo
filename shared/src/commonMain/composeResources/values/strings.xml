@@ -142,7 +142,6 @@
     <string name="settings_category_targets">Targets</string>
     <string name="settings_category_alerts">Alerts</string>
     <string name="settings_category_alerts_tracking">Alerts &amp; tracking</string>
-    <string name="settings_category_server">Server</string>
     <string name="settings_category_developer">Developer</string>
     <string name="settings_category_about">About</string>
     <string name="settings_category_target_types">Target types</string>
@@ -185,14 +184,10 @@
     <string name="settings_drones_only">Drones only</string>
     <string name="settings_drones_only_description">Hide missiles, aviation and other threat types.</string>
     <string name="settings_targets_timeline">Targets timeline</string>
-    <string name="settings_targets_timeline_description">Show targets seen within this time; active ones always show.</string>
+    <string name="settings_targets_timeline_description">Show targets and alert threats reported within this time; targets still in flight always show.</string>
     <string name="settings_refresh_interval">Refresh interval</string>
     <string name="settings_refresh_interval_description">The server refreshes its data every 10–15 s; polling faster only uses more battery.</string>
     <string name="settings_connection">Connection</string>
-    <string name="settings_server_description">RadarNebo gets alerts and tracked targets from a RadarNebo server, which keeps the history and does the tracking. Run your own and enter its address; ask its operator for an access key if it needs one.</string>
-    <string name="settings_server_url">Server URL</string>
-    <string name="settings_access_key">Access key (optional)</string>
-    <string name="settings_save_reconnect">Save &amp; reconnect</string>
     <string name="settings_request_inspector">Request inspector</string>
     <string name="settings_request_inspector_description">Every request the app sends to its server and the JSON it gets back.</string>
     <string name="settings_target_types_description">How each threat is drawn on the map. Red is a red-level alert, amber a yellow-level one.</string>
@@ -228,7 +223,7 @@
     <string name="status_polled_value">every %1$d s</string>
     <string name="status_last_poll">Last poll</string>
     <string name="status_source_error">Source error</string>
-    <string name="status_server_hint">Is the server running? Start it with ./gradlew :mission-control:server:run, or change its address in Settings.</string>
+    <string name="status_server_hint">Is the server running? Start it with ./gradlew :mission-control:server:run.</string>
     <string name="status_show_requests">Show requests</string>
 
     <!-- error -->

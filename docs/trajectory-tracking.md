@@ -211,8 +211,10 @@ All of §2–§4 is implemented (`core/.../tracking/Trajectory.kt`, `DroneTracke
    are gated where the filter fuses them, moved back by their warning lead.
    **Live second source**: `TelegramChannelSource` reads a public warning channel from its web preview
    (`t.me/s/<channel>`, no key); `TELEGRAM_CHANNELS=kpszsu` adds the Ukrainian Air Force's. `AirForceMessages`
-   turns each message into an alert: the weapon from its name, "через <місто>" as a red alert at the city, an oblast
-   ("Сумщина") as an oblast-wide one, "курсом на / в напрямку <місто>" as a yellow one (where it is heading). Run
+   turns each message into an alert: the weapon from its name, "через <місто>" as a red alert at the city,
+   "курсом на / в напрямку <місто>" or a settlement in brackets as a yellow one (where it is heading), and failing
+   those an oblast ("Сумщина") as an oblast-wide one. A village missing from the city list is placed at its
+   hromada. Run
    against the live channel on 2026-10-29, the server built four jet-drone tracks from it (Brovary, Dnipro,
    Poltava, Kryvyi Rih).
    Simulation replay, median error / active tracks per flying drone: alerts alone 40.8 km / 0.62; with sparse

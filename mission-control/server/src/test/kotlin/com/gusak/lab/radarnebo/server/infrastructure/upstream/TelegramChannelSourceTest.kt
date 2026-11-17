@@ -71,6 +71,45 @@ class TelegramChannelSourceTest {
     }
 
     @Test
+    fun guidedBombsInThePluralAreRead() {
+        val alert = assertNotNull(parse("🚀КАБи на Харківщину."))
+        assertEquals(ThreatType.GuidedBombs, alert.threats.single().type)
+        assertEquals(22, alert.location.oblastUid)
+    }
+
+    @Test
+    fun aCityNamedInAnOblastMessageWinsOverTheOblast() {
+        val bilaTserkva = assertNotNull(parse("🏍 Київщина: реактивний БпЛА курсом на Білу Церкву."))
+        assertEquals("Bila Tserkva", bilaTserkva.location.titleEn)
+        assertEquals(ThreatLevel.Yellow, bilaTserkva.level)
+        assertEquals("Koziatyn", parse("🏍 Вінниччина: Реактивний БпЛА в напрямку Козятина")?.location?.titleEn)
+    }
+
+    @Test
+    fun aSettlementInBracketsIsWhereTheTargetIsHeading() {
+        val alert = assertNotNull(parse("🏍 Реактивний БпЛА з Київщини в напрямку Вінниччини (Погребище)"))
+        assertEquals("Pohrebyshche", alert.location.titleEn)
+        assertEquals(ThreatLevel.Yellow, alert.level)
+        assertEquals("Orativ", parse("🏍 Реактивні БпЛА з Черкащини курсом на Вінниччину (Оратів)")?.location?.titleEn)
+    }
+
+    @Test
+    fun aVillageIsPlacedAtItsHromada() {
+        val alert = assertNotNull(parse("🏍 Реактивний БпЛА з Київщини в напрямку Вінниччини (Погребище)"))
+        assertEquals(LocationType.Hromada, alert.location.type)
+        val marker = ThreatMapper.toMarkers(listOf(alert.toDto()), dronesOnly = false).single()
+        // Погребищенська громада, not a point scattered somewhere in Vinnytsia Oblast.
+        assertTrue(kotlin.math.abs(marker.point.lat - 49.48) < 0.05 && kotlin.math.abs(marker.point.lon - 29.23) < 0.05)
+    }
+
+    @Test
+    fun aMultiWordPlaceIsFoundInAnyCase() {
+        val alert = assertNotNull(parse("🏍 Реактивний БпЛА через Велику Димерку у напрямку Києва."))
+        assertEquals("Velyka Dymerka", alert.location.titleEn)
+        assertEquals(ThreatLevel.Red, alert.level)
+    }
+
+    @Test
     fun messagesWithoutAWeaponOrAKnownPlaceAreSkipped() {
         assertNull(parse("🏍 Лівобережний масив."))
         assertNull(parse("Відбій загрози"))

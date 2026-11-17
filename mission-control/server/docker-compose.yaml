@@ -49,6 +49,7 @@ services:
       - ALERTS_API_TOKEN       # empty runs the simulation
       - CLIENT_KEYS=${CLIENT_KEYS:?CLIENT_KEYS must be set for the public deployment}
       - TRUST_PROXY_HEADERS=true   # safe only because no port is published: every call comes through Caddy
+      - TELEGRAM_CHANNELS=kpszsu   # the Air Force's warnings feed tracking; the parser reads only its wording
     volumes:
       - radarnebo-data:/data
 

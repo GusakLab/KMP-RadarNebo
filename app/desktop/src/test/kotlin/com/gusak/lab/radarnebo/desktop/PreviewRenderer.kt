@@ -5,7 +5,6 @@ import androidx.compose.runtime.currentComposer
 import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.use
 import org.jetbrains.skia.Bitmap
 import org.jetbrains.skia.Image
 import java.io.File
@@ -47,24 +46,40 @@ internal object PreviewRenderer {
     /**
      * Renders [preview] the way an IDE does: at its declared size, with [LocalInspectionMode] on.
      * A few frames run first so effects (camera framing, the first data poll) have landed.
+     *
+     * The scene lives on the Swing event thread, where the main dispatcher runs. Lifecycle effects add observers
+     * both while the scene composes and from main-dispatcher work, and `LifecycleRegistry` breaks when two threads
+     * touch it ("no event up from RESUMED").
      */
     fun render(preview: PreviewFunction, density: Float = 2f): Image {
         val method = preview.method()
         val widthDp = preview.widthDp ?: 440
         val heightDp = preview.heightDp ?: 520
-        return ImageComposeScene((widthDp * density).toInt(), (heightDp * density).toInt(), Density(density)) {
-            CompositionLocalProvider(LocalInspectionMode provides true) {
-                method.invoke(null, currentComposer, 0)
+        val scene = onEventThread {
+            ImageComposeScene((widthDp * density).toInt(), (heightDp * density).toInt(), Density(density)) {
+                CompositionLocalProvider(LocalInspectionMode provides true) {
+                    method.invoke(null, currentComposer, 0)
+                }
             }
-        }.use { scene ->
-            var image = scene.render(0)
-            repeat(12) {
-                // lets work dispatched to the main dispatcher (the app preview's first poll) land
-                SwingUtilities.invokeAndWait {}
-                image = scene.render((it + 1) * 16_000_000L)
-            }
-            image
         }
+        try {
+            var image = onEventThread { scene.render(0) }
+            repeat(12) {
+                // Each frame is its own event, so work dispatched to the main dispatcher in between (the app
+                // preview's first poll) lands before it.
+                image = onEventThread { scene.render((it + 1) * 16_000_000L) }
+            }
+            return image
+        } finally {
+            onEventThread { scene.close() }
+        }
+    }
+
+    /** Runs [block] on the Swing event thread and returns its result, or throws what it threw. */
+    private fun <T> onEventThread(block: () -> T): T {
+        var result: Result<T>? = null
+        SwingUtilities.invokeAndWait { result = runCatching(block) }
+        return checkNotNull(result).getOrThrow()
     }
 
     /** True when the image is more than a single flat colour. */

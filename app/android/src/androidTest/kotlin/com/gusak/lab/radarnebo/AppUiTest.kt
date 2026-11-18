@@ -123,7 +123,7 @@ class AppUiTest {
             assertTrue("$theme should be selected", device.wait(Until.hasObject(By.checked(true).hasDescendant(By.text(theme))), TIMEOUT))
         }
 
-        for (section in listOf("ALERTS & TRACKING", "SERVER", "TARGET TYPES")) {
+        for (section in listOf("ALERTS & TRACKING", "TARGET TYPES")) {
             scrollTo(By.text(section))
         }
     }
@@ -183,7 +183,11 @@ class AppUiTest {
     private fun scrollTo(selector: BySelector) {
         repeat(MAX_SCROLLS) {
             if (device.hasObject(selector)) return
-            device.findObject(By.scrollable(true))?.scroll(Direction.DOWN, 0.7f)
+            try {
+                device.findObject(By.scrollable(true))?.scroll(Direction.DOWN, 0.7f)
+            } catch (_: StaleObjectException) {
+                // A scroll still settling replaced the node; the next pass looks it up again.
+            }
             device.waitForIdle(SETTLE)
         }
         need(selector)

@@ -1,1 +1,1 @@
-Zoom the map with one hand: double-tap, then drag. Connection errors no longer appear after the app returns from the background, and the status strip now expands in place. The app also has a new icon.
+Threats from alerts that have been open for weeks no longer clutter the targets timeline. They still warn you about your favorite places. Ages over a day now show in days. Every threat type is shown by default. The server setting is gone: the app always uses its built-in server.

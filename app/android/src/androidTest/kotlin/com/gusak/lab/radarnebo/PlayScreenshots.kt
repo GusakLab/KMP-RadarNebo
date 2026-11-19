@@ -32,9 +32,9 @@ import kotlin.math.abs
  * Captures the five store screenshots into the app's external files, for tools/capture-play-screenshots.sh to pull.
  * Skipped unless run with `-e capture true`, so it stays out of the normal UI tests.
  *
- * Tiles load one by one in the background and the UI says nothing about it, so no fixed delay is safe: a large screen on
- * a fresh theme took long enough that the first store captures showed a mostly bare map. Each shot instead waits until
- * the map's own frames report every tile of the view drawn at its proper zoom, then checks the image it got.
+ * Tiles load one by one in the background and the UI says nothing about it, so no fixed delay is safe: a large screen
+ * on a fresh theme took long enough that the first store captures showed a mostly bare map. Each shot instead waits
+ * until the map's own frames report every tile of the view drawn at its proper zoom, then checks the image it got.
  */
 @RunWith(AndroidJUnit4::class)
 class PlayScreenshots {
@@ -42,7 +42,9 @@ class PlayScreenshots {
     private val device = UiDevice.getInstance(instrumentation)
     private val context = ApplicationProvider.getApplicationContext<Context>()
     private val tiles by lazy { KoinPlatform.getKoin().get<MapTiles>() }
-    private val out by lazy { File(requireNotNull(context.getExternalFilesDir(null)), "play-captures").apply { mkdirs() } }
+    private val out by lazy {
+        File(requireNotNull(context.getExternalFilesDir(null)), "play-captures").apply { mkdirs() }
+    }
 
     @Before
     fun launchApp() {
@@ -107,7 +109,9 @@ class PlayScreenshots {
         fail("Shot $number: the map kept changing, last ${tiles.lastFrame}")
     }
 
-    /** Waits for [source]'s frames to report no tile outstanding, without a break for [SETTLE]; returns the time taken. */
+    /**
+     * Waits for [source]'s frames to report no tile outstanding, without a break for [SETTLE]; returns the time taken.
+     */
     private fun awaitMap(source: TileSource): Long {
         val start = SystemClock.elapsedRealtime()
         var completeSince = 0L

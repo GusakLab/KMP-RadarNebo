@@ -41,7 +41,11 @@ class CinematicExitButtonTest {
                 setContent {
                     RadarTheme(theme) {
                         primary = MaterialTheme.colorScheme.primary
-                        MapScreen(PreviewData.state(theme, mapMode = MapMode.Cinematic), onModeChange = { modeAsked = it }, onAddFavorite = { _, _ -> })
+                        MapScreen(
+                            PreviewData.state(theme, mapMode = MapMode.Cinematic),
+                            onModeChange = { modeAsked = it },
+                            onAddFavorite = { _, _ -> },
+                        )
                     }
                 }
                 // Past the toggle's 450 ms fade.

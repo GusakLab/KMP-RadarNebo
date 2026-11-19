@@ -42,10 +42,12 @@ class GlassDialogScrimTest {
             val backdrop = rememberGlassBackdrop()
             Box(Modifier.fillMaxSize()) {
                 Box(Modifier.fillMaxSize().glassBackdropSource(backdrop).background(Color.White))
-                GlassDialog(open, "Dialog", onDismiss, backdrop, Modifier.padding(start = 44.dp, top = 59.dp, end = 44.dp), bottomInset = 122.dp) {
+                val panelInsets = Modifier.padding(start = 44.dp, top = 59.dp, end = 44.dp)
+                GlassDialog(open, "Dialog", onDismiss, backdrop, panelInsets, bottomInset = 122.dp) {
                     Text("Content")
                 }
-                GlassNavigationBar(items, 1, onSelect, backdrop, Modifier.align(Alignment.BottomCenter).padding(bottom = 46.dp), dimmed = open)
+                val barPlace = Modifier.align(Alignment.BottomCenter).padding(bottom = 46.dp)
+                GlassNavigationBar(items, 1, onSelect, backdrop, barPlace, dimmed = open)
             }
         }
     }
@@ -73,8 +75,11 @@ class GlassDialogScrimTest {
                 val w = pixels.width - 1
                 val h = pixels.height - 1
                 // Corners, the middle of the status bar and of the system navigation bar, then both sides.
-                for ((x, y) in listOf(0 to 0, w to 0, 0 to h, w to h, w / 2 to 0, w / 2 to 20, w / 2 to h, 0 to h / 2, w to h / 2)) {
-                    assertEquals(expected, pixels.brightness(x, y), 0.01f, "$theme: pixel ($x, $y) isn't dimmed like the rest")
+                val corners = listOf(0 to 0, w to 0, 0 to h, w to h)
+                val edges = listOf(w / 2 to 0, w / 2 to 20, w / 2 to h, 0 to h / 2, w to h / 2)
+                for ((x, y) in corners + edges) {
+                    val message = "$theme: pixel ($x, $y) isn't dimmed like the rest"
+                    assertEquals(expected, pixels.brightness(x, y), 0.01f, message)
                 }
             }
         }
@@ -110,6 +115,7 @@ class GlassDialogScrimTest {
         val x = point.x.toInt() - 30
         val y = point.y.toInt()
         val ratio = dimmed.brightness(x, y) / clear.brightness(x, y)
-        assertTrue(abs(ratio - 0.8f) < 0.02f, "The bar should be dimmed like the scrim, but its brightness changed by $ratio")
+        val message = "The bar should be dimmed like the scrim, but its brightness changed by $ratio"
+        assertTrue(abs(ratio - 0.8f) < 0.02f, message)
     }
 }

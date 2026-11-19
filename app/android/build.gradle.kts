@@ -38,8 +38,8 @@ dependencies {
 }
 
 // The app ships on the Google Play listing created for MissionControl-Nebo, whose package name and upload key can't
-// change, so release signing uses that key's folder (see docs/android-release-build.md). Without it the release build is
-// left unsigned rather than signed with a key Play would reject.
+// change, so release signing uses that key's folder (see docs/android-release-build.md). Without it the release build
+// is left unsigned rather than signed with a key Play would reject.
 val keystoreDir = providers.gradleProperty("missionControl.keystoreDir")
     .orElse(providers.environmentVariable("MISSIONCONTROL_KEYSTORE_DIR"))
     .orElse(System.getProperty("user.home") + "/Keys/MissionControl-Nebo")
@@ -49,8 +49,8 @@ val keystoreProperties = keystoreDir.resolve("keystore.properties").takeIf { it.
     Properties().apply { file.inputStream().use(::load) }
 }
 
-// tools/capture-play-screenshots.sh: instruments the release build, which has the UI Play users get, signed with the debug
-// key so it installs without the upload key. Nothing changes without this property.
+// tools/capture-play-screenshots.sh: instruments the release build, which has the UI Play users get, signed with the
+// debug key so it installs without the upload key. Nothing changes without this property.
 val storeCapture = providers.gradleProperty("radarNebo.capture").isPresent
 
 android {
@@ -66,7 +66,8 @@ android {
         applicationId = "com.gusak.lab.radarnebo.missioncontrol"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        // The Google Play deploy workflow passes both. Play already has 1 (1.0.0), 2 (1.0.1) and 3 (1.0.2) on this listing.
+        // The Google Play deploy workflow passes both. Play already has 1 (1.0.0), 2 (1.0.1) and 3 (1.0.2) on this
+        // listing.
         versionCode = providers.gradleProperty("radarNebo.versionCode").orNull?.toInt() ?: 4
         versionName = providers.gradleProperty("radarNebo.versionName").orNull ?: "1.0.3"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -90,7 +91,8 @@ android {
     }
     buildTypes {
         release {
-            signingConfig = if (storeCapture) signingConfigs.getByName("debug") else signingConfigs.findByName("release")
+            signingConfig =
+                if (storeCapture) signingConfigs.getByName("debug") else signingConfigs.findByName("release")
             // Store screenshot runs drive the release build and must not count as real use.
             manifestPlaceholders["firebaseCollection"] = (!storeCapture).toString()
             isMinifyEnabled = false

@@ -74,6 +74,10 @@ goes through the proxy, as in the compose deployment; anywhere else leave it `fa
 
 `/v1/drones/archive.json` covers a window of at most 7 days, with `limit` at most 200 (the default); more is a 400.
 
+`/v1/frontline.json` is read from `deepstatemap.live` when a client asks for it, at most once a day (a failed read
+is retried after five minutes), so the server needs outbound HTTPS to that host. It answers 503 until the first read
+succeeds; the apps then draw no frontline.
+
 ## Backup and restore
 
 The archive is derived history (up to 45 days of alerts and finished tracks), not live data, but
@@ -123,7 +127,7 @@ so it can't see the VM itself go down: add one more uptime check from another pr
 
 | Env var | Default | Meaning |
 |---|---|---|
-| `ALERTS_API_TOKEN` | – | alerts.in.ua token. If unset, the server runs the simulation and makes no upstream requests. |
+| `ALERTS_API_TOKEN` | – | alerts.in.ua token. If unset, the server runs the simulation and makes no alerts.in.ua requests. |
 | `DATA_SOURCE` | – | `simulation` or `alerts_in_ua`, to choose explicitly |
 | `TRACKING` | `auto` | How tracks are built: `auto` (sightings when the source has them, else alerts), `alerts`, `sightings`, or `fused` (both into one picture; see [trajectory tracking](./trajectory-tracking.md) §2.6) |
 | `TELEGRAM_CHANNELS` | – | Public Telegram warning channels to fuse into tracking, comma-separated (e.g. `kpszsu`, the Air Force). Read from `t.me/s/<channel>`, no key; their alerts feed tracks only and are never served as alerts. The parser reads only the Air Force's wording, so other channels yield wrong or no alerts. Production sets `kpszsu` in `docker-compose.yaml` |

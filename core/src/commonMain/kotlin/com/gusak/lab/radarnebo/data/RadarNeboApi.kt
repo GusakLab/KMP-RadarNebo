@@ -57,6 +57,16 @@ class RadarNeboApi(
         null
     }
 
+    /** The occupied territory, whose edge is the frontline; null on any failure, or from a server without it. */
+    suspend fun frontline(endpoint: ServerEndpoint): FrontlineResponse? = try {
+        val response = client.get(endpoint.resolve(FRONTLINE_PATH)) { authorize(endpoint) }
+        if (response.status == HttpStatusCode.OK) response.body<FrontlineResponse>() else null
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        null
+    }
+
     /** The server's health; null when it can't be reached or doesn't answer. Needs no access key. */
     suspend fun health(endpoint: ServerEndpoint): ServerHealth? = try {
         val response = client.get(endpoint.resolve(HEALTH_PATH))
@@ -81,6 +91,7 @@ class RadarNeboApi(
         const val TRACKS_PATH: String = "/v1/drones/tracks.json"
         const val POSITIONS_PATH: String = "/v1/drones/positions.json"
         const val TRACK_ARCHIVE_PATH: String = "/v1/drones/archive.json"
+        const val FRONTLINE_PATH: String = "/v1/frontline.json"
         const val HEALTH_PATH: String = "/health"
 
         val json: Json = Json {

@@ -2,6 +2,7 @@ package com.gusak.lab.radarnebo.server
 
 import com.gusak.lab.radarnebo.debug.TrafficRecorder
 import com.gusak.lab.radarnebo.server.application.AlertsDataSource
+import com.gusak.lab.radarnebo.server.application.FrontlineService
 import com.gusak.lab.radarnebo.server.application.SituationPoller
 import com.gusak.lab.radarnebo.server.application.SituationService
 import com.gusak.lab.radarnebo.server.application.UpstreamGuard
@@ -11,6 +12,7 @@ import com.gusak.lab.radarnebo.server.config.ServerConfig
 import com.gusak.lab.radarnebo.server.config.TrackingMode
 import com.gusak.lab.radarnebo.server.di.observabilityModule
 import com.gusak.lab.radarnebo.server.domain.alert.LocationDirectory
+import com.gusak.lab.radarnebo.server.domain.frontline.FrontlineSource
 import com.gusak.lab.radarnebo.server.domain.tracking.ObservationTracking
 import com.gusak.lab.radarnebo.server.domain.tracking.TargetTracking
 import com.gusak.lab.radarnebo.server.infrastructure.CompositeAlertsSource
@@ -19,6 +21,7 @@ import com.gusak.lab.radarnebo.server.infrastructure.simulation.SimulatedAlertsS
 import com.gusak.lab.radarnebo.server.infrastructure.tracking.AlertDerivedTracking
 import com.gusak.lab.radarnebo.server.infrastructure.tracking.FusedTracking
 import com.gusak.lab.radarnebo.server.infrastructure.upstream.AlertsInUaSource
+import com.gusak.lab.radarnebo.server.infrastructure.upstream.DeepStateFrontlineSource
 import com.gusak.lab.radarnebo.server.infrastructure.upstream.TelegramChannelSource
 import com.gusak.lab.radarnebo.server.infrastructure.upstream.UpstreamRateLimiter
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
@@ -33,11 +36,13 @@ class ServerComponents internal constructor(
     internal val config: ServerConfig,
     val situation: SituationService,
     val poller: SituationPoller,
+    internal val frontline: FrontlineService,
     val clock: () -> Long,
     /** Receives the server's HTTP traffic, both ways; the server console sets it. */
     internal val traffic: TrafficRecorder? = null,
     internal val metrics: PrometheusMeterRegistry,
     private val archives: Archives,
+    private val frontlineSource: FrontlineSource,
     private val koin: KoinApplication,
     private val tracing: ServerTracing?,
 ) : AutoCloseable {
@@ -51,14 +56,15 @@ class ServerComponents internal constructor(
     internal val openTelemetry: OpenTelemetry? get() = tracing?.openTelemetry
 
     /**
-     * Releases what the components hold: the alerts.in.ua HTTP client, the archive pool, tracing and the
-     * local Koin container. Safe to call more than once.
+     * Releases what the components hold: the alerts.in.ua and frontline HTTP clients, the archive pool, tracing
+     * and the local Koin container. Safe to call more than once.
      */
     override fun close() {
         if (!closed.compareAndSet(false, true)) return
         try {
             poller.source.close()
         } finally {
+            runCatching { frontlineSource.close() }
             runCatching { archives.close() }
             runCatching { tracing?.close() }
             runCatching { koin.close() }
@@ -83,6 +89,8 @@ class ServerComponents internal constructor(
             /** Further feeds fused into tracking only (see [CompositeAlertsSource]); clients are served [source]. */
             extraSources: List<AlertsDataSource> =
                 config.telegramChannels.map { TelegramChannelSource(it, clock = clock) },
+            /** Read only when a client asks for the frontline, so a server nobody asks makes no request. */
+            frontlineSource: FrontlineSource = DeepStateFrontlineSource(),
         ): ServerComponents {
             // One container per server. Two servers on one machine must not share a registry or a breaker.
             // Never GlobalContext.startKoin.
@@ -107,12 +115,14 @@ class ServerComponents internal constructor(
                 )
                 val poller = SituationPoller(polled, situation, config.archive.retention, clock, upstream)
                 return ServerComponents(
-                    config, situation, poller, clock, traffic, metrics, archives, koinApp, tracing,
+                    config, situation, poller, FrontlineService(frontlineSource, clock), clock, traffic, metrics,
+                    archives, frontlineSource, koinApp, tracing,
                 )
             } catch (e: Throwable) {
                 runCatching { tracing?.close() }
                 runCatching { koinApp.close() }
                 runCatching { archives.close() }
+                runCatching { frontlineSource.close() }
                 throw e
             }
         }

@@ -34,7 +34,7 @@ import kotlin.time.Instant
  * polled through [RefreshAlertsUseCase] and turned into what the screens show by [BuildThreatPictureUseCase].
  */
 class AppViewModel(
-    settingsRepository: SettingsRepository,
+    private val settingsRepository: SettingsRepository,
     favoritesRepository: FavoritesRepository,
     private val refreshAlerts: RefreshAlertsUseCase,
     private val buildThreatPicture: BuildThreatPictureUseCase,
@@ -111,6 +111,7 @@ class AppViewModel(
                         simulated = update.snapshot.simulated,
                         serverHealth = update.snapshot.health,
                         nextRetryAt = null,
+                        frontline = update.snapshot.frontline,
                     )
                 }
                 recompute()
@@ -155,7 +156,10 @@ class AppViewModel(
     }
 
     internal fun updateSettings(transform: (AppSettings) -> AppSettings) {
+        val hadFrontline = _state.value.settings.showFrontline
         val update = updateSettingsUseCase(transform)
+        // Switched on: poll now, so the frontline shows at once rather than at the next poll.
+        if (!hadFrontline && settingsRepository.settings.value.showFrontline) startPolling()
         if (update.sourceChanged) {
             snapshot = null
             _state.update {
@@ -168,6 +172,7 @@ class AppViewModel(
                     serverHealth = null,
                     lastUpdated = null,
                     nextRetryAt = null,
+                    frontline = emptyList(),
                 )
             }
             startPolling()

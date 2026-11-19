@@ -2,8 +2,10 @@ package com.gusak.lab.radarnebo.server.api
 
 import kotlin.test.assertNotNull
 import com.gusak.lab.radarnebo.geo.GeoMath
+import com.gusak.lab.radarnebo.geo.GeoPoint
 import com.gusak.lab.radarnebo.tracking.PositionMode
 import com.gusak.lab.radarnebo.data.ActiveAlertsResponse
+import com.gusak.lab.radarnebo.data.FrontlineResponse
 import com.gusak.lab.radarnebo.data.RadarNeboApi
 import com.gusak.lab.radarnebo.data.ThreatLevel
 import com.gusak.lab.radarnebo.server.Archives
@@ -23,6 +25,7 @@ import com.gusak.lab.radarnebo.server.config.UpstreamConfig
 import com.gusak.lab.radarnebo.server.domain.alert.AirAlert
 import com.gusak.lab.radarnebo.server.domain.alert.AirRaidStatusMap
 import com.gusak.lab.radarnebo.server.domain.alert.AlertArchive
+import com.gusak.lab.radarnebo.server.domain.frontline.FrontlineSource
 import com.gusak.lab.radarnebo.server.infrastructure.persistence.InMemoryAlertArchive
 import com.gusak.lab.radarnebo.server.infrastructure.persistence.InMemoryTrackArchive
 import com.gusak.lab.radarnebo.server.radarServer
@@ -81,9 +84,16 @@ private class ScriptedSource(private val clock: () -> Long) : AlertsDataSource {
     }
 }
 
+/** A frontline source that reports whatever the test sets; null stands for a source that can't be read. */
+private class ScriptedFrontline : FrontlineSource {
+    var areas: List<List<GeoPoint>>? = null
+    override suspend fun fetch(): List<List<GeoPoint>>? = areas
+}
+
 class RadarApiTest {
     private var now = Fixtures.T0.toEpochMilliseconds()
     private val source = ScriptedSource { now }
+    private val frontline = ScriptedFrontline()
     private val json = Json { ignoreUnknownKeys = true }
 
     private fun ApplicationTestBuilder.server(
@@ -97,6 +107,7 @@ class RadarApiTest {
             traffic = traffic,
             source = source,
             archives = archives,
+            frontlineSource = frontline,
         )
         application { radarServer(components, startPoller = false) }
         return components
@@ -528,5 +539,21 @@ class RadarApiTest {
             assertEquals("degraded", health.status)
             assertEquals(now + 1_000, health.nextPollAt)
         }
+    }
+
+    @Test
+    fun theFrontlineIsServedOnceItsSourceHasBeenRead() = testApplication {
+        server()
+
+        assertEquals(HttpStatusCode.ServiceUnavailable, client.get(RadarNeboApi.FRONTLINE_PATH).status)
+
+        frontline.areas = listOf(listOf(GeoPoint(48.0, 37.5), GeoPoint(48.1, 37.6), GeoPoint(48.0, 37.7)))
+        now += 5.minutes.inWholeMilliseconds
+        val (status, body) = text(RadarNeboApi.FRONTLINE_PATH)
+        val response = RadarNeboApi.json.decodeFromString(FrontlineResponse.serializer(), body)
+
+        assertEquals(HttpStatusCode.OK, status)
+        assertEquals(now, response.fetchedAt)
+        assertEquals(listOf(37.5, 48.0, 37.6, 48.1, 37.7, 48.0), response.areas.single().lonLat)
     }
 }

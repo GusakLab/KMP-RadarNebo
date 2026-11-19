@@ -60,7 +60,12 @@ internal fun GlassDialog(
 ) {
     val colors = radarColors
     // Not [modifier]: that insets the panel, while the scrim must reach under the system bars and cutouts.
-    AnimatedVisibility(visible, Modifier.fillMaxSize(), enter = fadeIn(tween(GlassScrimFadeMillis)), exit = fadeOut(tween(GlassScrimFadeMillis))) {
+    AnimatedVisibility(
+        visible,
+        Modifier.fillMaxSize(),
+        enter = fadeIn(tween(GlassScrimFadeMillis)),
+        exit = fadeOut(tween(GlassScrimFadeMillis)),
+    ) {
         Box(
             Modifier
                 .fillMaxSize()

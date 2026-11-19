@@ -62,7 +62,8 @@ class AppUiTest {
         need(By.text("Favorite places"))
         // Just below the status bar, whose own window takes the touches on it; the panel keeps a margin from there.
         val resources = ApplicationProvider.getApplicationContext<Context>().resources
-        val statusBar = resources.getDimensionPixelSize(resources.getIdentifier("status_bar_height", "dimen", "android"))
+        val statusBarId = resources.getIdentifier("status_bar_height", "dimen", "android")
+        val statusBar = resources.getDimensionPixelSize(statusBarId)
         device.click(device.displayWidth / 2, statusBar + (6 * resources.displayMetrics.density).toInt())
         assertTrue("Favorites should close", device.wait(Until.gone(By.text("Favorite places")), TIMEOUT))
     }
@@ -73,7 +74,8 @@ class AppUiTest {
         need(By.text("Favorite places"))
         need(By.text("Settings")).click()
         need(By.text("APPEARANCE"))
-        assertTrue("Favorites should give way to Settings", device.wait(Until.gone(By.text("Favorite places")), TIMEOUT))
+        val favoritesGone = device.wait(Until.gone(By.text("Favorite places")), TIMEOUT)
+        assertTrue("Favorites should give way to Settings", favoritesGone)
         // Settings has a "Map" button of its own; the bar's tab is the lowest one.
         need(By.text("Map"))
         device.findObjects(By.text("Map")).maxBy { it.visibleBounds.bottom }.click()
@@ -120,7 +122,8 @@ class AppUiTest {
         for (theme in listOf("Dark", "Light", "System")) {
             tap(By.text(theme))
             // A segmented button is a radio button to accessibility services, so its state is "checked".
-            assertTrue("$theme should be selected", device.wait(Until.hasObject(By.checked(true).hasDescendant(By.text(theme))), TIMEOUT))
+            val selected = Until.hasObject(By.checked(true).hasDescendant(By.text(theme)))
+            assertTrue("$theme should be selected", device.wait(selected, TIMEOUT))
         }
 
         for (section in listOf("ALERTS & TRACKING", "TARGET TYPES")) {
@@ -157,7 +160,8 @@ class AppUiTest {
     /** Taps the Remove button on the row showing [place], which may not be the only favorite. */
     private fun removeFavorite(place: String) {
         val row = need(By.text(place)).visibleBounds
-        val remove = device.findObjects(By.text("Remove")).first { it.visibleBounds.centerY() in row.top - ROW_SLOP..row.bottom + ROW_SLOP }
+        val rowSpan = row.top - ROW_SLOP..row.bottom + ROW_SLOP
+        val remove = device.findObjects(By.text("Remove")).first { it.visibleBounds.centerY() in rowSpan }
         remove.click()
         assertTrue("$place should be gone", device.wait(Until.gone(By.text(place)), TIMEOUT))
     }

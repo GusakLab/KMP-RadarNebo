@@ -2,7 +2,7 @@ package com.gusak.lab.radarnebo.data
 
 import com.gusak.lab.radarnebo.tracking.DroneTrack
 import kotlin.time.Clock
-import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
 
 /**
@@ -40,7 +40,7 @@ class AlertsRepository(
     }
 
     /**
-     * The frontline moves over days and is the largest response by far, so it is fetched once an hour, not on
+     * The frontline moves over days and is the largest response by far, so it is fetched once a day, not on
      * every poll. A failed request keeps the previous one and is tried again in a few minutes.
      */
     private suspend fun refreshFrontline(endpoint: ServerEndpoint) {
@@ -63,7 +63,7 @@ class AlertsRepository(
     }
 
     private companion object {
-        val FRONTLINE_REFRESH = 1.hours
+        val FRONTLINE_REFRESH = 1.days
         val FRONTLINE_RETRY = 5.minutes
     }
 }

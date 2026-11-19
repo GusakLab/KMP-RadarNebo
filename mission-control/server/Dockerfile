@@ -13,6 +13,11 @@ RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get upgrade -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
+# The base image ships Canonical's Pebble service manager, a Go binary this image never runs: the entrypoint is
+# java. A fix for its Go runtime reaches it only when the base image is rebuilt, and until then the Trivy scan
+# stops the deploy (CVE-2026-97054 did), so it is removed.
+RUN rm -f /usr/bin/pebble
+
 # State (the SQLite archive, and the single-instance lock under $HOME/.radarnebo) lives in the /data volume.
 ENV HOME=/data \
     ARCHIVE_JDBC_URL=jdbc:sqlite:/data/radarnebo-archive.db \

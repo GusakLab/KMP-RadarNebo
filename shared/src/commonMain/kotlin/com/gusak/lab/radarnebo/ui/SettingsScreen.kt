@@ -157,7 +157,7 @@ private fun MapSection(settings: AppSettings, onChange: SettingsChange) {
         SectionDivider()
         SwitchSetting(
             title = "Frontline",
-            description = "Outline the territory Russia occupies. From DeepStateMap, refreshed hourly.",
+            description = "Outline the territory Russia occupies. From DeepStateMap, refreshed daily.",
             checked = settings.showFrontline,
             onCheckedChange = { v -> onChange { it.copy(showFrontline = v) } },
         )

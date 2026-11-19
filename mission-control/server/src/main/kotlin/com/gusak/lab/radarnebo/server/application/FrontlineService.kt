@@ -5,7 +5,7 @@ import com.gusak.lab.radarnebo.server.domain.frontline.FrontlineSource
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
 
 /**
@@ -16,7 +16,7 @@ import kotlin.time.Duration.Companion.minutes
 internal class FrontlineService(
     private val source: FrontlineSource,
     private val clock: () -> Long = System::currentTimeMillis,
-    private val refreshEvery: Duration = 1.hours,
+    private val refreshEvery: Duration = 1.days,
     private val retryAfter: Duration = 5.minutes,
 ) {
     // Held while reading the source, so clients asking at the same moment cause one request, not one each.

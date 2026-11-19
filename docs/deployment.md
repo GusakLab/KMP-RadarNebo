@@ -74,7 +74,7 @@ goes through the proxy, as in the compose deployment; anywhere else leave it `fa
 
 `/v1/drones/archive.json` covers a window of at most 7 days, with `limit` at most 200 (the default); more is a 400.
 
-`/v1/frontline.json` is read from `deepstatemap.live` when a client asks for it, at most once an hour (a failed read
+`/v1/frontline.json` is read from `deepstatemap.live` when a client asks for it, at most once a day (a failed read
 is retried after five minutes), so the server needs outbound HTTPS to that host. It answers 503 until the first read
 succeeds; the apps then draw no frontline.
 

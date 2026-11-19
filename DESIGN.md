@@ -207,7 +207,7 @@ flowchart TB
   op -- runs and monitors --> rn
   rn -- polls ≤ 8/min --> up
   rn -- fetches tiles --> osm
-  rn -- reads the frontline ≤ 1/hour --> ds
+  rn -- reads the frontline ≤ 1/day --> ds
 ```
 
 ### C4 Level 2 — Containers
@@ -305,8 +305,8 @@ move to versioned migrations when the first column is renamed or dropped (deferr
 - Contract-first: the alerts.in.ua JSON is the contract; RadarNebo extensions live under `/v1/drones/*` and
   `/v1/frontline.json`.
 - The frontline (`/v1/frontline.json`) is the occupied territory from DeepStateMap's public map API, real also
-  when the alerts are simulated. The server reads it only when a client asks, keeps it for an hour and retries a
-  failed read after five minutes, so DeepStateMap sees at most one request an hour. The API is unofficial: it has
+  when the alerts are simulated. The server reads it only when a client asks, keeps it for a day and retries a
+  failed read after five minutes, so DeepStateMap sees at most one request a day. The API is unofficial: it has
   no published contract or terms for reuse.
 - Idempotency: all client calls are GETs. Responses are not cached (no `ETag`/`Last-Modified`): every poll gets the
   latest data in full, answered from memory and gzipped over 1 KB; `X-Data-Age-Seconds` tells its age.

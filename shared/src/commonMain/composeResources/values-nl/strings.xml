@@ -180,7 +180,7 @@
     <string name="settings_max_drones">Drones op de kaart</string>
     <string name="settings_max_drones_description">Maximaal aantal drones tegelijk; minder houdt de kaart overzichtelijk en snel.</string>
     <string name="settings_frontline">Frontlijn</string>
-    <string name="settings_frontline_description">Omlijnt het gebied dat Rusland bezet. Van DeepStateMap, elk uur ververst.</string>
+    <string name="settings_frontline_description">Omlijnt het gebied dat Rusland bezet. Van DeepStateMap, dagelijks ververst.</string>
     <string name="settings_warning_radius">Waarschuwingsstraal</string>
     <string name="settings_warning_radius_description">Dreigingen zo dicht bij een favoriete plek geven een waarschuwing.</string>
     <string name="settings_drones_only">Alleen drones</string>

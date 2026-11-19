@@ -9,5 +9,8 @@ class RefreshAlertsUseCase(
     private val alerts: AlertsRepository,
     private val settings: SettingsRepository,
 ) {
-    suspend operator fun invoke(): AlertsUpdate = alerts.refresh(settings.settings.value.endpoint)
+    suspend operator fun invoke(): AlertsUpdate {
+        val current = settings.settings.value
+        return alerts.refresh(current.endpoint, withFrontline = current.showFrontline)
+    }
 }

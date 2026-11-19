@@ -154,6 +154,13 @@ private fun MapSection(settings: AppSettings, onChange: SettingsChange) {
             format = { "$it" },
             onChange = { v -> onChange { it.copy(maxMapMarkers = v) } },
         )
+        SectionDivider()
+        SwitchSetting(
+            title = "Frontline",
+            description = "Outline the territory Russia occupies. From DeepStateMap, refreshed hourly.",
+            checked = settings.showFrontline,
+            onCheckedChange = { v -> onChange { it.copy(showFrontline = v) } },
+        )
     }
 }
 

@@ -198,6 +198,8 @@ drift; the original literal is the reliable anchor. `shared/…/` = `shared/src/
 | `map_background_satellite` | shared/…/ui/SettingsScreen.kt:113 | `` MapBackground.Satellite -> "Satellite" `` | Satellite |  |
 | `settings_max_drones` | shared/…/ui/SettingsScreen.kt:121 | `` title = "Drones on the map", `` | Drones on the map |  |
 | `settings_max_drones_description` | shared/…/ui/SettingsScreen.kt:122 | `` description = "The most drones drawn at once; fewer keeps the map readable and fast.", `` | The most drones drawn at once; fewer keeps the map readable and fast. |  |
+| `settings_frontline` | shared/…/ui/SettingsScreen.kt:159 | `` title = "Frontline", `` | Frontline |  |
+| `settings_frontline_description` | shared/…/ui/SettingsScreen.kt:160 | `` description = "Outline the territory Russia occupies. From DeepStateMap, refreshed hourly.", `` | Outline the territory Russia occupies. From DeepStateMap, refreshed hourly. | "DeepStateMap" is a proper name |
 | `settings_warning_radius` | shared/…/ui/SettingsScreen.kt:132<br>shared/…/ui/MapScreen.kt:774 | `` title = "Warning radius", `` | Warning radius |  |
 | `settings_warning_radius_description` | shared/…/ui/SettingsScreen.kt:133 | `` description = "Threats this close to a favorite place raise a warning.", `` | Threats this close to a favorite place raise a warning. |  |
 | `settings_drones_only` | shared/…/ui/SettingsScreen.kt:141 | `` title = "Drones only", `` | Drones only |  |

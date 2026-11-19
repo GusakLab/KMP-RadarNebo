@@ -35,6 +35,7 @@ fun Application.radarServer(components: ServerComponents, startPoller: Boolean =
     radarApi(
         situation = components.situation,
         poller = components.poller,
+        frontline = components.frontline,
         clients = config.clients,
         upstreamBudgetPerMinute = components.upstreamBudgetPerMinute,
         metrics = components.metrics,

@@ -202,10 +202,12 @@ flowchart TB
   rn[RadarNebo system]
   up[(alerts.in.ua API)]
   osm[(Map tile server)]
+  ds[(DeepStateMap API)]
   user -- views threats --> rn
   op -- runs and monitors --> rn
   rn -- polls ≤ 8/min --> up
   rn -- fetches tiles --> osm
+  rn -- reads the frontline ≤ 1/hour --> ds
 ```
 
 ### C4 Level 2 — Containers
@@ -224,11 +226,13 @@ flowchart TB
   end
   db[(SQLite archive)]
   up[(alerts.in.ua)]
+  ds[(DeepStateMap)]
   android & ios & desktop -- "HTTP JSON, bearer key" --> srv
   embedded -- "HTTP localhost:port" --> srv
   ui -- "in-process: state, traffic, clients" --> srv
   srv -- Exposed --> db
   srv -- HTTPS --> up
+  srv -- "HTTPS, on demand" --> ds
 ```
 
 The server also runs headless (`:mission-control:server:run`); the console is an optional host.
@@ -298,7 +302,12 @@ move to versioned migrations when the first column is renamed or dropped (deferr
 ### Integration & APIs
 
 - Sync HTTP everywhere; the only async boundary is the server's internal poller.
-- Contract-first: the alerts.in.ua JSON is the contract; RadarNebo extensions live under `/v1/drones/*`.
+- Contract-first: the alerts.in.ua JSON is the contract; RadarNebo extensions live under `/v1/drones/*` and
+  `/v1/frontline.json`.
+- The frontline (`/v1/frontline.json`) is the occupied territory from DeepStateMap's public map API, real also
+  when the alerts are simulated. The server reads it only when a client asks, keeps it for an hour and retries a
+  failed read after five minutes, so DeepStateMap sees at most one request an hour. The API is unofficial: it has
+  no published contract or terms for reuse.
 - Idempotency: all client calls are GETs. Responses are not cached (no `ETag`/`Last-Modified`): every poll gets the
   latest data in full, answered from memory and gzipped over 1 KB; `X-Data-Age-Seconds` tells its age.
 - Backpressure: upstream limiter; per-client limits on history (`HISTORY_REQUESTS_PER_MINUTE`) and the track archive (`ARCHIVE_REQUESTS_PER_MINUTE`, at most 200 tracks over 7 days per call).

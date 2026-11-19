@@ -2,6 +2,7 @@ package com.gusak.lab.radarnebo.ui
 
 import com.gusak.lab.radarnebo.data.AppSettings
 import com.gusak.lab.radarnebo.data.FavoriteLocation
+import com.gusak.lab.radarnebo.data.FrontlineArea
 import com.gusak.lab.radarnebo.data.ServerHealth
 import com.gusak.lab.radarnebo.domain.ProximityHit
 import com.gusak.lab.radarnebo.domain.ThreatMarker
@@ -33,4 +34,6 @@ data class UiState(
     val serverHealth: ServerHealth? = null,
     /** When the app tries the server again after a failed poll; null while polls succeed. */
     val nextRetryAt: Instant? = null,
+    /** The occupied territory to outline on the map; empty while the setting is off or nothing was fetched. */
+    val frontline: List<FrontlineArea> = emptyList(),
 )

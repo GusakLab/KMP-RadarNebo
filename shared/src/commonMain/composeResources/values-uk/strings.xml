@@ -179,6 +179,8 @@
     <!-- settings -->
     <string name="settings_max_drones">Дронів на мапі</string>
     <string name="settings_max_drones_description">Найбільша кількість дронів, що показуються одночасно; що менше — то мапа читабельніша й швидша.</string>
+    <string name="settings_frontline">Лінія фронту</string>
+    <string name="settings_frontline_description">Контур території, окупованої Росією. Дані DeepStateMap, оновлюються щогодини.</string>
     <string name="settings_warning_radius">Радіус попередження</string>
     <string name="settings_warning_radius_description">Загрози на такій відстані від обраного місця викликають попередження.</string>
     <string name="settings_drones_only">Лише дрони</string>

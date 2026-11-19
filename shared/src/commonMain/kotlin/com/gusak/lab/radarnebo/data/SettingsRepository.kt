@@ -52,6 +52,7 @@ class SettingsRepository(
             targetWindowMinutes = storage.getString(K_TARGET_WINDOW)?.toIntOrNull()
                 ?.coerceIn(AppSettings.TARGET_WINDOW_RANGE) ?: AppSettings.DEFAULT_TARGET_WINDOW_MINUTES,
             mapBackground = storage.getEnum<MapBackground>(K_MAP_BACKGROUND) ?: MapBackground.Streets,
+            showFrontline = storage.getString(K_FRONTLINE)?.toBooleanStrictOrNull() ?: true,
         )
 
     /** The constant of [T] named by the value stored at [key]; null when nothing or an unknown name is stored. */
@@ -70,6 +71,7 @@ class SettingsRepository(
         storage.putString(K_HIDE_PROBABLE, settings.targetFilter.hideProbable.toString())
         storage.putString(K_TARGET_WINDOW, settings.targetWindowMinutes.toString())
         storage.putString(K_MAP_BACKGROUND, settings.mapBackground.name)
+        storage.putString(K_FRONTLINE, settings.showFrontline.toString())
     }
 
     private companion object {
@@ -85,5 +87,6 @@ class SettingsRepository(
         const val K_HIDE_PROBABLE = "targets_hide_probable"
         const val K_TARGET_WINDOW = "targets_window_minutes"
         const val K_MAP_BACKGROUND = "map_background"
+        const val K_FRONTLINE = "map_frontline"
     }
 }

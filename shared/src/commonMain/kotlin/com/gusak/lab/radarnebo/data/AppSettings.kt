@@ -16,6 +16,8 @@ data class AppSettings(
     /** Targets last seen and alert threats started longer ago than this are hidden; targets in flight always show. */
     val targetWindowMinutes: Int = DEFAULT_TARGET_WINDOW_MINUTES,
     val mapBackground: MapBackground = MapBackground.Streets,
+    /** Outline the territory Russia occupies; the app fetches it only while this is on. */
+    val showFrontline: Boolean = true,
 ) {
     internal val endpoint: ServerEndpoint get() = ServerEndpoint(serverUrl.trim(), accessKey.trim())
 

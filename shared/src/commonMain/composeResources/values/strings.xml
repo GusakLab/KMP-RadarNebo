@@ -179,6 +179,8 @@
     <!-- settings -->
     <string name="settings_max_drones">Drones on the map</string>
     <string name="settings_max_drones_description">The most drones drawn at once; fewer keeps the map readable and fast.</string>
+    <string name="settings_frontline">Frontline</string>
+    <string name="settings_frontline_description">Outline the territory Russia occupies. From DeepStateMap, refreshed hourly.</string>
     <string name="settings_warning_radius">Warning radius</string>
     <string name="settings_warning_radius_description">Threats this close to a favorite place raise a warning.</string>
     <string name="settings_drones_only">Drones only</string>

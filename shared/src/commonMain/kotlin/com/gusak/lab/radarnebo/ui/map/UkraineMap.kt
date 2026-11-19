@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.PathFillType
+import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -67,6 +68,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.toSize
 import com.gusak.lab.radarnebo.data.FavoriteLocation
+import com.gusak.lab.radarnebo.data.FrontlineArea
 import com.gusak.lab.radarnebo.data.MapBackground
 import com.gusak.lab.radarnebo.data.ThemeMode
 import com.gusak.lab.radarnebo.data.ThreatLevel
@@ -128,6 +130,20 @@ private fun buildOblastPaths(): List<OblastPath> = UkraineGeometry.oblasts.map {
     OblastPath(shape.uid, path)
 }
 
+/**
+ * The occupied territory as one outline. The areas are united, so no line is drawn where two of them meet:
+ * between the territory occupied since 2014 and since 2022 there is no front.
+ */
+private fun buildFrontlinePath(areas: List<FrontlineArea>): Path = areas.fold(Path()) { united, area ->
+    val ring = Path()
+    for (i in 0 until area.lonLat.size / 2) {
+        val p = MapProjection.toWorld(GeoPoint(lat = area.lonLat[i * 2 + 1], lon = area.lonLat[i * 2]))
+        if (i == 0) ring.moveTo(p.x, p.y) else ring.lineTo(p.x, p.y)
+    }
+    ring.close()
+    Path.combine(PathOperation.Union, united, ring)
+}
+
 /** Every oblast in one path: the whole country. */
 private fun buildCountryPath(paths: List<OblastPath>) = Path().apply { paths.forEach { addPath(it.path) } }
 
@@ -179,6 +195,8 @@ fun UkraineMap(
     pendingFavorite: GeoPoint? = null,
     /** Real map drawn under the oblasts, from [LocalMapTiles]; null draws the plain background. */
     tileSource: TileSource? = null,
+    /** The occupied territory, outlined over the oblasts; its edge inside Ukraine is the frontline. */
+    frontline: List<FrontlineArea> = emptyList(),
     onCameraChange: ((MapCamera) -> Unit)? = null,
     onSelect: (MapSelection?) -> Unit = {},
     onLongPress: (GeoPoint) -> Unit = {},
@@ -197,7 +215,7 @@ fun UkraineMap(
     val taps = rememberTapTargets(threats, favorites, tracks, clockOffsetMs, clock, onSelect, onLongPress)
     val content = MapContent(
         threats, alertedOblasts, favorites, alertedFavoriteIds, proximityRadiusKm, highlightedThreatId,
-        selectedTrackId, predictionPlaces, tracks, pendingFavorite,
+        selectedTrackId, predictionPlaces, tracks, pendingFavorite, frontline,
         serverNow = { clock() + clockOffsetMs },
     )
     val scene = rememberMapScene(camera, tileSource, control, content)
@@ -422,6 +440,7 @@ private class MapContent(
     val predictionPlaces: List<Place>,
     val tracks: List<DroneTrack>,
     val pendingFavorite: GeoPoint?,
+    val frontline: List<FrontlineArea>,
     /** Server time now, in epoch milliseconds; read while drawing. */
     val serverNow: () -> Long,
 ) {
@@ -444,6 +463,8 @@ private class MapScene(
     val tiles: TileLookup?,
     val oblasts: List<OblastPath>,
     val country: Path,
+    /** [MapContent.frontline] as one outline, in world coordinates. */
+    val frontline: Path,
     val content: MapContent,
     val glyphs: MapGlyphs,
     val labels: CityLabels,
@@ -508,6 +529,7 @@ private fun rememberMapScene(
         tiles = tiles,
         oblasts = paths,
         country = country,
+        frontline = remember(content.frontline) { buildFrontlinePath(content.frontline) },
         content = content,
         glyphs = remember(content.threats, content.tracks) { MapGlyphs(content.threats, content.tracks) },
         labels = remember(textMeasurer) { CityLabels(textMeasurer) },
@@ -589,7 +611,19 @@ private fun DrawScope.drawOblasts(scene: MapScene, scale: Float) {
             if (alerted.containsKey(uid)) drawCircle(colors.oblastAlertFull, radius = 0.09f, center = center)
             drawCircle(colors.oblastBorder, radius = 0.09f, center = center, style = Stroke(1.1f / scale))
         }
+        drawFrontline(scene, scale)
     }
+}
+
+/**
+ * The frontline, in world coordinates like the oblasts: a line in the label colour over a wider one in the
+ * halo colour, so it reads over alert shading, tiles and imagery alike.
+ */
+private fun DrawScope.drawFrontline(scene: MapScene, scale: Float) {
+    val ink = MapInk.over(scene.tileSource, scene.colors)
+    val width = 1.5.dp.toPx() / scale
+    drawPath(scene.frontline, ink.halo, style = Stroke(width * 2, join = StrokeJoin.Round))
+    drawPath(scene.frontline, ink.label, style = Stroke(width, join = StrokeJoin.Round))
 }
 
 /** City dots and names, kept clear of the favorites, which draw their own name. */

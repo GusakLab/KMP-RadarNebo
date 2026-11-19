@@ -1,5 +1,6 @@
 package com.gusak.lab.radarnebo.server.api
 
+import com.gusak.lab.radarnebo.server.application.FrontlineService
 import com.gusak.lab.radarnebo.server.application.SituationPoller
 import com.gusak.lab.radarnebo.server.application.SituationService
 import com.gusak.lab.radarnebo.server.config.ClientApiConfig
@@ -54,7 +55,8 @@ private const val CLIENT_AUTH = "client-key"
 
 /**
  * The server's HTTP API: the alerts.in.ua API ([alertsInUaRoutes], [alertHistoryRoutes]) served from the
- * server's own data, RadarNebo's tracking API ([trackingRoutes]) and a health check.
+ * server's own data, RadarNebo's tracking API ([trackingRoutes]), the frontline ([frontlineRoutes]) and a health
+ * check.
  *
  * Like alerts.in.ua, clients authenticate with `Authorization: Bearer <key>` or `?token=<key>` when
  * [ClientApiConfig.keys] is set, are rate limited per IP (history and the track archive separately) and get
@@ -64,6 +66,7 @@ private const val CLIENT_AUTH = "client-key"
 internal fun Application.radarApi(
     situation: SituationService,
     poller: SituationPoller,
+    frontline: FrontlineService,
     clients: ClientApiConfig,
     upstreamBudgetPerMinute: Int?,
     metrics: PrometheusMeterRegistry,
@@ -86,7 +89,7 @@ internal fun Application.radarApi(
             healthRoutes(situation, poller, upstreamBudgetPerMinute, clock)
             metricsRoute(metrics)
         }
-        clientRoutes(situation, poller, clock, authRequired)
+        clientRoutes(situation, poller, frontline, clock, authRequired)
     }
 }
 
@@ -132,6 +135,7 @@ private fun Application.installTransport(clients: ClientApiConfig, traffic: Traf
 private fun Route.clientRoutes(
     situation: SituationService,
     poller: SituationPoller,
+    frontline: FrontlineService,
     clock: () -> Long,
     authRequired: Boolean,
 ) {
@@ -141,6 +145,7 @@ private fun Route.clientRoutes(
         clientRoute(authRequired) {
             alertsInUaRoutes(situation, clock)
             trackingRoutes(situation, pollInterval, clock)
+            frontlineRoutes(frontline)
         }
     }
     rateLimit(HISTORY) {

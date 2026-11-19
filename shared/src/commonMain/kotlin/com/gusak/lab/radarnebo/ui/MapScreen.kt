@@ -90,6 +90,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.gusak.lab.radarnebo.data.AppSettings
+import com.gusak.lab.radarnebo.data.FrontlineArea
 import com.gusak.lab.radarnebo.data.MapMode
 import com.gusak.lab.radarnebo.data.TargetFilter
 import com.gusak.lab.radarnebo.data.ThemeMode
@@ -462,6 +463,7 @@ private fun StaticMap(
         predictionPlaces = data.predictionPlaces,
         tracks = state.tracks,
         clockOffsetMs = state.clockOffsetMs,
+        frontline = shownFrontline(state),
         onCameraChange = {
             // Panning lets go of the followed target; zooming keeps it in the middle.
             if (it.zoom == screen.staticCamera.zoom) screen.followingSelection = false
@@ -706,6 +708,10 @@ private val CreditHeight = 18.dp
 private fun tileSource(state: UiState): TileSource? =
     if (LocalMapTiles.current == null) null else TileSource.of(state.settings.mapBackground, radarColors.isDark)
 
+/** The frontline the map draws: none once the setting is off, though the last one fetched stays in [state]. */
+private fun shownFrontline(state: UiState): List<FrontlineArea> =
+    if (state.settings.showFrontline) state.frontline else emptyList()
+
 @Composable
 private fun CinematicMap(
     data: MapScreenData,
@@ -736,6 +742,7 @@ private fun CinematicMap(
             predictionPlaces = data.predictionPlaces,
             tracks = state.tracks,
             clockOffsetMs = state.clockOffsetMs,
+            frontline = shownFrontline(state),
             pendingFavorite = pendingFavorite,
             onSelect = onSelect,
             onLongPress = onLongPress,

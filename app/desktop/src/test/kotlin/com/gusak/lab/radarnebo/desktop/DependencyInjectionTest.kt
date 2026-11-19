@@ -50,6 +50,7 @@ class DependencyInjectionTest {
         val body = when (request.url.encodedPath) {
             RadarNeboApi.ACTIVE_ALERTS_PATH -> ALERTS
             RadarNeboApi.TRACKS_PATH -> TRACKS
+            RadarNeboApi.FRONTLINE_PATH -> """{"fetchedAt":1,"areas":[{"lonLat":[37.5,48.0,37.6,48.1,37.7,48.0]}]}"""
             RadarNeboApi.HEALTH_PATH ->
                 """{"status":"degraded","source":"AlertsInUa","lastError":"Upstream returned 500","extra":1}"""
             else -> error("unexpected ${request.url}")
@@ -94,13 +95,21 @@ class DependencyInjectionTest {
     @Test
     fun useCasesWorkThroughTheInjectedRepositories() {
         val k = koin.koin
-        // The app only talks to its server: alerts, the server's tracks, then how the server is doing.
+        // The app only talks to its server: alerts, the server's tracks, the frontline, then how the server is doing.
         val update = runBlocking { k.get<RefreshAlertsUseCase>()() }
         assertTrue(update is AlertsUpdate.Updated && update.snapshot.alerts.isNotEmpty() && update.snapshot.simulated)
-        assertEquals(
-            listOf(RadarNeboApi.ACTIVE_ALERTS_PATH, RadarNeboApi.TRACKS_PATH, RadarNeboApi.HEALTH_PATH),
-            requested,
+        assertEquals(1, update.snapshot.frontline.size)
+        val everyPath = listOf(
+            RadarNeboApi.ACTIVE_ALERTS_PATH, RadarNeboApi.TRACKS_PATH, RadarNeboApi.FRONTLINE_PATH,
+            RadarNeboApi.HEALTH_PATH,
         )
+        assertEquals(everyPath, requested)
+        // The frontline was just fetched and the setting is off: neither poll asks for it again.
+        runBlocking { k.get<RefreshAlertsUseCase>()() }
+        k.get<UpdateSettingsUseCase>()() { it.copy(showFrontline = false) }
+        runBlocking { k.get<RefreshAlertsUseCase>()() }
+        assertEquals(1, requested.count { it == RadarNeboApi.FRONTLINE_PATH })
+        assertEquals("false", storage.getString("map_frontline"))
         val health = assertNotNull(update.snapshot.health)
         assertTrue(
             !health.isOk && health.lastError == "Upstream returned 500",

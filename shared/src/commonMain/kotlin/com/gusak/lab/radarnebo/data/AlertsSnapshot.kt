@@ -13,4 +13,6 @@ data class AlertsSnapshot(
     val simulated: Boolean,
     /** The server's own report on its data source; null if it didn't answer. */
     val health: ServerHealth? = null,
+    /** The occupied territory, whose edge is the frontline; empty when not asked for or not fetched yet. */
+    val frontline: List<FrontlineArea> = emptyList(),
 )

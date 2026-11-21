@@ -1,1 +1,1 @@
-Zoom met één hand op de kaart: dubbeltik en sleep. Verbindingsfouten verschijnen niet meer wanneer de app terugkeert uit de achtergrond, en de statusstrook klapt nu ter plekke uit. De app heeft ook een nieuw pictogram.
+De kaart omlijnt nu het gebied dat Rusland bezet, op basis van DeepStateMap, dagelijks bijgewerkt. Je kunt dit uitzetten in Instellingen.

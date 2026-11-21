@@ -1,1 +1,1 @@
-Zoom the map with one hand: double-tap, then drag. Connection errors no longer appear after the app returns from the background, and the status strip now expands in place. The app also has a new icon.
+The map now outlines the territory Russia occupies, from DeepStateMap, updated daily. You can turn it off in Settings.

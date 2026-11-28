@@ -119,6 +119,7 @@ class ArchiveTest {
             track("a", t, t + 3_600_000),
             archive.history(TrackQuery(t, t + 60_000, ThreatType.Drones)).single(),
         )
+        assertEquals(setOf("a", "m"), archive.idsInAir(t + 60_000, t + 120_000), "ids of tracks in the window")
         assertEquals(2, archive.prune(t + 4_000_000))
         assertEquals(listOf("b"), archive.history(TrackQuery(t, t + 9_000_000)).map { it.id })
     }

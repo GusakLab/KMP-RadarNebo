@@ -3,6 +3,7 @@ package com.gusak.lab.radarnebo.data
 import com.gusak.lab.radarnebo.debug.TrafficRecorder
 import com.gusak.lab.radarnebo.debug.httpTrafficCapture
 import com.gusak.lab.radarnebo.tracking.DroneTracksResponse
+import com.gusak.lab.radarnebo.tracking.TargetStatsResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.call.body
@@ -57,6 +58,16 @@ class RadarNeboApi(
         null
     }
 
+    /** Target counts for today, yesterday and this month; null on any failure, or from a server without them. */
+    suspend fun targetStats(endpoint: ServerEndpoint): TargetStatsResponse? = try {
+        val response = client.get(endpoint.resolve(TARGET_STATS_PATH)) { authorize(endpoint) }
+        if (response.status == HttpStatusCode.OK) response.body<TargetStatsResponse>() else null
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        null
+    }
+
     /** The occupied territory, whose edge is the frontline; null on any failure, or from a server without it. */
     suspend fun frontline(endpoint: ServerEndpoint): FrontlineResponse? = try {
         val response = client.get(endpoint.resolve(FRONTLINE_PATH)) { authorize(endpoint) }
@@ -91,6 +102,7 @@ class RadarNeboApi(
         const val TRACKS_PATH: String = "/v1/drones/tracks.json"
         const val POSITIONS_PATH: String = "/v1/drones/positions.json"
         const val TRACK_ARCHIVE_PATH: String = "/v1/drones/archive.json"
+        const val TARGET_STATS_PATH: String = "/v1/drones/stats.json"
         const val FRONTLINE_PATH: String = "/v1/frontline.json"
         const val HEALTH_PATH: String = "/health"
 

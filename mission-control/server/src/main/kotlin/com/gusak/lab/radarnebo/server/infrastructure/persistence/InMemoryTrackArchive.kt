@@ -18,6 +18,10 @@ internal class InMemoryTrackArchive : TrackArchive {
         .sortedByDescending { it.lastSeen }
         .take(query.limit)
 
+    override suspend fun idsInAir(fromMs: Long, toMs: Long): Set<String> = tracks.values
+        .filter { it.firstSeen <= toMs && it.lastSeen >= fromMs }
+        .mapTo(HashSet()) { it.id }
+
     override suspend fun prune(beforeMs: Long): Int {
         val old = tracks.values.filter { it.lastSeen < beforeMs }
         old.forEach { tracks.remove(it.id) }

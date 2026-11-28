@@ -1,0 +1,19 @@
+<resources>
+    <!-- Home screen widget -->
+    <string name="widget_description">Мапа областей під тривогою та цілей у повітрі, з кількістю за сьогодні</string>
+    <string name="widget_map_description">Мапа України з областями під тривогою та цілями в повітрі</string>
+    <string name="widget_updated">Оновлено %s тому</string>
+    <string name="widget_preview_updated">Оновлено 1 хв тому</string>
+    <string name="widget_label_active">Активні</string>
+    <string name="widget_label_today">Сьогодні</string>
+    <string name="widget_label_yesterday">Учора</string>
+    <string name="widget_pin_unsupported">Утримуйте палець на головному екрані, відкрийте «Віджети» й виберіть RadarNebo.</string>
+    <string name="widget_label_month">Цей місяць</string>
+
+    <!-- New feature: the widget -->
+    <string name="widget_promo_badge">Нове</string>
+    <string name="widget_promo_title">RadarNebo на головному екрані</string>
+    <string name="widget_promo_text">Новий віджет показує на мапі України області під тривогою та цілі в повітрі, а також скільки цілей було сьогодні, учора й цього місяця. Він оновлюється щохвилини, поки екран увімкнений; змінити це можна в Налаштуваннях.</string>
+    <string name="widget_promo_add">Додати</string>
+    <string name="widget_promo_ignore">Пропустити</string>
+</resources>

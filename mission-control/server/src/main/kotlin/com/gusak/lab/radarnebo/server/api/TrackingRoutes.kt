@@ -1,17 +1,24 @@
 package com.gusak.lab.radarnebo.server.api
 
+import com.gusak.lab.radarnebo.data.RadarNeboApi
 import com.gusak.lab.radarnebo.data.ThreatType
 import com.gusak.lab.radarnebo.server.application.SituationService
 import com.gusak.lab.radarnebo.server.domain.tracking.TrackQuery
 import com.gusak.lab.radarnebo.tracking.DronePositionsResponse
 import com.gusak.lab.radarnebo.tracking.DroneTracksResponse
+import com.gusak.lab.radarnebo.tracking.TargetStatsResponse
 import com.gusak.lab.radarnebo.tracking.TrackInterpolator
 import io.ktor.http.Parameters
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.minutes
 
 /**
  * RadarNebo's own API on top of alerts.in.ua's: the targets the server tracks, where they are, and where
@@ -45,7 +52,36 @@ internal fun Route.trackingRoutes(situation: SituationService, pollInterval: () 
             .mapNotNull { TrackInterpolator.positionAt(it, at) }
         call.respond(DronePositionsResponse(at, positions))
     }
+
+    // Every widget asks for these about once a minute, so one count serves them all for that long.
+    val stats = AtomicReference<TargetStatsResponse?>(null)
+
+    /** How many targets were in the air today, yesterday and this month, in Kyiv time. */
+    get(RadarNeboApi.TARGET_STATS_PATH) {
+        situation.requireData()
+        val now = clock()
+        val fresh = stats.get()?.takeIf { now - it.serverTime in 0 until STATS_TTL.inWholeMilliseconds }
+        call.respond(fresh ?: countTargets(situation, now).also(stats::set))
+    }
 }
+
+private suspend fun countTargets(situation: SituationService, now: Long): TargetStatsResponse {
+    val today = Instant.ofEpochMilli(now).atZone(KYIV).toLocalDate()
+    fun startOf(day: LocalDate): Long = day.atStartOfDay(KYIV).toInstant().toEpochMilli()
+    val todayStart = startOf(today)
+    return TargetStatsResponse(
+        serverTime = now,
+        today = situation.countTracks(todayStart, now),
+        yesterday = situation.countTracks(startOf(today.minusDays(1)), todayStart - 1),
+        thisMonth = situation.countTracks(startOf(today.withDayOfMonth(1)), now),
+        simulated = situation.simulated,
+    )
+}
+
+private val STATS_TTL = 1.minutes
+
+/** Calendar periods in the stats follow Ukrainian time, whatever the server's own zone. */
+private val KYIV: ZoneId = ZoneId.of("Europe/Kyiv")
 
 /** The track archive, on its own rate limit: each call can read a week of tracks. */
 internal fun Route.trackArchiveRoutes(situation: SituationService, clock: () -> Long) {

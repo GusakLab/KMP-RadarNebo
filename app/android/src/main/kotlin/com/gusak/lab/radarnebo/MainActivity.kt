@@ -3,15 +3,34 @@ package com.gusak.lab.radarnebo
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.gusak.lab.radarnebo.data.KeyValueStorage
+import com.gusak.lab.radarnebo.data.SettingsRepository
+import com.gusak.lab.radarnebo.ui.RadarTheme
+import com.gusak.lab.radarnebo.widget.TargetsWidget
+import com.gusak.lab.radarnebo.widget.WidgetPromo
+import com.gusak.lab.radarnebo.widget.WidgetPromoScreen
+import org.koin.android.ext.android.inject
 
 class MainActivity : ComponentActivity() {
+    private val settings: SettingsRepository by inject()
+    private val storage: KeyValueStorage by inject()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        val promo = WidgetPromo(storage)
+        val promoDue = promo.isDue(this)
         setContent {
             App(
                 // Keep status/navigation bar icons legible when the in-app theme differs from the system one.
@@ -28,7 +47,33 @@ class MainActivity : ComponentActivity() {
                 } else {
                     null
                 },
+                onAddWidget = ::addWidget,
             )
+            val appSettings by settings.settings.collectAsStateWithLifecycle()
+            // Launching the app or changing the interval refreshes the widget at once and restarts its alarm.
+            LaunchedEffect(appSettings.widgetRefreshMinutes) { TargetsWidget.refreshNow(this@MainActivity) }
+            var showPromo by rememberSaveable { mutableStateOf(promoDue) }
+            if (showPromo) {
+                RadarTheme(appSettings.themeMode, appSettings.colorPalette) {
+                    WidgetPromoScreen(
+                        onAdd = {
+                            promo.answer()
+                            showPromo = false
+                            addWidget()
+                        },
+                        onIgnore = {
+                            promo.answer()
+                            showPromo = false
+                        },
+                    )
+                }
+            }
+        }
+    }
+
+    private fun addWidget() {
+        if (!TargetsWidget.requestPin(this)) {
+            Toast.makeText(this, R.string.widget_pin_unsupported, Toast.LENGTH_LONG).show()
         }
     }
 }

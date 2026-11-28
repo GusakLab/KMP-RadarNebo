@@ -31,6 +31,7 @@ import com.gusak.lab.radarnebo.server.infrastructure.persistence.InMemoryTrackAr
 import com.gusak.lab.radarnebo.server.radarServer
 import com.gusak.lab.radarnebo.tracking.DronePositionsResponse
 import com.gusak.lab.radarnebo.tracking.DroneTracksResponse
+import com.gusak.lab.radarnebo.tracking.TargetStatsResponse
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.statement.HttpResponse
@@ -397,6 +398,46 @@ class RadarApiTest {
         assertEquals(listOf(track.id), archive.tracks.map { it.id })
         assertEquals(HttpStatusCode.BadRequest, client.get("${RadarNeboApi.TRACK_ARCHIVE_PATH}?type=balloons").status)
         assertEquals(HttpStatusCode.BadRequest, client.get("${RadarNeboApi.TRACK_ARCHIVE_PATH}?from=2&to=1").status)
+    }
+
+    @Test
+    fun targetStatsCountLiveAndArchivedTargetsByKyivDay() = testApplication {
+        val server = server()
+        source.alerts = listOf(alert(1, Fixtures.BROVARY))
+        server.poll()
+        now += 40.minutes.inWholeMilliseconds
+        source.alerts = emptyList()
+        server.poll()
+        // The next day a new target is in the air; yesterday's is in the archive only.
+        now = (Fixtures.T0 + 1.days).toEpochMilliseconds()
+        source.alerts = listOf(alert(2, Fixtures.BROVARY, startedAt = Fixtures.T0 + 1.days))
+        server.poll()
+
+        val stats = RadarNeboApi.json.decodeFromString(
+            TargetStatsResponse.serializer(),
+            text(RadarNeboApi.TARGET_STATS_PATH).second,
+        )
+
+        assertEquals(TargetStatsResponse(serverTime = now, today = 1, yesterday = 1, thisMonth = 2), stats)
+    }
+
+    @Test
+    fun targetStatsAreCountedAtMostOnceAMinute() = testApplication {
+        val server = server()
+        server.poll()
+        suspend fun today() = RadarNeboApi.json.decodeFromString(
+            TargetStatsResponse.serializer(),
+            text(RadarNeboApi.TARGET_STATS_PATH).second,
+        ).today
+        assertEquals(0, today())
+
+        now += 30.seconds.inWholeMilliseconds
+        source.alerts = listOf(alert(1, Fixtures.BROVARY, startedAt = Fixtures.T0 + 30.seconds))
+        server.poll()
+        assertEquals(0, today(), "the count from half a minute ago still serves")
+
+        now += 30.seconds.inWholeMilliseconds
+        assertEquals(1, today(), "a minute on, the server counts again")
     }
 
     @Test

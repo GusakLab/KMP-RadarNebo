@@ -1,3 +1,27 @@
 <resources>
     <string name="app_name">RadarNebo</string>
+
+    <!-- Home screen widget -->
+    <string name="widget_description">Map of the oblasts under alert and the targets in the air, with today\'s counts</string>
+    <string name="widget_map_description">Map of Ukraine with the oblasts under alert and the targets in the air</string>
+    <string name="widget_updated">Updated %s ago</string>
+    <string name="widget_no_value">–</string>
+    <!-- Example counts in the widget picker's preview -->
+    <string name="widget_preview_active" translatable="false">3</string>
+    <string name="widget_preview_today" translatable="false">42</string>
+    <string name="widget_preview_yesterday" translatable="false">57</string>
+    <string name="widget_preview_month" translatable="false">1280</string>
+    <string name="widget_preview_updated">Updated 1 min ago</string>
+    <string name="widget_label_active">Active</string>
+    <string name="widget_label_today">Today</string>
+    <string name="widget_label_yesterday">Yesterday</string>
+    <string name="widget_pin_unsupported">Long-press the home screen, open Widgets and pick RadarNebo.</string>
+    <string name="widget_label_month">This month</string>
+
+    <!-- New feature: the widget -->
+    <string name="widget_promo_badge">New</string>
+    <string name="widget_promo_title">RadarNebo on your home screen</string>
+    <string name="widget_promo_text">The new widget shows the oblasts under alert and the targets in the air on a map of Ukraine, with how many targets there were today, yesterday and this month. It refreshes every minute while the screen is on; change that in Settings.</string>
+    <string name="widget_promo_add">Add</string>
+    <string name="widget_promo_ignore">Ignore</string>
 </resources>

@@ -73,12 +73,15 @@ private enum class Tab(val label: String, val glyph: String) {
  * @param onOpenRequests opens the request inspector (a window on desktop, an activity on Android). Null marks a
  * release build: it hides the inspector's buttons and raw request errors.
  * @param events host navigation, used by Linux notification clicks. Null on every other platform.
+ * @param onAddWidget asks the launcher to pin the home screen widget. Null where there is no widget: it hides the
+ * widget's settings.
  */
 @Composable
 fun App(
     onThemeApplied: (mode: ThemeMode, dark: Boolean) -> Unit = { _, _ -> },
     onOpenRequests: (() -> Unit)? = null,
     events: AppEvents? = null,
+    onAddWidget: (() -> Unit)? = null,
 ) {
     val vm = koinViewModel<AppViewModel>()
     // Provided by the platform modules only, so tests and previews never download map tiles.
@@ -97,7 +100,7 @@ fun App(
 
     RadarTheme(state.settings.themeMode, state.settings.colorPalette, onThemeApplied) {
         CompositionLocalProvider(LocalMapTiles provides mapTiles) {
-            AppContent(vm, state, tab, onTabChange = { tab = it }, onOpenRequests, focus = focus)
+            AppContent(vm, state, tab, onTabChange = { tab = it }, onOpenRequests, onAddWidget, focus = focus)
         }
     }
 }
@@ -134,6 +137,7 @@ private fun AppContent(
     tab: Tab,
     onTabChange: (Tab) -> Unit,
     onOpenRequests: (() -> Unit)?,
+    onAddWidget: (() -> Unit)?,
     focus: MapFocus?,
 ) {
     val backdrop = rememberGlassBackdrop()
@@ -163,7 +167,16 @@ private fun AppContent(
                 focus = focus,
             )
         }
-        AppDialogs(vm, state, tab, onClose = { onTabChange(Tab.Map) }, backdrop, bottomInset, onOpenRequests)
+        AppDialogs(
+            vm,
+            state,
+            tab,
+            onClose = { onTabChange(Tab.Map) },
+            backdrop,
+            bottomInset,
+            onOpenRequests,
+            onAddWidget,
+        )
         AppNavigationBar(navBarVisible, state, tab, onTabChange, backdrop)
     }
 }
@@ -207,6 +220,7 @@ private fun AppDialogs(
     backdrop: GlassBackdrop,
     bottomInset: Dp,
     onOpenRequests: (() -> Unit)?,
+    onAddWidget: (() -> Unit)?,
 ) {
     val topAndSides = Modifier.windowInsetsPadding(
         WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
@@ -231,7 +245,12 @@ private fun AppDialogs(
         modifier = topAndSides,
         bottomInset = bottomInset,
     ) {
-        SettingsScreen(state.settings, onChange = vm::updateSettings, onOpenRequests = onOpenRequests)
+        SettingsScreen(
+            state.settings,
+            onChange = vm::updateSettings,
+            onOpenRequests = onOpenRequests,
+            onAddWidget = onAddWidget,
+        )
     }
 }
 

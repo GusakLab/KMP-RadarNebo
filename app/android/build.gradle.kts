@@ -24,6 +24,8 @@ dependencies {
 
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtimeCompose)
+    // The widget's launch offer is a full-screen page in the app's Material theme.
+    implementation(libs.compose.material3)
 
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics)

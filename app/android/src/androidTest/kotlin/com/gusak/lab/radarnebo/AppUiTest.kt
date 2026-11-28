@@ -2,22 +2,29 @@ package com.gusak.lab.radarnebo
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Rect
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.BySelector
-import androidx.test.uiautomator.Direction
+import androidx.test.uiautomator.Configurator
 import androidx.test.uiautomator.StaleObjectException
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.UiObject2
 import androidx.test.uiautomator.Until
+import com.gusak.lab.radarnebo.data.KeyValueStorage
+import com.gusak.lab.radarnebo.widget.TargetsWidget
+import com.gusak.lab.radarnebo.widget.WidgetPromo
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.koin.mp.KoinPlatform
+import java.util.regex.Pattern
 
 /**
  * Drives the installed app from the outside. The map animates without end, so the Compose test rule would never see
@@ -28,14 +35,41 @@ class AppUiTest {
     private val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
     private val packageName = ApplicationProvider.getApplicationContext<Context>().packageName
 
+    private val storage by lazy { KoinPlatform.getKoin().get<KeyValueStorage>() }
+
     @Before
     fun launchApp() {
+        // The map animates without end, so the screen never goes idle: every query would wait the full default 10 s.
+        Configurator.getInstance().waitForIdleTimeout = IDLE_TIMEOUT
+        // The widget offer would cover the screens under test; one test brings it back.
+        storage.putString(WidgetPromo.KEY_ANSWERED, true.toString())
+        launch()
+        need(By.text("Settings"))
+    }
+
+    private fun launch() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val intent = requireNotNull(context.packageManager.getLaunchIntentForPackage(packageName))
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
         context.startActivity(intent)
         need(By.pkg(packageName).depth(0))
+    }
+
+    @Test
+    fun theWidgetOfferShowsOnLaunchUntilIgnored() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        // With a widget already on the home screen the offer rightly stays away; there is nothing to test then.
+        assumeTrue("a widget is on the home screen", TargetsWidget.widgetIds(context).isEmpty())
+        storage.putString(WidgetPromo.KEY_ANSWERED, null)
+        launch()
+        need(By.text("RadarNebo on your home screen"))
+        need(By.text("Add"))
+        need(By.text("Ignore")).click()
+        assertTrue("The offer should close", device.wait(Until.gone(By.text("Ignore")), TIMEOUT))
+
+        launch()
         need(By.text("Settings"))
+        assertTrue("The offer shows only once", !device.hasObject(By.text("Ignore")))
     }
 
     @Test
@@ -126,7 +160,7 @@ class AppUiTest {
             assertTrue("$theme should be selected", device.wait(selected, TIMEOUT))
         }
 
-        for (section in listOf("ALERTS & TRACKING", "TARGET TYPES")) {
+        for (section in listOf("ALERTS & TRACKING", "HOME SCREEN WIDGET", "TARGET TYPES")) {
             scrollTo(By.text(section))
         }
     }
@@ -184,24 +218,53 @@ class AppUiTest {
         need(selector).click()
     }
 
+    /** Scrolls until [selector] is on screen and stays put: an animated scroll can carry it past. */
     private fun scrollTo(selector: BySelector) {
         repeat(MAX_SCROLLS) {
-            if (device.hasObject(selector)) return
-            try {
-                device.findObject(By.scrollable(true))?.scroll(Direction.DOWN, 0.7f)
-            } catch (_: StaleObjectException) {
-                // A scroll still settling replaced the node; the next pass looks it up again.
+            val before = boundsOf(selector)
+            if (before == null) {
+                try {
+                    scrollDown()
+                } catch (_: StaleObjectException) {
+                    // A scroll still settling replaced the node; the next pass looks it up again.
+                }
             }
             device.waitForIdle(SETTLE)
+            if (before != null && before == boundsOf(selector)) return
         }
         need(selector)
+    }
+
+    private fun boundsOf(selector: BySelector): Rect? = try {
+        device.findObject(selector)?.visibleBounds
+    } catch (_: StaleObjectException) {
+        null
+    }
+
+    /**
+     * Swipes the list up from the lowest label on it, never from its centre: a swipe that starts on a slider moves
+     * the slider, and the list stays put.
+     */
+    private fun scrollDown() {
+        val list = device.findObject(By.scrollable(true)) ?: return
+        val bounds = list.visibleBounds
+        val label = list.findObjects(By.text(Pattern.compile(".+")))
+            .map { it.visibleBounds }
+            .filter { it.centerY() < bounds.bottom - bounds.height() / 10 }
+            .maxByOrNull { it.centerY() }
+            ?: return
+        // Half a screen at a time, slowly, so the list doesn't fling past what we're looking for.
+        val to = (label.centerY() - bounds.height() / 2).coerceAtLeast(bounds.top + bounds.height() / 10)
+        device.swipe(label.centerX(), label.centerY(), label.centerX(), to, SWIPE_STEPS)
     }
 
     private companion object {
         const val TIMEOUT = 10_000L
         const val SETTLE = 500L
-        const val MAX_SCROLLS = 15
+        const val MAX_SCROLLS = 30
         const val ROW_SLOP = 150
         const val MAX_TAP_TRIES = 3
+        const val SWIPE_STEPS = 100
+        const val IDLE_TIMEOUT = 500L
     }
 }

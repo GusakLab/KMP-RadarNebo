@@ -18,6 +18,8 @@ data class AppSettings(
     val mapBackground: MapBackground = MapBackground.Streets,
     /** Outline the territory Russia occupies; the app fetches it only while this is on. */
     val showFrontline: Boolean = true,
+    /** How often the Android home screen widget refreshes while the screen is on. */
+    val widgetRefreshMinutes: Int = DEFAULT_WIDGET_REFRESH_MINUTES,
 ) {
     internal val endpoint: ServerEndpoint get() = ServerEndpoint(serverUrl.trim(), accessKey.trim())
 
@@ -28,5 +30,9 @@ data class AppSettings(
         val POLL_RANGE: IntRange = 10..300
         const val DEFAULT_TARGET_WINDOW_MINUTES: Int = 60
         val TARGET_WINDOW_RANGE: IntRange = 10..25 * 60
+
+        /** Android repeats alarms no more often than once a minute, so one minute is as soon as the widget can go. */
+        const val DEFAULT_WIDGET_REFRESH_MINUTES: Int = 1
+        val WIDGET_REFRESH_RANGE: IntRange = 1..60
     }
 }

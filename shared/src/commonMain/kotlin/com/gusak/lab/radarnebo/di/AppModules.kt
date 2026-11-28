@@ -10,6 +10,7 @@ import com.gusak.lab.radarnebo.data.SettingsRepository
 import com.gusak.lab.radarnebo.debug.TrafficLog
 import com.gusak.lab.radarnebo.domain.usecase.AddFavoriteUseCase
 import com.gusak.lab.radarnebo.domain.usecase.BuildThreatPictureUseCase
+import com.gusak.lab.radarnebo.domain.usecase.LoadTargetsSummaryUseCase
 import com.gusak.lab.radarnebo.domain.usecase.RefreshAlertsUseCase
 import com.gusak.lab.radarnebo.domain.usecase.RemoveFavoriteUseCase
 import com.gusak.lab.radarnebo.domain.usecase.UpdateSettingsUseCase
@@ -50,6 +51,7 @@ internal fun domainModule(): Module = module {
     factoryOf(::UpdateSettingsUseCase)
     factory { AddFavoriteUseCase(get()) }
     factoryOf(::RemoveFavoriteUseCase)
+    factoryOf(::LoadTargetsSummaryUseCase)
 }
 
 internal fun viewModelModule(): Module = module {

@@ -66,6 +66,8 @@ internal fun SettingsScreen(
     modifier: Modifier = Modifier,
     /** Opens the request inspector; null hides the Developer section. */
     onOpenRequests: (() -> Unit)? = null,
+    /** Asks the launcher to pin the home screen widget; null hides the Widget section. */
+    onAddWidget: (() -> Unit)? = null,
 ) {
     Column(
         modifier.verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 16.dp),
@@ -74,6 +76,7 @@ internal fun SettingsScreen(
         AppearanceSection(settings, onChange)
         MapSection(settings, onChange)
         AlertsSection(settings, onChange)
+        if (onAddWidget != null) WidgetSection(settings, onChange, onAddWidget)
         if (onOpenRequests != null) {
             SettingsSection("Developer", "{ }") {
                 SettingRow(
@@ -195,6 +198,24 @@ private fun AlertsSection(settings: AppSettings, onChange: SettingsChange) {
             range = AppSettings.POLL_RANGE,
             format = { "$it s" },
             onChange = { v -> onChange { it.copy(pollSeconds = v) } },
+        )
+    }
+}
+
+@Composable
+private fun WidgetSection(settings: AppSettings, onChange: SettingsChange, onAddWidget: () -> Unit) {
+    SettingsSection("Home screen widget", "▦") {
+        SettingRow("Add the widget", "Alerts, targets in the air and today's counts on your home screen.") {
+            OutlinedButton(onClick = onAddWidget) { Text("Add") }
+        }
+        SectionDivider()
+        SliderSetting(
+            title = "Widget refresh interval",
+            description = "How often the widget refreshes while the screen is on. It never wakes the phone.",
+            value = settings.widgetRefreshMinutes,
+            range = AppSettings.WIDGET_REFRESH_RANGE,
+            format = { "$it min" },
+            onChange = { v -> onChange { it.copy(widgetRefreshMinutes = v) } },
         )
     }
 }

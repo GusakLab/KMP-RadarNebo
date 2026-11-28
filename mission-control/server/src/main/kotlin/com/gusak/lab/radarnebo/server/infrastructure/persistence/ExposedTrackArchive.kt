@@ -12,6 +12,7 @@ import org.jetbrains.exposed.v1.core.less
 import org.jetbrains.exposed.v1.core.lessEq
 import org.jetbrains.exposed.v1.jdbc.batchUpsert
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
+import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 
 /** [TrackArchive] in [ArchiveDatabase], partitioned by data source ([partitionKey]). */
@@ -41,6 +42,15 @@ internal class ExposedTrackArchive(private val db: ArchiveDatabase, private val 
             .orderBy(TracksTable.lastSeen, SortOrder.DESC)
             .limit(query.limit)
             .map { AlertsInUaContract.json.decodeFromString(DroneTrack.serializer(), it[TracksTable.payload]) }
+    }
+
+    override suspend fun idsInAir(fromMs: Long, toMs: Long): Set<String> = db.query {
+        TracksTable.select(TracksTable.id)
+            .where {
+                (TracksTable.partition eq partitionKey) and
+                    (TracksTable.firstSeen lessEq toMs) and (TracksTable.lastSeen greaterEq fromMs)
+            }
+            .mapTo(HashSet()) { it[TracksTable.id] }
     }
 
     override suspend fun prune(beforeMs: Long): Int = db.query {

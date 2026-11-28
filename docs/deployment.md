@@ -73,6 +73,8 @@ archive `ARCHIVE_REQUESTS_PER_MINUTE`, 10/min). With `TRUST_PROXY_HEADERS=true` 
 goes through the proxy, as in the compose deployment; anywhere else leave it `false`, or any client could pick its own IP.
 
 `/v1/drones/archive.json` covers a window of at most 7 days, with `limit` at most 200 (the default); more is a 400.
+`/v1/drones/stats.json`, which the Android widget reads, counts the targets in the air today, yesterday and this month
+(Kyiv time). The server counts at most once a minute and serves that count to every client in the meantime.
 
 `/v1/frontline.json` is read from `deepstatemap.live` when a client asks for it, at most once a day (a failed read
 is retried after five minutes), so the server needs outbound HTTPS to that host. It answers 503 until the first read

@@ -99,6 +99,12 @@ class SituationService internal constructor(
             .take(query.limit)
     }
 
+    /** How many targets, live or archived, were in the air at some point between [fromMs] and [toMs]. */
+    internal suspend fun countTracks(fromMs: Long, toMs: Long): Int {
+        val live = tracks.filter { it.firstSeen <= toMs && it.lastSeen >= fromMs }.map { it.id }
+        return (trackArchive.idsInAir(fromMs, toMs) + live).size
+    }
+
     /** Deletes archived alerts and tracks that ended before [before]. */
     internal suspend fun pruneArchive(before: Instant): Int =
         alertArchive.prune(before) + trackArchive.prune(before.toEpochMilliseconds())

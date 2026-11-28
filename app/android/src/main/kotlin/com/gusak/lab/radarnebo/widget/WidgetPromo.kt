@@ -2,21 +2,15 @@ package com.gusak.lab.radarnebo.widget
 
 import android.appwidget.AppWidgetManager
 import android.content.Context
-import com.gusak.lab.radarnebo.data.KeyValueStorage
+import com.gusak.lab.radarnebo.data.WidgetOfferSchedule
 
-/** The launch offer of the home screen widget: shown until the user adds the widget or ignores the offer, once. */
-internal class WidgetPromo(private val storage: KeyValueStorage) {
-    /** Due unless answered, a widget is already there, or the launcher can't pin one. */
-    fun isDue(context: Context): Boolean =
-        storage.getString(KEY_ANSWERED) == null &&
+/** The launcher's pin dialog for the home screen widget, offered on launch as [WidgetOfferSchedule] says. */
+internal class WidgetPromo(private val schedule: WidgetOfferSchedule) {
+    /** Offers the widget when the schedule says so, unless one is already there or the launcher can't pin one. */
+    fun offerIfDue(context: Context, nowMs: Long) {
+        val due = schedule.isDue(nowMs) &&
             AppWidgetManager.getInstance(context).isRequestPinAppWidgetSupported &&
             TargetsWidget.widgetIds(context).isEmpty()
-
-    fun answer() {
-        storage.putString(KEY_ANSWERED, true.toString())
-    }
-
-    companion object {
-        const val KEY_ANSWERED: String = "widget_promo_answered"
+        if (due && TargetsWidget.requestPin(context)) schedule.recordOffer(nowMs)
     }
 }

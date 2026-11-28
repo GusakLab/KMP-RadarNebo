@@ -19,9 +19,4 @@
     <string name="widget_label_month">This month</string>
 
     <!-- New feature: the widget -->
-    <string name="widget_promo_badge">New</string>
-    <string name="widget_promo_title">RadarNebo on your home screen</string>
-    <string name="widget_promo_text">The new widget shows the oblasts under alert and the targets in the air on a map of Ukraine, with how many targets there were today, yesterday and this month. It refreshes every minute while the screen is on; change that in Settings.</string>
-    <string name="widget_promo_add">Add</string>
-    <string name="widget_promo_ignore">Ignore</string>
 </resources>

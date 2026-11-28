@@ -11,9 +11,4 @@
     <string name="widget_label_month">Deze maand</string>
 
     <!-- New feature: the widget -->
-    <string name="widget_promo_badge">Nieuw</string>
-    <string name="widget_promo_title">RadarNebo op je startscherm</string>
-    <string name="widget_promo_text">De nieuwe widget toont de oblasten met luchtalarm en de doelen in de lucht op een kaart van Oekraïne, en hoeveel doelen er vandaag, gisteren en deze maand waren. Hij ververst elke minuut zolang het scherm aan staat; dat wijzig je in Instellingen.</string>
-    <string name="widget_promo_add">Toevoegen</string>
-    <string name="widget_promo_ignore">Negeren</string>
 </resources>

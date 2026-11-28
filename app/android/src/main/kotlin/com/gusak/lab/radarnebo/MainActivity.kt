@@ -10,16 +10,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.gusak.lab.radarnebo.data.KeyValueStorage
 import com.gusak.lab.radarnebo.data.SettingsRepository
-import com.gusak.lab.radarnebo.ui.RadarTheme
+import com.gusak.lab.radarnebo.data.WidgetOfferSchedule
 import com.gusak.lab.radarnebo.widget.TargetsWidget
 import com.gusak.lab.radarnebo.widget.WidgetPromo
-import com.gusak.lab.radarnebo.widget.WidgetPromoScreen
 import org.koin.android.ext.android.inject
 
 class MainActivity : ComponentActivity() {
@@ -29,8 +25,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        val promo = WidgetPromo(storage)
-        val promoDue = promo.isDue(this)
+        WidgetPromo(WidgetOfferSchedule(storage)).offerIfDue(this, System.currentTimeMillis())
         setContent {
             App(
                 // Keep status/navigation bar icons legible when the in-app theme differs from the system one.
@@ -52,22 +47,6 @@ class MainActivity : ComponentActivity() {
             val appSettings by settings.settings.collectAsStateWithLifecycle()
             // Launching the app or changing the interval refreshes the widget at once and restarts its alarm.
             LaunchedEffect(appSettings.widgetRefreshMinutes) { TargetsWidget.refreshNow(this@MainActivity) }
-            var showPromo by rememberSaveable { mutableStateOf(promoDue) }
-            if (showPromo) {
-                RadarTheme(appSettings.themeMode, appSettings.colorPalette) {
-                    WidgetPromoScreen(
-                        onAdd = {
-                            promo.answer()
-                            showPromo = false
-                            addWidget()
-                        },
-                        onIgnore = {
-                            promo.answer()
-                            showPromo = false
-                        },
-                    )
-                }
-            }
         }
     }
 

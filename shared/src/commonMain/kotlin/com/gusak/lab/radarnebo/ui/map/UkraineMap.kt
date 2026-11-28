@@ -679,24 +679,26 @@ private fun DrawScope.drawPendingFavorite(scene: MapScene) {
     drawFavoriteGlyph(p, 10.dp.toPx(), colors.favorite, colors.glyphOutline)
 }
 
-/** Where focused targets are heading, and the selected one's course over the ground with its report times. */
+/** Where focused targets are heading, and the selected one's course with its report times. */
 private fun DrawScope.drawFocusedCourses(scene: MapScene, visibleTracks: List<TrackPosition>, now: Long) {
     val content = scene.content
     val places = content.predictionPlaces
     if (places.isNotEmpty()) {
         visibleTracks.filter { content.isFocused(it.track) }.forEach { (track, position) ->
+            val flight = Flight(scene.camera, scene.glyphs.kindOf(track).typicalAltitudeM)
             if (track.id == content.selectedTrackId) {
-                drawPredictedRoute(track, position, now, places, scene.camera, scene.colors, scene.textMeasurer)
+                drawPredictedRoute(track, position, now, places, flight, scene.colors, scene.textMeasurer)
             } else {
                 TrackPredictor.predict(track, now, places)
-                    ?.let { drawPrediction(position, it, scene.camera, scene.colors, scene.textMeasurer) }
+                    ?.let { drawPrediction(position, it, flight, scene.colors, scene.textMeasurer) }
             }
         }
     }
-    // The selected target's course over the ground, under everything in the air.
+    // The selected target's course, at its own height, under everything in the air.
     visibleTracks.firstOrNull { it.track.id == content.selectedTrackId }?.let { (track, position) ->
-        drawTrail(track, position, now, scene.camera)
-        drawTrackTimestamps(track, scene.camera, scene.colors, scene.textMeasurer)
+        val flight = Flight(scene.camera, scene.glyphs.kindOf(track).typicalAltitudeM)
+        drawTrail(track, position, now, flight)
+        drawTrackTimestamps(track, flight, scene.colors, scene.textMeasurer)
     }
 }
 
@@ -798,12 +800,12 @@ private fun trackPositions(tracks: List<DroneTrack>, now: Long): List<TrackPosit
     .mapNotNull { track -> TrackInterpolator.positionAt(track, now)?.let { TrackPosition(track, it) } }
 
 /**
- * The selected target's trail over the ground up to where it is now: a dashed white line that fades out towards
- * the oldest report, so the recent course reads first, with a dot at every reported position. The line follows
- * the server's smoothed path when it sends one, else the reports themselves.
+ * The selected target's trail up to where it is now, at the height its icon flies: a dashed white line that fades
+ * out towards the oldest report, so the recent course reads first, with a dot at every reported position. The line
+ * follows the server's smoothed path when it sends one, else the reports themselves.
  */
-private fun DrawScope.drawTrail(track: DroneTrack, position: InterpolatedPosition, now: Long, camera: MapCamera) {
-    fun screen(point: GeoPoint) = camera.toScreen(MapProjection.toWorld(point), size)
+private fun DrawScope.drawTrail(track: DroneTrack, position: InterpolatedPosition, now: Long, flight: Flight) {
+    fun screen(point: GeoPoint) = inFlight(point, flight)
     val reports = track.samples.filter { it.t <= now }.map { screen(it.point) }
     val head = screen(position.point)
     val path = track.path.filter { it.t <= now }
@@ -847,12 +849,12 @@ private fun catmullRom(points: List<Offset>, steps: Int = 4): List<Offset> {
  * ([com.gusak.lab.radarnebo.tracking.ForecastPoint.sigmaKm]), so the course ahead reads as a likely corridor
  * rather than a promise.
  */
-private fun DrawScope.drawForecastCone(track: DroneTrack, camera: MapCamera, color: Color) {
+private fun DrawScope.drawForecastCone(track: DroneTrack, flight: Flight, color: Color) {
     val forecast = track.forecast
     if (forecast.size < 2) return
     val heading = GeoMath.bearingDeg(forecast.first().point, forecast.last().point)
     fun side(sign: Int) = forecast.map { f ->
-        camera.toScreen(MapProjection.toWorld(GeoMath.destination(f.point, heading + 90.0 * sign, f.sigmaKm)), size)
+        inFlight(GeoMath.destination(f.point, heading + 90.0 * sign, f.sigmaKm), flight)
     }
     val left = side(-1)
     val right = side(1)
@@ -910,6 +912,13 @@ private fun DrawScope.drawTarget(
  * larger.
  */
 private class Elevated(val ground: Offset, val air: Offset, val scale: Float)
+
+/** The height a target's icon flies at, so its trail and course are drawn at that height too (see [elevate]). */
+private class Flight(val camera: MapCamera, val altitudeM: Int?)
+
+/** Where [point] shows up at [flight]'s height. */
+private fun DrawScope.inFlight(point: GeoPoint, flight: Flight): Offset =
+    elevate(flight.camera.toScreen(MapProjection.toWorld(point), size), flight.altitudeM, size).air
 
 /**
  * The map's perspective camera: it looks straight down on the map from above the centre of the view. A target
@@ -1009,20 +1018,19 @@ private fun DrawScope.drawPredictedRoute(
     position: InterpolatedPosition,
     now: Long,
     places: List<Place>,
-    camera: MapCamera,
+    flight: Flight,
     colors: RadarColors,
     textMeasurer: TextMeasurer,
 ) {
-    drawForecastCone(track, camera, colors.warning)
+    drawForecastCone(track, flight, colors.warning)
     val route = TrackPredictor.route(track, now, places)
     val horizon = (route.lastOrNull()?.distanceKm?.plus(25.0) ?: 60.0).coerceAtMost(TrackPredictor.ROUTE_HORIZON_KM)
     val end = TrackPredictor.courseEnd(track, now, horizon) ?: return
-    val from = camera.toScreen(MapProjection.toWorld(position.point), size)
-    val to = camera.toScreen(MapProjection.toWorld(end), size)
-    drawCourseArrow(from, to, colors.warning)
+    drawCourseArrow(inFlight(position.point, flight), inFlight(end, flight), colors.warning)
     var lastLabelled: GeoPoint? = null
     route.forEachIndexed { index, stop ->
-        val p = camera.toScreen(MapProjection.toWorld(stop.place.point), size)
+        // Settlements stay on the ground.
+        val p = flight.camera.toScreen(MapProjection.toWorld(stop.place.point), size)
         drawCircle(colors.warning, 7.dp.toPx(), p, style = Stroke(2.dp.toPx()))
         drawCircle(colors.warning, 2.5.dp.toPx(), p)
         // Stops a few km apart (a favorite inside a city) would print over each other; the panel lists them all.
@@ -1052,13 +1060,13 @@ private fun DrawScope.drawWarningChip(label: TextLayoutResult, topLeft: Offset, 
 /** Time label next to every reported position of the selected track. */
 private fun DrawScope.drawTrackTimestamps(
     track: DroneTrack,
-    camera: MapCamera,
+    flight: Flight,
     colors: RadarColors,
     textMeasurer: TextMeasurer,
 ) {
     val style = TextStyle(color = colors.onOverlay, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
     track.samples.forEach { sample ->
-        val p = camera.toScreen(MapProjection.toWorld(sample.point), size)
+        val p = inFlight(sample.point, flight)
         val label = textMeasurer.measure(formatTime(Instant.fromEpochMilliseconds(sample.t)), style)
         val topLeft = Offset(p.x + 8.dp.toPx(), p.y - label.size.height - 4.dp.toPx())
         drawRoundRect(
@@ -1071,16 +1079,16 @@ private fun DrawScope.drawTrackTimestamps(
     }
 }
 
-/** Solid arrow from the drone to the place it is heading for, with the estimated time to reach it. */
+/** Solid arrow from the drone, in the air, to the place on the ground it is heading for, with the estimated time. */
 private fun DrawScope.drawPrediction(
     position: InterpolatedPosition,
     prediction: ArrivalPrediction,
-    camera: MapCamera,
+    flight: Flight,
     colors: RadarColors,
     textMeasurer: TextMeasurer,
 ) {
-    val from = camera.toScreen(MapProjection.toWorld(position.point), size)
-    val to = camera.toScreen(MapProjection.toWorld(prediction.place.point), size)
+    val from = inFlight(position.point, flight)
+    val to = flight.camera.toScreen(MapProjection.toWorld(prediction.place.point), size)
     val color = colors.warning
     // The arrow stops at the place's ring rather than covering its dot.
     val ring = 7.dp.toPx()

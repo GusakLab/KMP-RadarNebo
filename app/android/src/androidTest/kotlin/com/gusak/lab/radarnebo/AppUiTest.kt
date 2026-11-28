@@ -14,9 +14,10 @@ import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.UiObject2
 import androidx.test.uiautomator.Until
 import com.gusak.lab.radarnebo.data.KeyValueStorage
+import com.gusak.lab.radarnebo.data.WidgetOfferSchedule
 import com.gusak.lab.radarnebo.widget.TargetsWidget
-import com.gusak.lab.radarnebo.widget.WidgetPromo
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
@@ -41,8 +42,8 @@ class AppUiTest {
     fun launchApp() {
         // The map animates without end, so the screen never goes idle: every query would wait the full default 10 s.
         Configurator.getInstance().waitForIdleTimeout = IDLE_TIMEOUT
-        // The widget offer would cover the screens under test; one test brings it back.
-        storage.putString(WidgetPromo.KEY_ANSWERED, true.toString())
+        // The launcher's widget pin dialog would cover the screens under test; one test brings it back.
+        WidgetOfferSchedule(storage).stop()
         launch()
         need(By.text("Settings"))
     }
@@ -56,20 +57,18 @@ class AppUiTest {
     }
 
     @Test
-    fun theWidgetOfferShowsOnLaunchUntilIgnored() {
+    fun theWidgetOfferIsMadeOnFirstLaunchOnly() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         // With a widget already on the home screen the offer rightly stays away; there is nothing to test then.
         assumeTrue("a widget is on the home screen", TargetsWidget.widgetIds(context).isEmpty())
-        storage.putString(WidgetPromo.KEY_ANSWERED, null)
+        val schedule = WidgetOfferSchedule(storage)
+        schedule.reset()
         launch()
-        need(By.text("RadarNebo on your home screen"))
-        need(By.text("Add"))
-        need(By.text("Ignore")).click()
-        assertTrue("The offer should close", device.wait(Until.gone(By.text("Ignore")), TIMEOUT))
-
+        // The launcher's pin dialog is not ours to drive; Back dismisses whatever it looks like.
+        device.pressBack()
+        assertFalse("The next offer waits a week", schedule.isDue(System.currentTimeMillis()))
         launch()
         need(By.text("Settings"))
-        assertTrue("The offer shows only once", !device.hasObject(By.text("Ignore")))
     }
 
     @Test

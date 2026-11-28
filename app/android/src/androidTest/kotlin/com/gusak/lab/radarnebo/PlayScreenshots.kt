@@ -14,9 +14,11 @@ import androidx.test.uiautomator.BySelector
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.UiObject2
 import androidx.test.uiautomator.Until
+import com.gusak.lab.radarnebo.data.KeyValueStorage
 import com.gusak.lab.radarnebo.ui.map.MapTiles
 import com.gusak.lab.radarnebo.ui.map.TileFrame
 import com.gusak.lab.radarnebo.ui.map.TileSource
+import com.gusak.lab.radarnebo.widget.WidgetPromo
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
@@ -51,6 +53,8 @@ class PlayScreenshots {
         assumeTrue("run with -e capture true", InstrumentationRegistry.getArguments().getString("capture") == "true")
         out.listFiles()?.forEach(File::delete)
         setNightMode(true)
+        // Store screenshots show the app itself, not the widget offer over it.
+        KoinPlatform.getKoin().get<KeyValueStorage>().putString(WidgetPromo.KEY_ANSWERED, true.toString())
         val intent = requireNotNull(context.packageManager.getLaunchIntentForPackage(context.packageName))
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
         context.startActivity(intent)

@@ -42,12 +42,15 @@ class BuildThreatPictureUseCase(
         )
     }
 
-    private fun alertedOblasts(alerts: List<Alert>): Map<Int, Boolean> {
-        val result = mutableMapOf<Int, Boolean>()
-        alerts.filter { it.alertType == "air_raid" || it.threats.isNotEmpty() }.forEach { alert ->
-            val uid = ThreatMapper.oblastUid(alert) ?: return@forEach
-            result[uid] = (result[uid] ?: false) || alert.locationType == "oblast"
+    internal companion object {
+        /** Oblasts under an alert, by uid: true when the alert covers the whole oblast, false for part of it. */
+        fun alertedOblasts(alerts: List<Alert>): Map<Int, Boolean> {
+            val result = mutableMapOf<Int, Boolean>()
+            alerts.filter { it.alertType == "air_raid" || it.threats.isNotEmpty() }.forEach { alert ->
+                val uid = ThreatMapper.oblastUid(alert) ?: return@forEach
+                result[uid] = (result[uid] ?: false) || alert.locationType == "oblast"
+            }
+            return result
         }
-        return result
     }
 }

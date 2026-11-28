@@ -53,6 +53,8 @@ class SettingsRepository(
                 ?.coerceIn(AppSettings.TARGET_WINDOW_RANGE) ?: AppSettings.DEFAULT_TARGET_WINDOW_MINUTES,
             mapBackground = storage.getEnum<MapBackground>(K_MAP_BACKGROUND) ?: MapBackground.Streets,
             showFrontline = storage.getString(K_FRONTLINE)?.toBooleanStrictOrNull() ?: true,
+            widgetRefreshMinutes = storage.getString(K_WIDGET_REFRESH)?.toIntOrNull()
+                ?.coerceIn(AppSettings.WIDGET_REFRESH_RANGE) ?: AppSettings.DEFAULT_WIDGET_REFRESH_MINUTES,
         )
 
     /** The constant of [T] named by the value stored at [key]; null when nothing or an unknown name is stored. */
@@ -72,6 +74,7 @@ class SettingsRepository(
         storage.putString(K_TARGET_WINDOW, settings.targetWindowMinutes.toString())
         storage.putString(K_MAP_BACKGROUND, settings.mapBackground.name)
         storage.putString(K_FRONTLINE, settings.showFrontline.toString())
+        storage.putString(K_WIDGET_REFRESH, settings.widgetRefreshMinutes.toString())
     }
 
     private companion object {
@@ -88,5 +91,6 @@ class SettingsRepository(
         const val K_TARGET_WINDOW = "targets_window_minutes"
         const val K_MAP_BACKGROUND = "map_background"
         const val K_FRONTLINE = "map_frontline"
+        const val K_WIDGET_REFRESH = "widget_refresh_minutes"
     }
 }

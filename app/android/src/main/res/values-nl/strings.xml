@@ -1,0 +1,19 @@
+<resources>
+    <!-- Home screen widget -->
+    <string name="widget_description">Kaart van de oblasten met luchtalarm en de doelen in de lucht, met de aantallen van vandaag</string>
+    <string name="widget_map_description">Kaart van Oekraïne met de oblasten met luchtalarm en de doelen in de lucht</string>
+    <string name="widget_updated">%s geleden bijgewerkt</string>
+    <string name="widget_preview_updated">1 min geleden bijgewerkt</string>
+    <string name="widget_label_active">Actief</string>
+    <string name="widget_label_today">Vandaag</string>
+    <string name="widget_label_yesterday">Gisteren</string>
+    <string name="widget_pin_unsupported">Houd het startscherm ingedrukt, open Widgets en kies RadarNebo.</string>
+    <string name="widget_label_month">Deze maand</string>
+
+    <!-- New feature: the widget -->
+    <string name="widget_promo_badge">Nieuw</string>
+    <string name="widget_promo_title">RadarNebo op je startscherm</string>
+    <string name="widget_promo_text">De nieuwe widget toont de oblasten met luchtalarm en de doelen in de lucht op een kaart van Oekraïne, en hoeveel doelen er vandaag, gisteren en deze maand waren. Hij ververst elke minuut zolang het scherm aan staat; dat wijzig je in Instellingen.</string>
+    <string name="widget_promo_add">Toevoegen</string>
+    <string name="widget_promo_ignore">Negeren</string>
+</resources>
